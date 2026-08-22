@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, XCircle, Trophy, RotateCcw, ArrowLeft } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
+import studyApi from '../../../api/studyApi';
 
 type MCQuestion = {
   kind: 'mc';
@@ -377,7 +378,14 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
     setWrongs(finalWrongs);
     setElapsed(finalElapsed);
     setDone(true);
-  }, []);
+    studyApi.submitSession({
+      deckId: deck.id,
+      mode: 'test',
+      cardsStudied: questions.length,
+      correctCount: finalScore,
+      timeSpentSeconds: finalElapsed,
+    }).catch(console.error);
+  }, [deck.id, questions.length]);
 
   useEffect(() => {
     let e = 0;

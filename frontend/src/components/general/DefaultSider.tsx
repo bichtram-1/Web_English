@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Layers, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Layers, Sparkles, ChevronLeft, ChevronRight, BarChart3, PlusCircle } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 
@@ -30,26 +30,58 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className="mb-6">
+      <div className="p-4 flex-1 overflow-y-auto space-y-6">
+        <div>
           <div className="px-3 mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
             {!collapsed && 'Danh mục chính'}
           </div>
-          <NavLink
-            to={ROUTES.HOME}
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                isActive
-                  ? 'bg-indigo-50 text-indigo-600'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`
-            }
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <Layers size={18} className="shrink-0" />
-            {!collapsed && <span>Tất cả bộ thẻ</span>}
-          </NavLink>
+          <div className="space-y-1">
+            <NavLink
+              to={ROUTES.HOME}
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Layers size={18} className="shrink-0" />
+              {!collapsed && <span>Tất cả bộ thẻ</span>}
+            </NavLink>
+
+            <NavLink
+              to={ROUTES.STATS}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <BarChart3 size={18} className="shrink-0" />
+              {!collapsed && <span>Tiến độ &amp; Thống kê</span>}
+            </NavLink>
+
+            <NavLink
+              to={ROUTES.CREATE_DECK}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-indigo-50 text-indigo-600'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <PlusCircle size={18} className="shrink-0" />
+              {!collapsed && <span>Tạo bộ thẻ mới</span>}
+            </NavLink>
+          </div>
         </div>
 
         <div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, X, RotateCcw, Zap } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
+import studyApi from '../../../api/studyApi';
 
 interface Target {
   id: number;
@@ -149,8 +150,18 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
   }, [started, gameOver, spawnTarget]);
 
   useEffect(() => {
-    if (gameOver) stopGame();
-  }, [gameOver, stopGame]);
+    if (gameOver) {
+      stopGame();
+      const wordsCount = Math.floor(score / 100);
+      studyApi.submitSession({
+        deckId: deck.id,
+        mode: 'minigame',
+        cardsStudied: Math.max(1, wordsCount),
+        correctCount: Math.max(1, wordsCount),
+        timeSpentSeconds: 45,
+      }).catch(console.error);
+    }
+  }, [gameOver, stopGame, deck.id, score]);
 
   useEffect(() => {
     if (started) inputRef.current?.focus();

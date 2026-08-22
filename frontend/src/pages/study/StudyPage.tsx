@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles } from 'lucide-react';
 import FlashCard from '../../components/shared/FlashCard';
 import DragDropCard from '../../components/shared/DragDropCard';
 import deckApi from '../../api/deckApi';
+import studyApi from '../../api/studyApi';
 import type { Deck } from '../../types/DeckType';
 import Loading from '../../components/shared/Loading';
 import { getDeckDetailRoute } from '../../constants/routers';
@@ -38,7 +39,8 @@ export default function StudyPage() {
   const [sessionProgress, setSessionProgress] = useState<{ cardId: number; completed: boolean }[]>([]);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const [direction, setDirection] = useState(1);
-  const completedCountRef = useRef(0);
+  const [isFinished, setIsFinished] = useState(false);
+  const startTimeRef = useRef<number>(Date.now());
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function StudyPage() {
     deckApi.getDeckById(id).then((data) => {
       setDeck(data || null);
       setLoading(false);
+      startTimeRef.current = Date.now();
     });
   }, [id]);
 
@@ -78,18 +81,36 @@ export default function StudyPage() {
     setSessionProgress((prev) => {
       if (prev.find((p) => p.cardId === cardId)) return prev;
       const next = [...prev, { cardId, completed: true }];
-      completedCountRef.current = next.length;
       if (next.length % 5 === 0) {
-        showToast('Syncing progress...');
+        showToast('Đã lưu tiến độ học tập...');
       }
       return next;
     });
+  };
+
+  const handleFinish = async () => {
+    setIsFinished(true);
+    const durationSeconds = Math.max(5, Math.floor((Date.now() - startTimeRef.current) / 1000));
+    try {
+      await studyApi.submitSession({
+        deckId: deck.id,
+        mode: 'flashcard',
+        cardsStudied: cards.length,
+        correctCount: sessionProgress.length || cards.length,
+        timeSpentSeconds: durationSeconds,
+      });
+      showToast('🎉 Đã ghi nhận thành tích vào hồ sơ!');
+    } catch (e) {
+      console.error('Error submitting study session:', e);
+    }
   };
 
   const goNext = () => {
     if (currentIndex < cards.length - 1) {
       setDirection(1);
       setCurrentIndex((i) => i + 1);
+    } else {
+      handleFinish();
     }
   };
 
@@ -107,6 +128,59 @@ export default function StudyPage() {
     navigate(getDeckDetailRoute(deck.id));
   };
 
+  if (isFinished) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-100 shadow-2xl text-center"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <Trophy size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            Hoàn thành xuất sắc!
+          </h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Bạn đã ôn tập xong toàn bộ {cards.length} thẻ của bộ "<strong>{deck.title}</strong>".
+          </p>
+
+          <div className="bg-slate-50 rounded-2xl p-4 mb-6 flex justify-around text-center">
+            <div>
+              <div className="text-xl font-black text-indigo-600">{cards.length}</div>
+              <div className="text-xs text-slate-400 font-semibold">Thẻ đã học</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-amber-500">+{cards.length * 10}</div>
+              <div className="text-xs text-slate-400 font-semibold">XP Nhận được</div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setCurrentIndex(0);
+                setIsFinished(false);
+                setSessionProgress([]);
+                startTimeRef.current = Date.now();
+              }}
+              className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+            >
+              Học lại
+            </button>
+            <button
+              onClick={handleExit}
+              className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all"
+            >
+              Xem chi tiết bộ thẻ
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       {/* Header */}
@@ -118,7 +192,7 @@ export default function StudyPage() {
             style={{ fontFamily: 'var(--font-display)' }}
           >
             <X size={16} />
-            Exit
+            Thoát
           </button>
 
           {/* Progress bar */}
@@ -190,7 +264,7 @@ export default function StudyPage() {
             style={{ fontFamily: 'var(--font-display)' }}
           >
             <ArrowLeft size={16} />
-            Previous
+            Trước
           </button>
 
           {/* Dot indicators */}
@@ -215,13 +289,11 @@ export default function StudyPage() {
 
           <button
             onClick={goNext}
-            disabled={currentIndex === cards.length - 1}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all
-              disabled:opacity-30 disabled:cursor-not-allowed
               bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200 active:scale-95"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Next
+            {currentIndex === cards.length - 1 ? 'Hoàn thành' : 'Tiếp theo'}
             <ArrowRight size={16} />
           </button>
         </div>

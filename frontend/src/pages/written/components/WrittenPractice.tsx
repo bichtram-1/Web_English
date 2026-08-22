@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, X, ArrowRight, RotateCcw, PenLine, SkipForward } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
+import studyApi from '../../../api/studyApi';
 
 const FALLBACK_WORDS = [
   { en: 'Developer', vi: 'lập trình viên' },
@@ -204,12 +205,20 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
     setAnsweredCount(nextAnswered);
     if (nextAnswered >= baseWords.length) {
       setDone(true);
+      const correctCount = results.filter((r) => r === true).length;
+      studyApi.submitSession({
+        deckId: deck?.id || 'unknown',
+        mode: 'written',
+        cardsStudied: baseWords.length,
+        correctCount: correctCount || baseWords.length,
+        timeSpentSeconds: 60,
+      }).catch(console.error);
     } else {
       setIndex((i) => i + 1);
       setInput('');
       setStatus('idle');
     }
-  }, [answeredCount, baseWords.length]);
+  }, [answeredCount, baseWords.length, deck?.id, results]);
 
   const skip = useCallback(() => {
     if (status === 'correct' || status === 'force-retype') return;

@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const deck_controller_1 = require("../controllers/deck.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.optionalAuth, deck_controller_1.DeckController.getAllDecks);
+router.get('/:id', auth_middleware_1.optionalAuth, deck_controller_1.DeckController.getDeckById);
+router.post('/', auth_middleware_1.optionalAuth, deck_controller_1.DeckController.createDeck);
+router.put('/:id', auth_middleware_1.requireAuth, deck_controller_1.DeckController.updateDeck);
+router.delete('/:id', auth_middleware_1.requireAuth, deck_controller_1.DeckController.deleteDeck);
+exports.default = router;

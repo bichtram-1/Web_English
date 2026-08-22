@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, Leaf, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
+import studyApi from '../../../api/studyApi';
 
 const WORLD_ELEMENTS = [
   {
@@ -291,6 +292,16 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     const elementIdx = (newCount - 1) % elementOrder.length;
     const elementId = elementOrder[elementIdx]!;
     setUnlocked((prev) => new Set([...prev, elementId]));
+
+    if (newCount % 5 === 0 || newCount >= cards.length) {
+      studyApi.submitSession({
+        deckId: deck.id,
+        mode: 'zen',
+        cardsStudied: newCount,
+        correctCount: newCount,
+        timeSpentSeconds: 60,
+      }).catch(console.error);
+    }
   };
 
   const goNext = () => { if (index < cards.length - 1) setIndex((i) => i + 1); };

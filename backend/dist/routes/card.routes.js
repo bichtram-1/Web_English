@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const card_controller_1 = require("../controllers/card.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+router.post('/:deckId/cards', auth_middleware_1.optionalAuth, card_controller_1.CardController.addCard);
+router.put('/:deckId/cards/:cardId', auth_middleware_1.optionalAuth, card_controller_1.CardController.updateCard);
+router.delete('/:deckId/cards/:cardId', auth_middleware_1.optionalAuth, card_controller_1.CardController.deleteCard);
+exports.default = router;

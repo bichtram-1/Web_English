@@ -7,6 +7,10 @@ export const ROUTES = {
   MINIGAME: '/deck/:id/minigame',
   ZEN: '/deck/:id/zen',
   WRITTEN: '/deck/:id/written',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  STATS: '/stats',
+  LEADERBOARD: '/leaderboard',
 } as const;
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];

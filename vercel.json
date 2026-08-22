@@ -11,9 +11,11 @@
       ]
     },
     "backend": {
-      "root": "backend",
+      "root": ".",
       "framework": "express",
-      "entrypoint": "src/app.ts"
+      "entrypoint": "backend/src/app.ts",
+      "installCommand": "npm install",
+      "buildCommand": "npm run build:backend"
     }
   },
   "rewrites": [

@@ -12,7 +12,8 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "api/index.ts"
+      "framework": "express",
+      "entrypoint": "src/app.ts"
     }
   },
   "rewrites": [

@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && node node_modules/typescript/bin/tsc",
     "start": "node dist/server.js",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

@@ -11,7 +11,10 @@
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
     "start": "npm --prefix backend start",
-    "seed": "npm --prefix backend run seed"
+    "seed": "npm --prefix backend run seed",
+    "db:studio": "npm --prefix backend run db:studio",
+    "db:seed": "npm --prefix backend run db:seed",
+    "db:push": "npm --prefix backend run db:push"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
@@ -23,7 +26,10 @@
     "express",
     "typescript",
     "datn",
-    "fullstack"
+    "fullstack",
+    "prisma",
+    "sqlite",
+    "postgresql"
   ],
   "author": "LinguaTeam",
   "license": "MIT"

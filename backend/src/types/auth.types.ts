@@ -3,8 +3,8 @@ export interface User {
   name: string;
   email: string;
   passwordHash: string;
-  avatar?: string;
-  role: 'student' | 'teacher' | 'admin';
+  avatar?: string | null;
+  role: 'student' | 'teacher' | 'admin' | string;
   createdAt: string;
   updatedAt: string;
 }

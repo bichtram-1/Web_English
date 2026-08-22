@@ -1,72 +1,93 @@
-import { db } from '../models/db';
+import prisma from '../config/prisma';
 import { CardItem, Deck } from '../types/deck.types';
 import { AppError } from '../utils/appError';
+import { DeckService } from './deck.service';
 
 export class CardService {
   static async addCardToDeck(deckId: string, card: CardItem): Promise<Deck> {
-    const deck = db.findDeckById(deckId);
+    const deck = await prisma.deck.findUnique({ where: { id: deckId } });
     if (!deck) {
       throw new AppError('Không tìm thấy bộ thẻ', 404);
     }
 
-    const newId = card.id || deck.cards.length + 1;
-    const newCard = { ...card, id: newId };
-    const updatedCards = [...deck.cards, newCard];
-
-    const updated = db.updateDeck(deckId, {
-      cards: updatedCards,
-      itemCount: updatedCards.length,
-    });
-
-    if (!updated) {
-      throw new AppError('Không thể thêm thẻ', 500);
+    if (card.type === 'drag_drop') {
+      await prisma.card.create({
+        data: {
+          deckId,
+          type: 'drag_drop',
+          meaning: card.meaning,
+          shuffledJson: JSON.stringify(card.shuffled),
+          correctOrderJson: JSON.stringify(card.correctOrder),
+        },
+      });
+    } else {
+      await prisma.card.create({
+        data: {
+          deckId,
+          type: 'flashcard',
+          front: card.front,
+          back: card.back,
+          phonetic: card.phonetic,
+          exampleEn: card.exampleEn,
+          exampleVi: card.exampleVi,
+        },
+      });
     }
 
-    return updated;
+    await prisma.deck.update({
+      where: { id: deckId },
+      data: { itemCount: { increment: 1 } },
+    });
+
+    return DeckService.getDeckById(deckId);
   }
 
   static async updateCardInDeck(deckId: string, cardId: number, cardData: Partial<CardItem>): Promise<Deck> {
-    const deck = db.findDeckById(deckId);
-    if (!deck) {
-      throw new AppError('Không tìm thấy bộ thẻ', 404);
-    }
+    const existing = await prisma.card.findFirst({
+      where: { id: cardId, deckId },
+    });
 
-    const cardIndex = deck.cards.findIndex((c) => c.id === cardId);
-    if (cardIndex === -1) {
+    if (!existing) {
       throw new AppError('Không tìm thấy thẻ cần cập nhật', 404);
     }
 
-    const updatedCards = [...deck.cards];
-    updatedCards[cardIndex] = { ...updatedCards[cardIndex], ...cardData } as CardItem;
-
-    const updated = db.updateDeck(deckId, {
-      cards: updatedCards,
-    });
-
-    if (!updated) {
-      throw new AppError('Không thể cập nhật thẻ', 500);
+    const data: any = {};
+    if (cardData.type === 'flashcard') {
+      if (cardData.front !== undefined) data.front = cardData.front;
+      if (cardData.back !== undefined) data.back = cardData.back;
+      if (cardData.phonetic !== undefined) data.phonetic = cardData.phonetic;
+      if (cardData.exampleEn !== undefined) data.exampleEn = cardData.exampleEn;
+      if (cardData.exampleVi !== undefined) data.exampleVi = cardData.exampleVi;
+    } else if (cardData.type === 'drag_drop') {
+      if (cardData.meaning !== undefined) data.meaning = cardData.meaning;
+      if (cardData.shuffled !== undefined) data.shuffledJson = JSON.stringify(cardData.shuffled);
+      if (cardData.correctOrder !== undefined) data.correctOrderJson = JSON.stringify(cardData.correctOrder);
     }
 
-    return updated;
+    await prisma.card.update({
+      where: { id: cardId },
+      data,
+    });
+
+    return DeckService.getDeckById(deckId);
   }
 
   static async deleteCardFromDeck(deckId: string, cardId: number): Promise<Deck> {
-    const deck = db.findDeckById(deckId);
-    if (!deck) {
-      throw new AppError('Không tìm thấy bộ thẻ', 404);
-    }
-
-    const updatedCards = deck.cards.filter((c) => c.id !== cardId);
-
-    const updated = db.updateDeck(deckId, {
-      cards: updatedCards,
-      itemCount: updatedCards.length,
+    const existing = await prisma.card.findFirst({
+      where: { id: cardId, deckId },
     });
 
-    if (!updated) {
-      throw new AppError('Không thể xóa thẻ', 500);
+    if (!existing) {
+      throw new AppError('Không tìm thấy thẻ cần xóa', 404);
     }
 
-    return updated;
+    await prisma.card.delete({ where: { id: cardId } });
+
+    await prisma.deck.update({
+      where: { id: deckId },
+      data: { itemCount: { decrement: 1 } },
+    });
+
+    return DeckService.getDeckById(deckId);
   }
 }

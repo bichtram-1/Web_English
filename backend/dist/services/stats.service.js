@@ -1,35 +1,44 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StatsService = void 0;
-const db_1 = require("../models/db");
+const prisma_1 = __importDefault(require("../config/prisma"));
 class StatsService {
     static async getPlatformSummary() {
-        const totalDecks = db_1.db.decks.length;
-        const totalUsers = db_1.db.users.length;
-        const totalSessions = db_1.db.sessions.length;
-        const totalCardsStudied = db_1.db.sessions.reduce((acc, curr) => acc + curr.cardsStudied, 0);
+        const [totalDecks, totalUsers, totalSessions, sessionAgg] = await Promise.all([
+            prisma_1.default.deck.count(),
+            prisma_1.default.user.count(),
+            prisma_1.default.studySession.count(),
+            prisma_1.default.studySession.aggregate({
+                _sum: { cardsStudied: true },
+            }),
+        ]);
         return {
             totalDecks,
             totalUsers,
             totalSessions,
-            totalCardsStudied,
-            popularCategories: ['Beginner', 'Intermediate', 'Advanced'],
+            totalCardsStudied: sessionAgg._sum.cardsStudied || 0,
+            popularCategories: ['Beginner', 'Intermediate', 'Advanced', 'TOEIC', 'IELTS'],
         };
     }
     static async getLeaderboard(limit = 10) {
-        const users = db_1.db.users;
-        const result = users.map((u) => {
-            const stats = db_1.db.getUserStats(u.id);
-            return {
-                userId: u.id,
-                name: u.name,
-                avatar: u.avatar,
-                xp: stats?.totalXp || 0,
-                streakDays: stats?.streakDays || 0,
-                cardsStudied: stats?.totalCardsStudied || 0,
-            };
+        const usersWithStats = await prisma_1.default.user.findMany({
+            include: {
+                stats: true,
+            },
+            take: limit,
         });
-        return result.sort((a, b) => b.xp - a.xp).slice(0, limit);
+        const result = usersWithStats.map((u) => ({
+            userId: u.id,
+            name: u.name,
+            avatar: u.avatar || undefined,
+            xp: u.stats?.totalXp || 0,
+            streakDays: u.stats?.streakDays || 0,
+            cardsStudied: u.stats?.totalCardsStudied || 0,
+        }));
+        return result.sort((a, b) => b.xp - a.xp);
     }
 }
 exports.StatsService = StatsService;

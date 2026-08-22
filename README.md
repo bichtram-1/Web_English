@@ -95,9 +95,14 @@ src/
 ### ⚙️ Backend Structure (`backend/`):
 ```text
 backend/
+├── prisma/               # 🗄️ Database ORM (Prisma Schema & Migrations)
+│   ├── schema.prisma     # Định nghĩa cấu trúc các bảng (User, Deck, Card, StudySession, UserStats)
+│   ├── dev.db            # Tệp cơ sở dữ liệu SQLite (hoặc PostgreSQL / MySQL)
+│   └── seed.ts           # Kịch bản nạp dữ liệu mẫu ban đầu (Auto Seeding)
 ├── src/
-│   ├── config/           # Cấu hình môi trường (Port, JWT Secret, DB Path)
-│   │   └── env.ts
+│   ├── config/           # Cấu hình môi trường, JWT & Prisma Client
+│   │   ├── env.ts
+│   │   └── prisma.ts
 │   ├── controllers/      # Tầng điều khiển tiếp nhận Request & Response
 │   │   ├── auth.controller.ts   # Đăng ký, đăng nhập, get profile
 │   │   ├── deck.controller.ts   # Lấy danh sách, chi tiết, tạo, sửa, xóa bộ thẻ
@@ -108,9 +113,6 @@ backend/
 │   │   ├── auth.middleware.ts   # Xác thực JWT Token (Bearer token)
 │   │   ├── error.middleware.ts  # Bắt lỗi toàn cục (Global Centralized Error Handler)
 │   │   └── logger.middleware.ts # Ghi log mọi HTTP request & response time
-│   ├── models/           # Tầng dữ liệu & Persistence
-│   │   ├── db.ts                # Database Engine tự động lưu trữ và đồng bộ
-│   │   └── seedData.ts          # Bộ dữ liệu mẫu phong phú (TOEIC, IELTS, Travel...)
 │   ├── routes/           # Định tuyến REST API
 │   │   ├── auth.routes.ts       # /api/v1/auth
 │   │   ├── deck.routes.ts       # /api/v1/decks
@@ -118,7 +120,7 @@ backend/
 │   │   ├── study.routes.ts      # /api/v1/study
 │   │   ├── stats.routes.ts      # /api/v1/stats
 │   │   └── index.ts             # Gom cụm các routes dưới /api/v1
-│   ├── services/         # Tầng xử lý nghiệp vụ chính (Business Logic)
+│   ├── services/         # Tầng xử lý nghiệp vụ chính kết nối CSDL (Prisma ORM)
 │   │   ├── auth.service.ts      # Mã hóa mật khẩu (bcrypt), cấp phát JWT
 │   │   ├── deck.service.ts      # Nghiệp vụ tìm kiếm, phân trang, lọc bộ thẻ
 │   │   ├── card.service.ts      # Xử lý thẻ flashcard / kéo thả

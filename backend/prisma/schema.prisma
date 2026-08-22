@@ -1,0 +1,124 @@
+// Prisma Schema Configuration for LinguaLeap DATN System
+// Default: SQLite (Embedded zero-setup relational DB). 
+// Can easily switch to "postgresql" or "mysql" by changing provider & DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  avatar       String?
+  role         String         @default("student") // student, teacher, admin
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relationships
+  decks        Deck[]
+  sessions     StudySession[]
+  stats        UserStats?
+
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Deck {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  category    String         @default("Beginner") // Beginner, Intermediate, Advanced, IELTS, TOEIC
+  color       String         @default("from-indigo-500 to-violet-600")
+  isPublic    Boolean        @default(true)
+  itemCount   Int            @default(0)
+  creatorName String         @default("LinguaTeam")
+  creatorId   String?
+  creator     User?          @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relationships
+  cards       Card[]
+  sessions    StudySession[]
+
+  @@index([category])
+  @@index([creatorId])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("decks")
+}
+
+model Card {
+  id               Int      @id @default(autoincrement())
+  deckId           String
+  deck             Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  type             String   @default("flashcard") // flashcard | drag_drop
+  
+  // Flashcard fields
+  front            String?  // English word / phrase
+  back             String?  // Vietnamese translation
+  phonetic         String?  // IPA phonetic transcription
+  exampleEn        String?  // Example sentence in English
+  exampleVi        String?  // Example translation in Vietnamese
+
+  // Drag & drop grammar fields
+  meaning          String?  // Target sentence Vietnamese meaning
+  shuffledJson     String?  // JSON stringified draggable word objects
+  correctOrderJson String?  // JSON stringified array of correct IDs
+
+  orderIndex       Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([deckId])
+  @@index([type])
+  @@index([orderIndex])
+  @@map("cards")
+}
+
+model StudySession {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deckId           String
+  deck             Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  mode             String   // flashcard, test, minigame, zen, written
+  cardsStudied     Int      @default(0)
+  correctCount     Int      @default(0)
+  accuracy         Float    @default(0.0)
+  timeSpentSeconds Int      @default(0)
+  xpEarned         Int      @default(0)
+  completedAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([deckId])
+  @@index([mode])
+  @@index([completedAt])
+  @@map("study_sessions")
+}
+
+model UserStats {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalCardsStudied     Int      @default(0)
+  totalStudyTimeSeconds Int      @default(0)
+  totalXp               Int      @default(0)
+  streakDays            Int      @default(1)
+  lastStudyDate         DateTime @default(now())
+  sessionsCompleted     Int      @default(0)
+  averageAccuracy       Float    @default(100.0)
+  updatedAt             DateTime @updatedAt
+
+  @@index([totalXp])
+  @@index([streakDays])
+  @@map("user_stats")
+}

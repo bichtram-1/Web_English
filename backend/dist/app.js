@@ -37,3 +37,4 @@ const createApp = () => {
     return app;
 };
 exports.createApp = createApp;
+exports.default = (0, exports.createApp)();

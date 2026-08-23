@@ -11,11 +11,10 @@
       ]
     },
     "backend": {
-      "root": ".",
+      "root": "backend",
       "framework": "express",
-      "entrypoint": "backend/src/app.ts",
-      "installCommand": "npm install && npm --prefix backend install",
-      "buildCommand": "npm run build:backend"
+      "entrypoint": "src/app.ts",
+      "buildCommand": "npm run build"
     }
   },
   "rewrites": [

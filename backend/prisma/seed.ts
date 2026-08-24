@@ -80,6 +80,8 @@ async function main() {
           {
             type: 'drag_drop',
             meaning: 'Tôi đang xây dựng một trang web.',
+            grammarRule: 'S + am/is/are + V-ing + O (Hiện tại tiếp diễn - Present Continuous)',
+            grammarExplanation: 'Thì Hiện tại tiếp diễn diễn tả hành động đang diễn ra tại thời điểm nói. Chủ ngữ "I" đi cùng to-be "am", động từ thêm đuôi -ing: "am building".',
             shuffledJson: JSON.stringify([
               { id: 'w1', word: 'a', type: 'other' },
               { id: 'w2', word: 'building', type: 'verb' },
@@ -111,6 +113,8 @@ async function main() {
           {
             type: 'drag_drop',
             meaning: 'Cô ấy thích học tiếng Anh.',
+            grammarRule: 'S + love/like/enjoy + V-ing (Gerund - Danh động từ)',
+            grammarExplanation: 'Sau các động từ chỉ sở thích như love, like, enjoy, hate, prefer... ta dùng Danh động từ (V-ing) để chỉ sở thích lâu dài: "loves learning". "She" là ngôi thứ 3 số ít nên động từ love thêm s -> "loves".',
             shuffledJson: JSON.stringify([
               { id: 'x1', word: 'She', type: 'pronoun' },
               { id: 'x2', word: 'loves', type: 'verb' },

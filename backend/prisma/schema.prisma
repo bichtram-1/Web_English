@@ -70,9 +70,11 @@ model Card {
   exampleVi        String?  // Example translation in Vietnamese
 
   // Drag & drop grammar fields
-  meaning          String?  // Target sentence Vietnamese meaning
-  shuffledJson     String?  // JSON stringified draggable word objects
-  correctOrderJson String?  // JSON stringified array of correct IDs
+  meaning            String?  // Target sentence Vietnamese meaning
+  shuffledJson       String?  // JSON stringified draggable word objects
+  correctOrderJson   String?  // JSON stringified array of correct IDs
+  grammarRule        String?  // Grammar formula / rule (e.g. S + love + V-ing)
+  grammarExplanation String?  // Detailed grammar explanation
 
   orderIndex       Int      @default(0)
   createdAt        DateTime @default(now())

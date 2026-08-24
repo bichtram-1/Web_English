@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, User as UserIcon, UserPlus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,6 +9,7 @@ import { ROUTES } from '../../constants/routers';
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,24 +41,24 @@ export default function RegisterPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
         <Link
           to={ROUTES.HOME}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600 mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 mb-6 transition-colors cursor-pointer"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <ArrowLeft size={16} /> Quay lại trang chủ
+          <ArrowLeft size={16} /> {t('back')}
         </Link>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200 dark:shadow-none">
             <Sparkles size={20} />
           </div>
           <div>
             <h2
-              className="text-2xl font-black text-slate-900 tracking-tight"
+              className="text-2xl font-black text-slate-900 dark:text-white tracking-tight"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              Tạo tài khoản mới
+              {t('register')} LinguaLeap
             </h2>
-            <p className="text-xs text-slate-400 font-medium">Bắt đầu lộ trình học tiếng Anh hiệu quả ngay hôm nay</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{t('register_prompt')}</p>
           </div>
         </div>
       </div>
@@ -65,10 +67,10 @@ export default function RegisterPage() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white py-8 px-6 shadow-xl rounded-3xl border border-slate-100 sm:px-10"
+          className="bg-white dark:bg-slate-900 py-8 px-6 shadow-xl rounded-3xl border border-slate-100 dark:border-slate-800 sm:px-10"
         >
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-semibold">
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-100 dark:border-rose-900 text-rose-600 dark:text-rose-300 text-xs font-semibold">
               {error}
             </div>
           )}
@@ -76,61 +78,61 @@ export default function RegisterPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Họ và tên
+                {t('full_name')}
               </label>
               <div className="relative">
-                <UserIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <UserIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nguyễn Văn A"
+                  placeholder={t('name_placeholder')}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
                 />
               </div>
             </div>
 
             <div>
               <label
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Email
+                {t('email')}
               </label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="yourname@gmail.com"
+                  placeholder={t('email_placeholder')}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
                 />
               </div>
             </div>
 
             <div>
               <label
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Mật khẩu
+                {t('password')}
               </label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={t('password_placeholder')}
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
                 />
               </div>
             </div>
@@ -138,22 +140,21 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <UserPlus size={16} />
-              {loading ? 'Đang tạo tài khoản...' : 'Đăng ký ngay'}
+              {loading ? t('loading') : t('register')}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-500 font-medium">
-            Đã có tài khoản?{' '}
-            <Link
-              to={ROUTES.LOGIN}
-              className="font-bold text-indigo-600 hover:text-indigo-700 underline"
-            >
-              Đăng nhập
-            </Link>
+          <div className="mt-6 text-center">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t('already_have_account')}{' '}
+              <Link to={ROUTES.LOGIN} className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                {t('login')}
+              </Link>
+            </p>
           </div>
         </motion.div>
       </div>

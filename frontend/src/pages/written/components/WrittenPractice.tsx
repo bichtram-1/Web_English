@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, X, ArrowRight, RotateCcw, PenLine, SkipForward } from 'lucide-react';
+import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 
@@ -242,9 +243,11 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
 
     if (status === 'force-retype') {
       if (normalise(trimmed) === normalise(correctAnswer)) {
+        playCorrectSound();
         setStatus('correct');
         autoAdvanceRef.current = setTimeout(advance, 900);
       } else {
+        playIncorrectSound();
         setShaking(true);
         setTimeout(() => setShaking(false), 500);
       }
@@ -252,6 +255,7 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
     }
 
     if (normalise(trimmed) === normalise(correctAnswer)) {
+      playCorrectSound();
       setStatus('correct');
       setResults((prev) => {
         const next = [...prev];
@@ -261,6 +265,7 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
       });
       autoAdvanceRef.current = setTimeout(advance, 1000);
     } else {
+      playIncorrectSound();
       setStatus('incorrect');
       setShaking(true);
       setTimeout(() => setShaking(false), 500);

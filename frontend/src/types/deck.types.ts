@@ -22,11 +22,24 @@ export interface DragDropItem {
   meaning: string;
   shuffled: DragDropWord[];
   correctOrder: string[];
+  grammarRule?: string;
+  grammarExplanation?: string;
+  grammarNote?: string;
 }
 
 export type CardItem = FlashcardItem | DragDropItem;
 
 export type DeckCategory = 'Beginner' | 'Intermediate' | 'Advanced' | string;
+
+export type CollaboratorRole = 'viewer' | 'editor';
+
+export interface Collaborator {
+  userId?: string;
+  email: string;
+  name?: string;
+  role: CollaboratorRole; // 'viewer': chỉ cùng học | 'editor': được sửa thẻ
+  addedAt: string;
+}
 
 export interface Deck {
   id: string;
@@ -38,8 +51,25 @@ export interface Deck {
   category: DeckCategory;
   color: string;
   isPublic?: boolean;
+  collaborators?: Collaborator[];
+  inviteCode?: string;
   cards: CardItem[];
   createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DeckCollection {
+  id: string;
+  title: string;
+  description?: string;
+  creator: string;
+  creatorId?: string;
+  isPublic: boolean;
+  deckIds: string[];
+  collaborators?: Collaborator[];
+  inviteCode?: string;
+  color?: string;
+  createdAt: string;
   updatedAt?: string;
 }
 

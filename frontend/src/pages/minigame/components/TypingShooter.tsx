@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, X, RotateCcw, Zap } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
+import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 
 interface Target {
   id: number;
@@ -130,6 +131,7 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
         }
 
         if (misses > 0) {
+          playIncorrectSound();
           livesRef.current = Math.max(0, livesRef.current - misses);
           setLives(livesRef.current);
           if (livesRef.current <= 0) {
@@ -184,6 +186,7 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
       const hit = prev.find((t) => !t.exploding && t.english.toLowerCase() === typed);
       if (!hit) return prev;
 
+      playCorrectSound();
       const pid = projId.current++;
       setProjectiles((ps) => [...ps, { id: pid, x: hit.x + 4, fromY: hit.y }]);
       setTimeout(() => setProjectiles((ps) => ps.filter((p) => p.id !== pid)), 350);

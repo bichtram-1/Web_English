@@ -18,6 +18,8 @@ const mapCardFromDb = (card: any): CardItem => {
       meaning: card.meaning || '',
       shuffled,
       correctOrder,
+      grammarRule: card.grammarRule || undefined,
+      grammarExplanation: card.grammarExplanation || undefined,
     };
   }
   return {
@@ -118,6 +120,8 @@ export class DeckService {
           meaning: c.meaning,
           shuffledJson: JSON.stringify(c.shuffled),
           correctOrderJson: JSON.stringify(c.correctOrder),
+          grammarRule: c.grammarRule,
+          grammarExplanation: c.grammarExplanation,
           orderIndex: index + 1,
         };
       }
@@ -143,7 +147,7 @@ export class DeckService {
         isPublic: dto.isPublic !== undefined ? dto.isPublic : true,
         itemCount: cardsData.length,
         cards: {
-          create: cardsData,
+          create: cardsData as any,
         },
       },
       include: {
@@ -191,6 +195,8 @@ export class DeckService {
             meaning: c.meaning,
             shuffledJson: JSON.stringify(c.shuffled),
             correctOrderJson: JSON.stringify(c.correctOrder),
+            grammarRule: c.grammarRule,
+            grammarExplanation: c.grammarExplanation,
             orderIndex: index + 1,
           };
         }
@@ -207,7 +213,7 @@ export class DeckService {
       });
 
       await prisma.card.createMany({
-        data: cardsData,
+        data: cardsData as any,
       });
 
       await prisma.deck.update({

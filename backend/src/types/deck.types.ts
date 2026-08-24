@@ -22,6 +22,9 @@ export interface DragDropItem {
   meaning: string;
   shuffled: DragDropWord[];
   correctOrder: string[];
+  grammarRule?: string;
+  grammarExplanation?: string;
+  grammarNote?: string;
 }
 
 export type CardItem = FlashcardItem | DragDropItem;

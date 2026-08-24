@@ -49,6 +49,10 @@ export const deckApi = {
   },
 
   getDeckById: async (id: string): Promise<Deck | undefined> => {
+    if (id.startsWith('col-')) {
+      const { collectionApi } = await import('./collectionApi');
+      return collectionApi.getCompositeDeckForCollection(id);
+    }
     try {
       const res = (await axiosInstance.get(ENDPOINTS.DECK_BY_ID(id))) as unknown as ApiResponse<Deck>;
       if (res?.data) {

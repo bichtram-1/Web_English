@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, CheckCircle2, XCircle, Trophy, RotateCcw, ArrowLeft } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
+import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 
 type MCQuestion = {
   kind: 'mc';
@@ -87,7 +88,10 @@ function MCCard({
   const pick = (opt: string) => {
     if (chosen) return;
     setChosen(opt);
-    setTimeout(() => onAnswer(opt === q.correct), 700);
+    const isCorrect = opt === q.correct;
+    if (isCorrect) playCorrectSound();
+    else playIncorrectSound();
+    setTimeout(() => onAnswer(isCorrect), 700);
   };
 
   return (
@@ -132,7 +136,10 @@ function TFCard({ q, onAnswer }: { q: TFQuestion; onAnswer: (correct: boolean) =
   const pick = (val: boolean) => {
     if (chosen !== null) return;
     setChosen(val);
-    setTimeout(() => onAnswer(val === q.isTrue), 700);
+    const isCorrect = val === q.isTrue;
+    if (isCorrect) playCorrectSound();
+    else playIncorrectSound();
+    setTimeout(() => onAnswer(isCorrect), 700);
   };
 
   const btnClass = (val: boolean) => {
@@ -194,6 +201,8 @@ function WrittenCard({ q, onAnswer }: { q: WrittenQuestion; onAnswer: (correct: 
     const ok = normalise(value) === normalise(q.correct);
     setCorrect(ok);
     setSubmitted(true);
+    if (ok) playCorrectSound();
+    else playIncorrectSound();
     setTimeout(() => onAnswer(ok), 900);
   };
 

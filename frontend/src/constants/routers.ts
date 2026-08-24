@@ -2,7 +2,12 @@ export const ROUTES = {
   HOME: '/',
   DECK_DETAIL: '/deck/:id',
   CREATE_DECK: '/create-deck',
+  COLLECTIONS: '/collections',
+  COLLECTION_DETAIL: '/collections/:id',
+  CREATE_COLLECTION: '/create-collection',
   STUDY: '/deck/:id/study',
+  COLLECTION_STUDY: '/collections/:id/study',
+  COLLECTION_WRITTEN: '/collections/:id/written',
   TEST: '/deck/:id/test',
   MINIGAME: '/deck/:id/minigame',
   ZEN: '/deck/:id/zen',
@@ -16,6 +21,9 @@ export const ROUTES = {
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];
 
 export const getDeckDetailRoute = (id: string) => `/deck/${id}`;
+export const getCollectionDetailRoute = (id: string) => `/collections/${id}`;
+export const getCollectionStudyRoute = (id: string) => `/deck/${id}/study`;
+export const getCollectionWrittenRoute = (id: string) => `/deck/${id}/written`;
 export const getStudyRoute = (id: string) => `/deck/${id}/study`;
 export const getTestRoute = (id: string) => `/deck/${id}/test`;
 export const getMinigameRoute = (id: string) => `/deck/${id}/minigame`;

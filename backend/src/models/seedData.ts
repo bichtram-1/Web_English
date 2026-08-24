@@ -47,6 +47,8 @@ export const initialDecks: Deck[] = [
         id: 2,
         type: 'drag_drop',
         meaning: 'Tôi đang xây dựng một trang web.',
+        grammarRule: 'S + am/is/are + V-ing + O (Hiện tại tiếp diễn - Present Continuous)',
+        grammarExplanation: 'Thì Hiện tại tiếp diễn diễn tả hành động đang diễn ra tại thời điểm nói. Chủ ngữ "I" đi cùng to-be "am", động từ thêm đuôi -ing: "am building".',
         shuffled: [
           { id: 'w1', word: 'a', type: 'other' },
           { id: 'w2', word: 'building', type: 'verb' },
@@ -63,6 +65,8 @@ export const initialDecks: Deck[] = [
         id: 6,
         type: 'drag_drop',
         meaning: 'Cô ấy thích học tiếng Anh.',
+        grammarRule: 'S + love/like/enjoy + V-ing (Gerund - Danh động từ)',
+        grammarExplanation: 'Sau các động từ chỉ sở thích như love, like, enjoy, hate, prefer... ta dùng Danh động từ (V-ing) để chỉ sở thích lâu dài: "loves learning". "She" là ngôi thứ 3 số ít nên động từ love thêm s -> "loves".',
         shuffled: [
           { id: 'x1', word: 'She', type: 'pronoun' },
           { id: 'x2', word: 'loves', type: 'verb' },
@@ -77,6 +81,8 @@ export const initialDecks: Deck[] = [
         id: 9,
         type: 'drag_drop',
         meaning: 'Anh ấy làm việc chăm chỉ mỗi ngày.',
+        grammarRule: 'S + V(s/es) + Adv + Time expression (Hiện tại đơn - Present Simple)',
+        grammarExplanation: 'Thì Hiện tại đơn diễn tả thói quen hoặc hành động lặp đi lặp lại hàng ngày ("every day"). Chủ ngữ "He" là ngôi 3 số ít nên "work" thêm "s" -> "works". Từ "hard" đóng vai trò trạng từ đứng sau động từ.',
         shuffled: [
           { id: 'y1', word: 'He', type: 'pronoun' },
           { id: 'y2', word: 'hard', type: 'adjective' },
@@ -118,6 +124,8 @@ export const initialDecks: Deck[] = [
         id: 3,
         type: 'drag_drop',
         meaning: 'Công ty cần tuyển dụng nhân viên mới.',
+        grammarRule: 'S + need + to-V (infinitive) + Adj + Noun',
+        grammarExplanation: 'Động từ "need" khi diễn tả nhu cầu làm gì của người/tổ chức theo sau bởi động từ nguyên mẫu có to ("to hire"). Tính từ "new" đứng trước danh từ "employees" để bổ nghĩa.',
         shuffled: [
           { id: 't1', word: 'The', type: 'other' },
           { id: 't2', word: 'company', type: 'noun' },

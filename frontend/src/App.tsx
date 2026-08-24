@@ -11,6 +11,8 @@ import { ROUTES } from './constants/routers';
 const HomePage = lazy(() => import('./pages/home/HomePage'));
 const DeckDetailPage = lazy(() => import('./pages/deck-detail/DeckDetailPage'));
 const CreateDeckPage = lazy(() => import('./pages/create-deck/CreateDeckPage'));
+const CollectionsPage = lazy(() => import('./pages/collections/CollectionsPage'));
+const CollectionDetailPage = lazy(() => import('./pages/collections/CollectionDetailPage'));
 const StudyPage = lazy(() => import('./pages/study/StudyPage'));
 const TestPage = lazy(() => import('./pages/test/TestPage'));
 const TypingShooterPage = lazy(() => import('./pages/minigame/TypingShooterPage'));
@@ -35,12 +37,16 @@ export default function App() {
               <Route path={ROUTES.HOME} element={<HomePage />} />
               <Route path={ROUTES.DECK_DETAIL} element={<DeckDetailPage />} />
               <Route path={ROUTES.CREATE_DECK} element={<CreateDeckPage />} />
+              <Route path={ROUTES.COLLECTIONS} element={<CollectionsPage />} />
+              <Route path={ROUTES.COLLECTION_DETAIL} element={<CollectionDetailPage />} />
               <Route path={ROUTES.STATS} element={<StatsPage />} />
             </Route>
 
             {/* Immersive Learning Modes */}
             <Route element={<AuthLayout />}>
               <Route path={ROUTES.STUDY} element={<StudyPage />} />
+              <Route path={ROUTES.COLLECTION_STUDY} element={<StudyPage />} />
+              <Route path={ROUTES.COLLECTION_WRITTEN} element={<WrittenPracticePage />} />
               <Route path={ROUTES.TEST} element={<TestPage />} />
               <Route path={ROUTES.MINIGAME} element={<TypingShooterPage />} />
               <Route path={ROUTES.ZEN} element={<ZenBuilderPage />} />

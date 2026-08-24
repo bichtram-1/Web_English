@@ -18,7 +18,9 @@ export class CardService {
           meaning: card.meaning,
           shuffledJson: JSON.stringify(card.shuffled),
           correctOrderJson: JSON.stringify(card.correctOrder),
-        },
+          grammarRule: card.grammarRule,
+          grammarExplanation: card.grammarExplanation,
+        } as any,
       });
     } else {
       await prisma.card.create({
@@ -62,6 +64,8 @@ export class CardService {
       if (cardData.meaning !== undefined) data.meaning = cardData.meaning;
       if (cardData.shuffled !== undefined) data.shuffledJson = JSON.stringify(cardData.shuffled);
       if (cardData.correctOrder !== undefined) data.correctOrderJson = JSON.stringify(cardData.correctOrder);
+      if (cardData.grammarRule !== undefined) data.grammarRule = cardData.grammarRule;
+      if (cardData.grammarExplanation !== undefined) data.grammarExplanation = cardData.grammarExplanation;
     }
 
     await prisma.card.update({

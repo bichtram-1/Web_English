@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
+import { useAuth } from '../../hooks/useAuth';
+import { recordCreatedDeck } from '../../utils/recentDecks';
 import { ROUTES } from '../../constants/routers';
 import type { Deck, CardItem } from '../../types/DeckType';
 
@@ -13,10 +16,19 @@ interface CardRow {
   term: string;
   definition: string;
   type: CardType;
+  grammarRule?: string;
+  grammarExplanation?: string;
 }
 
 let nextId = 4;
-const emptyCard = (): CardRow => ({ id: nextId++, term: '', definition: '', type: 'flashcard' });
+const emptyCard = (): CardRow => ({
+  id: nextId++,
+  term: '',
+  definition: '',
+  type: 'flashcard',
+  grammarRule: '',
+  grammarExplanation: '',
+});
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -24,8 +36,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-250 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-        checked ? 'bg-indigo-600' : 'bg-slate-200'
+      className={`relative w-11 h-6 rounded-full transition-colors duration-250 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 cursor-pointer ${
+        checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'
       }`}
     >
       <motion.span
@@ -51,6 +63,8 @@ function CardRowItem({
   onRemove: (id: number) => void;
   removable: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Reorder.Item
       value={card}
@@ -60,16 +74,16 @@ function CardRowItem({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96, y: -8 }}
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-      className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group"
+      className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden group"
     >
       {/* Row header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-50 bg-slate-50/60">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-50 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
         <div className="flex items-center gap-2">
-          <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition-colors touch-none">
+          <div className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-400 transition-colors touch-none">
             <GripVertical size={16} />
           </div>
           <span
-            className="text-xs font-black text-slate-400 uppercase tracking-widest"
+            className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {index + 1}
@@ -80,17 +94,17 @@ function CardRowItem({
           <select
             value={card.type}
             onChange={(e) => onChange(card.id, 'type', e.target.value)}
-            className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition-all cursor-pointer"
+            className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-700 transition-all cursor-pointer"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            <option value="flashcard">Standard Flashcard</option>
-            <option value="drag_drop">Grammar Drag &amp; Drop</option>
+            <option value="flashcard">{t('create_deck_type_flashcard')}</option>
+            <option value="drag_drop">{t('create_deck_type_grammar')}</option>
           </select>
 
           <button
             onClick={() => onRemove(card.id)}
             disabled={!removable}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
             aria-label="Remove card"
           >
             <Trash2 size={14} />
@@ -99,30 +113,30 @@ function CardRowItem({
       </div>
 
       {/* Inputs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-slate-50">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-slate-50 dark:divide-slate-800">
         <div className="p-4">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
-            Term (English)
+          <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
+            {t('create_deck_term_en')}
           </label>
           <input
             type="text"
             value={card.term}
             onChange={(e) => onChange(card.id, 'term', e.target.value)}
-            placeholder="e.g. Developer"
-            className="w-full text-sm font-semibold text-slate-800 placeholder-slate-300 outline-none border-b-2 border-transparent focus:border-indigo-400 py-1 transition-colors bg-transparent"
+            placeholder={card.type === 'drag_drop' ? 'e.g. She loves learning English' : 'e.g. Developer'}
+            className="w-full text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 outline-none border-b-2 border-transparent focus:border-indigo-400 py-1 transition-colors bg-transparent"
             style={{ fontFamily: 'var(--font-display)' }}
           />
         </div>
         <div className="p-4">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
-            Definition (Vietnamese)
+          <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
+            {t('create_deck_def_vi')}
           </label>
           <input
             type="text"
             value={card.definition}
             onChange={(e) => onChange(card.id, 'definition', e.target.value)}
-            placeholder="e.g. Lập trình viên"
-            className="w-full text-sm font-semibold text-slate-800 placeholder-slate-300 outline-none border-b-2 border-transparent focus:border-indigo-400 py-1 transition-colors bg-transparent"
+            placeholder={card.type === 'drag_drop' ? 'e.g. Cô ấy thích học tiếng Anh' : 'e.g. Lập trình viên'}
+            className="w-full text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 outline-none border-b-2 border-transparent focus:border-indigo-400 py-1 transition-colors bg-transparent"
             style={{ fontFamily: 'var(--font-display)' }}
           />
         </div>
@@ -137,11 +151,40 @@ function CardRowItem({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mx-4 mb-4 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 flex items-start gap-2">
-              <GripHorizontal size={13} className="text-indigo-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-indigo-500 font-medium leading-relaxed">
-                The term will be split into draggable word pills automatically. Make sure it's a full sentence.
-              </p>
+            <div className="mx-4 mb-4 p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex flex-col gap-3">
+              <div className="flex items-start gap-2">
+                <GripHorizontal size={13} className="text-indigo-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-indigo-600 dark:text-indigo-300 font-medium leading-relaxed">
+                  Câu tiếng Anh sẽ tự động được tách thành các từ kéo-thả. Bạn có thể thêm cấu trúc và giải thích ngữ pháp:
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-indigo-100/60 dark:border-indigo-900/40">
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-1">
+                    {t('create_deck_grammar_rule')}
+                  </label>
+                  <input
+                    type="text"
+                    value={card.grammarRule || ''}
+                    onChange={(e) => onChange(card.id, 'grammarRule', e.target.value)}
+                    placeholder={t('create_deck_grammar_rule_placeholder')}
+                    className="w-full text-xs font-semibold text-indigo-950 dark:text-indigo-100 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-1">
+                    {t('create_deck_grammar_exp')}
+                  </label>
+                  <input
+                    type="text"
+                    value={card.grammarExplanation || ''}
+                    onChange={(e) => onChange(card.id, 'grammarExplanation', e.target.value)}
+                    placeholder={t('create_deck_grammar_exp_placeholder')}
+                    className="w-full text-xs font-semibold text-indigo-950 dark:text-indigo-100 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -151,6 +194,7 @@ function CardRowItem({
 }
 
 function SaveToast({ visible }: { visible: boolean }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {visible && (
@@ -161,7 +205,7 @@ function SaveToast({ visible }: { visible: boolean }) {
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-2"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <Save size={14} /> Deck saved!
+          <Save size={14} /> {t('create_deck_saved_toast')}
         </motion.div>
       )}
     </AnimatePresence>
@@ -171,6 +215,8 @@ function SaveToast({ visible }: { visible: boolean }) {
 export default function CreateDeckPage() {
   const navigate = useNavigate();
   const { addDeck } = useDecks();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Beginner');
@@ -201,7 +247,7 @@ export default function CreateDeckPage() {
 
     const formattedCards: CardItem[] = cards.map((c, index) => {
       if (c.type === 'drag_drop') {
-        const words = c.term.split(' ').map((w, idx) => ({
+        const words = c.term.split(' ').filter(Boolean).map((w, idx) => ({
           id: `w_${c.id}_${idx}`,
           word: w,
           type: 'other' as const,
@@ -212,6 +258,8 @@ export default function CreateDeckPage() {
           meaning: c.definition || 'Cụm từ mẫu',
           shuffled: [...words].sort(() => Math.random() - 0.5),
           correctOrder: words.map((w) => w.id),
+          grammarRule: c.grammarRule?.trim() || undefined,
+          grammarExplanation: c.grammarExplanation?.trim() || undefined,
         };
       }
       return {
@@ -225,14 +273,19 @@ export default function CreateDeckPage() {
     const newDeck: Deck = {
       id: `deck-${Date.now()}`,
       title: title.trim(),
-      creator: 'User',
+      description: description.trim(),
+      creator: user ? user.name : 'Người dùng',
+      creatorId: user?.id,
       itemCount: formattedCards.length,
       category,
       color: 'from-indigo-500 to-violet-600',
+      isPublic,
       cards: formattedCards,
+      createdAt: new Date().toISOString(),
     };
 
     await addDeck(newDeck);
+    recordCreatedDeck(newDeck);
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -245,28 +298,28 @@ export default function CreateDeckPage() {
   return (
     <div className="min-h-screen flex flex-col pb-24" style={{ background: 'var(--background)' }}>
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100">
+      <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(ROUTES.HOME)}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 text-sm font-semibold transition-colors"
+            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-sm font-semibold transition-colors cursor-pointer"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            <ArrowLeft size={15} /> Back
+            <ArrowLeft size={15} /> {t('back')}
           </button>
 
           <div className="flex items-center gap-2">
             <BookOpen size={15} className="text-indigo-500" />
-            <span className="text-sm font-black text-slate-800" style={{ fontFamily: 'var(--font-display)' }}>
-              Create Deck
+            <span className="text-sm font-black text-slate-800 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+              {t('create_deck_title')}
             </span>
           </div>
 
           <span
-            className="text-xs font-semibold text-slate-400"
+            className="text-xs font-semibold text-slate-400 dark:text-slate-500"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            {filledCards}/{cards.length} filled
+            {filledCards}/{cards.length}
           </span>
         </div>
       </header>
@@ -277,7 +330,7 @@ export default function CreateDeckPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+          className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden"
         >
           <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
 
@@ -285,21 +338,21 @@ export default function CreateDeckPage() {
             <div>
               <label
                 htmlFor="deck-title"
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Deck Title *
+                {t('create_deck_field_title')} *
               </label>
               <input
                 id="deck-title"
                 type="text"
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); setErrors({}); }}
-                placeholder="e.g. Basic Communication"
-                className={`w-full text-2xl font-black text-slate-900 placeholder-slate-200 outline-none border-b-2 pb-1.5 transition-colors bg-transparent ${
-                  errors.title ? 'border-red-400' : 'border-slate-100 focus:border-indigo-400'
+                placeholder={t('create_deck_title_placeholder')}
+                className={`w-full text-2xl font-black text-slate-900 dark:text-white placeholder-slate-200 dark:placeholder-slate-700 outline-none border-b-2 pb-1.5 transition-colors bg-transparent ${
+                  errors.title ? 'border-red-400' : 'border-slate-100 dark:border-slate-800 focus:border-indigo-400'
                 }`}
-                style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}
+                style={{ fontFamily: 'var(--font-display)' }}
               />
               <AnimatePresence>
                 {errors.title && (
@@ -310,7 +363,7 @@ export default function CreateDeckPage() {
                     className="text-red-500 text-xs font-semibold mt-1.5"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    Please add a title before saving.
+                    {t('create_deck_field_title')}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -318,17 +371,17 @@ export default function CreateDeckPage() {
 
             <div>
               <label
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Description
+                {t('create_deck_field_desc')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="What will learners gain from this deck?"
+                placeholder={t('create_deck_desc_placeholder')}
                 rows={2}
-                className="w-full text-sm font-medium text-slate-700 placeholder-slate-300 outline-none border-2 border-slate-100 focus:border-indigo-300 rounded-xl px-3 py-2.5 resize-none transition-colors bg-slate-50/50"
+                className="w-full text-sm font-medium text-slate-700 dark:text-slate-200 placeholder-slate-300 dark:placeholder-slate-600 outline-none border-2 border-slate-100 dark:border-slate-800 focus:border-indigo-300 rounded-xl px-3 py-2.5 resize-none transition-colors bg-slate-50/50 dark:bg-slate-800/40"
                 style={{ fontFamily: 'var(--font-body)' }}
               />
             </div>
@@ -336,37 +389,37 @@ export default function CreateDeckPage() {
             {/* Category Select */}
             <div>
               <label
-                className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2"
+                className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                Category
+                {t('create_deck_field_category')}
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full text-sm font-semibold text-slate-700 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-300"
+                className="w-full text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-300 cursor-pointer"
               >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
+                <option value="Beginner">{t('category_beginner')} (Beginner)</option>
+                <option value="Intermediate">{t('category_intermediate')} (Intermediate)</option>
+                <option value="Advanced">{t('category_advanced')} (Advanced)</option>
               </select>
             </div>
 
             {/* Visibility */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isPublic ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isPublic ? 'bg-indigo-100 dark:bg-indigo-950/80' : 'bg-slate-100 dark:bg-slate-800'}`}>
                   {isPublic
-                    ? <Globe size={15} className="text-indigo-600" />
+                    ? <Globe size={15} className="text-indigo-600 dark:text-indigo-400" />
                     : <Lock size={15} className="text-slate-500" />
                   }
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-700" style={{ fontFamily: 'var(--font-display)' }}>
-                    {isPublic ? 'Public' : 'Private'}
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200" style={{ fontFamily: 'var(--font-display)' }}>
+                    {t('create_deck_field_public')}
                   </p>
-                  <p className="text-xs text-slate-400 font-medium">
-                    {isPublic ? 'Anyone can find and study this deck' : 'Only you can access this deck'}
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                    {t('create_deck_public_desc')}
                   </p>
                 </div>
               </div>
@@ -379,16 +432,16 @@ export default function CreateDeckPage() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2
-              className="text-sm font-black text-slate-700 uppercase tracking-widest"
+              className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              Cards
-              <span className="ml-2 text-slate-400 font-semibold normal-case tracking-normal text-xs">
+              {t('create_deck_cards_list')}
+              <span className="ml-2 text-slate-400 dark:text-slate-500 font-semibold normal-case tracking-normal text-xs">
                 ({cards.length})
               </span>
             </h2>
-            <p className="text-xs text-slate-400 font-medium flex items-center gap-1">
-              <GripVertical size={11} /> Drag to reorder
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1">
+              <GripVertical size={11} /> Kéo để đổi vị trí
             </p>
           </div>
 
@@ -418,38 +471,38 @@ export default function CreateDeckPage() {
             onClick={addCard}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
-            className="w-full py-5 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/40 transition-all duration-200 flex items-center justify-center gap-2 font-bold text-sm group"
+            className="w-full py-5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-all duration-200 flex items-center justify-center gap-2 font-bold text-sm group cursor-pointer"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             <div className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Plus size={14} className="text-current" />
             </div>
-            Add new card
+            {t('create_deck_add_card')}
           </motion.button>
         </div>
       </main>
 
       {/* Fixed save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-md border-t border-slate-100">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="text-xs text-slate-400 font-medium hidden sm:block">
-            {cards.length} card{cards.length !== 1 ? 's' : ''} · {isPublic ? 'Public' : 'Private'}
-            {title && <span className="text-slate-600"> · "{title}"</span>}
+          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:block">
+            {cards.length} {t('cards')} · {isPublic ? 'Public' : 'Private'}
+            {title && <span className="text-slate-600 dark:text-slate-300"> · "{title}"</span>}
           </div>
           <div className="flex gap-3 ml-auto">
             <button
               onClick={() => navigate(ROUTES.HOME)}
-              className="px-5 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
+              className="px-5 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              Discard
+              {t('cancel')}
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 active:scale-95"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 cursor-pointer"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              <Save size={14} /> Save Deck
+              <Save size={14} /> {t('create_deck_save_btn')}
             </button>
           </div>
         </div>

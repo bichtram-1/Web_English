@@ -1,10 +1,20 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { STORAGE_KEYS } from '../constants/storage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+let rawBaseUrl = (import.meta.env.VITE_API_URL || '').trim();
+// Remove trailing slash if present
+if (rawBaseUrl.endsWith('/')) {
+  rawBaseUrl = rawBaseUrl.slice(0, -1);
+}
+// If user configured VITE_API_URL with /api/v1 or /api, strip it because ENDPOINTS already starts with /api/v1
+if (rawBaseUrl.endsWith('/api/v1')) {
+  rawBaseUrl = rawBaseUrl.slice(0, -7);
+} else if (rawBaseUrl.endsWith('/api')) {
+  rawBaseUrl = rawBaseUrl.slice(0, -4);
+}
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: rawBaseUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

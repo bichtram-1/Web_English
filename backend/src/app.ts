@@ -20,9 +20,11 @@ export const createApp = (): Application => {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(requestLogger);
 
-  // Mount API Router under /api/v1 and /v1 for full backward compatibility
+  // Mount API Router under all common path prefixes for full backward compatibility
+  app.use('/api/v1/api/v1', routes);
   app.use('/api/v1', routes);
   app.use('/v1', routes);
+  app.use('/api', routes);
 
   // Root welcome
   app.get('/', (_req, res) => {

@@ -15,6 +15,7 @@ export default function DefaultHeader() {
   const { t } = useTranslation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [initialLogoutConfirm, setInitialLogoutConfirm] = useState(false);
 
   return (
     <>
@@ -107,7 +108,10 @@ export default function DefaultHeader() {
             {isAuthenticated && user ? (
               <div className="flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
                 <button
-                  onClick={() => setProfileModalOpen(true)}
+                  onClick={() => {
+                    setInitialLogoutConfirm(false);
+                    setProfileModalOpen(true);
+                  }}
                   title="Xem thông tin tài khoản"
                   className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 py-1 px-2 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer group active:scale-95"
                 >
@@ -125,7 +129,10 @@ export default function DefaultHeader() {
                 </button>
 
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    setInitialLogoutConfirm(true);
+                    setProfileModalOpen(true);
+                  }}
                   title={t('logout')}
                   className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
                 >
@@ -136,9 +143,10 @@ export default function DefaultHeader() {
               <div className="flex items-center gap-1 pl-1.5 border-l border-slate-200 dark:border-slate-800">
                 <Link
                   to={ROUTES.LOGIN}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  title={t('login')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-transparent hover:border-blue-200 dark:hover:border-blue-800/60 transition-all cursor-pointer group"
                 >
-                  <LogIn size={14} />
+                  <LogIn size={15} className="text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                   <span className="hidden xs:inline">{t('login')}</span>
                 </Link>
               </div>
@@ -154,6 +162,7 @@ export default function DefaultHeader() {
       <UserProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+        initialLogoutConfirm={initialLogoutConfirm}
       />
     </>
   );

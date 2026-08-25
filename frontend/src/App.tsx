@@ -20,6 +20,7 @@ const ZenBuilderPage = lazy(() => import('./pages/zen/ZenBuilderPage'));
 const WrittenPracticePage = lazy(() => import('./pages/written/WrittenPracticePage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
 const StatsPage = lazy(() => import('./pages/stats/StatsPage'));
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
             {/* Auth Routes */}
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
 
             {/* Main Application with Default Layout */}
             <Route element={<DefaultLayout />}>

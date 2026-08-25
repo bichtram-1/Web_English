@@ -21,6 +21,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [initialLogoutConfirm, setInitialLogoutConfirm] = useState(false);
 
   const handleNav = (route: string) => {
     navigate(route);
@@ -74,7 +75,10 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 {isAuthenticated && user ? (
                   <div className="p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between">
                     <button
-                      onClick={() => setProfileModalOpen(true)}
+                      onClick={() => {
+                        setInitialLogoutConfirm(false);
+                        setProfileModalOpen(true);
+                      }}
                       className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer active:scale-95 transition-transform"
                     >
                       <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
@@ -86,7 +90,10 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                       </div>
                     </button>
                     <button
-                      onClick={() => { logout(); onClose(); }}
+                      onClick={() => {
+                        setInitialLogoutConfirm(true);
+                        setProfileModalOpen(true);
+                      }}
                       title={t('logout')}
                       className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg cursor-pointer shrink-0"
                     >
@@ -96,10 +103,11 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 ) : (
                   <button
                     onClick={() => handleNav(ROUTES.LOGIN)}
-                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer"
+                    title={t('login')}
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer group transition-colors"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    <LogIn size={15} />
+                    <LogIn size={15} className="group-hover:text-blue-200 transition-colors" />
                     <span>{t('login')} / {t('register')}</span>
                   </button>
                 )}
@@ -217,6 +225,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
       <UserProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+        initialLogoutConfirm={initialLogoutConfirm}
       />
     </>
   );

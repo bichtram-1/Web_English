@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="linguaGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#linguaGradient)" />
+  <path d="M32 14L35.2 24.8L46 28L35.2 31.2L32 42L28.8 31.2L18 28L28.8 24.8L32 14Z" fill="white" />
+  <circle cx="45" cy="43" r="4" fill="white" opacity="0.9" />
+  <circle cx="19" cy="45" r="3" fill="white" opacity="0.75" />
+</svg>

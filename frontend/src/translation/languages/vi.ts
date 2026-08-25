@@ -34,7 +34,7 @@ const ViTranslation = {
   go_home: 'Về trang chủ',
 
   // Navigation
-  nav_decks: 'Bộ thẻ học (Decks)',
+  nav_decks: 'Bộ thẻ học',
   nav_collections: 'Danh sách bộ thẻ',
   nav_create_deck: 'Tạo bộ thẻ mới',
   nav_create_collection: 'Tạo danh sách mới',
@@ -48,7 +48,7 @@ const ViTranslation = {
   register: 'Đăng ký',
   logout: 'Đăng xuất',
   email: 'Email',
-  email_placeholder: 'student@example.com',
+  email_placeholder: 'nhập email@gmail.com',
   password: 'Mật khẩu',
   password_placeholder: '••••••••',
   full_name: 'Họ và tên',
@@ -60,6 +60,21 @@ const ViTranslation = {
   login_prompt: 'Đăng nhập để lưu tiến độ học tập và thành tích của bạn',
   register_prompt: 'Tạo tài khoản để bắt đầu hành trình chinh phục tiếng Anh',
   or_continue_with: 'Hoặc tiếp tục với tài khoản demo',
+  forgot_password: 'Quên mật khẩu?',
+  forgot_password_title: 'Khôi phục mật khẩu',
+  forgot_password_subtitle: 'Nhập email đã đăng ký để nhận mã OTP khôi phục tài khoản',
+  send_otp: 'Gửi mã OTP qua Email',
+  resend_otp: 'Gửi lại mã OTP',
+  otp_code: 'Mã OTP (6 chữ số)',
+  otp_placeholder: '123456',
+  new_password: 'Mật khẩu mới',
+  confirm_new_password: 'Xác nhận mật khẩu mới',
+  reset_password_btn: 'Đặt lại mật khẩu',
+  reset_password_success: 'Đặt lại mật khẩu thành công!',
+  reset_password_success_desc: 'Mật khẩu của bạn đã được cập nhật thành công. Vui lòng đăng nhập với mật khẩu mới.',
+  back_to_login: 'Quay lại Đăng nhập',
+  password_mismatch: 'Mật khẩu xác nhận không khớp',
+  otp_sent_to: 'Mã OTP 6 chữ số đã được gửi đến email:',
 
   // Home Page
   home_hero_badge: 'Phương pháp Spaced Repetition + Kéo thả Ngữ pháp',
@@ -225,6 +240,8 @@ const ViTranslation = {
   user_role_student: 'Học viên (Student)',
   user_role_teacher: 'Giáo viên (Teacher)',
   user_role_admin: 'Quản trị viên (Admin)',
+  logout_confirm_title: 'Xác nhận đăng xuất',
+  logout_confirm_desc: 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?',
 
   // Collaborative Sharing & Permissions
   invite_collaborator_title: 'Mời bạn bè cùng học & chỉnh sửa',

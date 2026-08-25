@@ -32,3 +32,19 @@ export interface AuthResponse {
   user: SafeUser;
   token: string;
 }
+
+export interface ForgotPasswordDTO {
+  email: string;
+}
+
+export interface VerifyOtpDTO {
+  email: string;
+  otp: string;
+}
+
+export interface ResetPasswordDTO {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+

@@ -1,36 +1,55 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Sparkles, Mail, Lock, User as UserIcon, UserPlus, ArrowLeft } from 'lucide-react';
+import { Sparkles, Mail, Lock, User as UserIcon, UserPlus, ArrowLeft, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants/routers';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register } = useAuth();
   const { t } = useTranslation();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
+
+  useEffect(() => {
+    const qEmail = searchParams.get('email');
+    if (qEmail) setEmail(qEmail);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       setError('Vui lòng điền đầy đủ họ tên, email và mật khẩu');
+      setIsDuplicateEmail(false);
       return;
     }
 
     setLoading(true);
     setError('');
+    setIsDuplicateEmail(false);
     try {
       await register({ name, email, password });
       navigate(ROUTES.HOME);
     } catch (err: any) {
-      setError(err?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      const status = err?.status;
+      const rawMsg = err?.message || '';
+
+      if (status === 409 || rawMsg.includes('đã được sử dụng') || rawMsg.includes('đã được đăng ký') || rawMsg.includes('already exists')) {
+        setIsDuplicateEmail(true);
+        setError('Email này đã được đăng ký tài khoản trong hệ thống.');
+      } else {
+        setIsDuplicateEmail(false);
+        setError(rawMsg && !rawMsg.includes('status code') ? rawMsg : 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,8 +89,25 @@ export default function RegisterPage() {
           className="bg-white dark:bg-slate-900 py-8 px-6 shadow-xl rounded-3xl border border-slate-100 dark:border-slate-800 sm:px-10"
         >
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-100 dark:border-rose-900 text-rose-600 dark:text-rose-300 text-xs font-semibold">
-              {error}
+            <div className="mb-5 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-xs">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={17} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-rose-700 dark:text-rose-300 leading-relaxed">{error}</p>
+                  {isDuplicateEmail && (
+                    <div className="mt-3 pt-2.5 border-t border-rose-200/80 dark:border-rose-900/80 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-rose-600/90 dark:text-rose-400/90">Bạn đã có tài khoản rồi?</span>
+                      <Link
+                        to={`${ROUTES.LOGIN}?email=${encodeURIComponent(email)}`}
+                        className="inline-flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl shadow-xs border border-indigo-200 dark:border-indigo-800 transition-all active:scale-95"
+                      >
+                        <LogIn size={13} />
+                        <span>Đăng nhập ngay</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -126,14 +162,22 @@ export default function RegisterPage() {
               <div className="relative">
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t('password_placeholder')}
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 

@@ -14,6 +14,7 @@ export const ROUTES = {
   WRITTEN: '/deck/:id/written',
   LOGIN: '/login',
   REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
   STATS: '/stats',
   LEADERBOARD: '/leaderboard',
 } as const;

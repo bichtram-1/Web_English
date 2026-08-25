@@ -3,6 +3,9 @@ export const ENDPOINTS = {
   AUTH_REGISTER: '/api/v1/auth/register',
   AUTH_LOGIN: '/api/v1/auth/login',
   AUTH_ME: '/api/v1/auth/me',
+  AUTH_FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
+  AUTH_VERIFY_OTP: '/api/v1/auth/verify-otp',
+  AUTH_RESET_PASSWORD: '/api/v1/auth/reset-password',
 
   // Decks
   DECKS: '/api/v1/decks',

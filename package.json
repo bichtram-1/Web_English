@@ -7,10 +7,10 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm --prefix backend run build && npm --prefix frontend run build",
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
-    "vercel-build": "prisma generate --schema=backend/prisma/schema.prisma && npm --prefix frontend run build",
+    "vercel-build": "npm install --prefix backend && npm install --prefix frontend && npm --prefix backend run build && npm --prefix frontend run build",
     "start": "npm --prefix backend start",
     "seed": "npm --prefix backend run seed",
     "db:studio": "npm --prefix backend run db:studio",
@@ -33,7 +33,8 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.9",
     "@types/nodemailer": "^6.4.17",
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "prisma": "^6.4.1"
   },
   "keywords": [
     "english-learning",

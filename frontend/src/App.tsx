@@ -50,6 +50,7 @@ export default function App() {
               <Route path={ROUTES.COLLECTION_DETAIL} element={<CollectionDetailPage />} />
               <Route path={ROUTES.GAMES} element={<ArcadeGamesPage />} />
               <Route path={ROUTES.STATS} element={<StatsPage />} />
+              <Route path={ROUTES.TRANSLATE} element={<TextTranslateExtractPage />} />
               <Route path={ROUTES.TRANSLATE_EXTRACT} element={<TextTranslateExtractPage />} />
             </Route>
 
@@ -59,6 +60,7 @@ export default function App() {
               <Route path={ROUTES.COLLECTION_STUDY} element={<StudyPage />} />
               <Route path={ROUTES.COLLECTION_WRITTEN} element={<WrittenPracticePage />} />
               <Route path={ROUTES.TEST} element={<TestPage />} />
+              <Route path={ROUTES.SHOOTER} element={<TypingShooterPage />} />
               <Route path={ROUTES.MINIGAME} element={<TypingShooterPage />} />
               <Route path={ROUTES.MATCH} element={<MemoryMatchPage />} />
               <Route path={ROUTES.TREASURE} element={<TreasureHuntPage />} />

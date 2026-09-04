@@ -16,7 +16,9 @@ import { ParsedCard } from '../../utils/deckExportImport';
 import type { Deck, CardItem } from '../../types/DeckType';
 import deckApi from '../../api/deckApi';
 import { canEditDeck } from '../../utils/permission';
+import { generateFriendlyId } from '../../utils/slugify';
 import Loading from '../../components/shared/Loading';
+
 
 type CardType = 'flashcard' | 'drag_drop';
 
@@ -455,8 +457,9 @@ export default function CreateDeckPage() {
           return;
         }
 
+        const friendlyId = generateFriendlyId(title.trim());
         const newDeck: Deck = {
-          id: `deck-${Date.now()}`,
+          id: friendlyId,
           title: title.trim(),
           description: description.trim(),
           creator: user.name || user.email.split('@')[0],
@@ -475,7 +478,7 @@ export default function CreateDeckPage() {
         setTimeout(() => {
           setSaved(false);
           setIsSubmitting(false);
-          navigate(ROUTES.HOME);
+          navigate(getDeckDetailRoute(created?.id || friendlyId));
         }, 800);
       }
     } catch (e) {

@@ -47,6 +47,7 @@ export interface Deck {
 }
 
 export interface CreateDeckDTO {
+  id?: string;
   title: string;
   description?: string;
   category?: string;

@@ -2,6 +2,8 @@ import axiosInstance from './axiosInstance';
 import { STORAGE_KEYS } from '../constants/storage';
 import { deckApi } from './deckApi';
 import type { Deck, DeckCollection, CardItem } from '../types/DeckType';
+import { generateFriendlyId } from '../utils/slugify';
+
 
 const mockDefaultCollections: DeckCollection[] = [
   {
@@ -88,7 +90,7 @@ export const collectionApi = {
   }): Promise<DeckCollection> => {
     const collections = getStoredCollections();
     const newCol: DeckCollection = {
-      id: `col-${Date.now()}`,
+      id: generateFriendlyId(data.title.trim(), 'col'),
       title: data.title.trim(),
       description: data.description?.trim() || '',
       creator: data.creator || 'Người dùng',

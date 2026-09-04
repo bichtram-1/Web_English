@@ -34,7 +34,9 @@ import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckRatingStars from '../../components/shared/DeckRatingStars';
 import { isDeckCreator, canEditDeck } from '../../utils/permission';
+import { generateFriendlyId } from '../../utils/slugify';
 import { getCategoryLabel } from '../home/HomePage';
+
 import {
   ROUTES,
   getDeckDetailRoute,
@@ -84,8 +86,10 @@ export default function DeckDetailPage() {
 
     setIsCloning(true);
     try {
+      const clonedTitle = `${deck.title} (${isVi ? 'Bản sao' : 'Copy'})`;
       const clonedDeck = await deckApi.createDeck({
-        title: `${deck.title} (${isVi ? 'Bản sao' : 'Copy'})`,
+        id: generateFriendlyId(clonedTitle),
+        title: clonedTitle,
         description: deck.description || '',
         category: deck.category || 'Beginner',
         color: deck.color || 'from-indigo-500 to-violet-600',

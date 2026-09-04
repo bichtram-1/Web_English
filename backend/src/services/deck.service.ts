@@ -1,6 +1,8 @@
 import prisma from '../config/prisma';
 import { Deck, CardItem, CreateDeckDTO, UpdateDeckDTO } from '../types/deck.types';
 import { AppError } from '../utils/appError';
+import { slugify } from '../utils/slugify';
+
 
 const mapCardFromDb = (card: any): CardItem => {
   if (card.type === 'drag_drop') {
@@ -50,6 +52,38 @@ const mapDeckFromDb = (d: any): Deck => {
     updatedAt: d.updatedAt ? d.updatedAt.toISOString() : undefined,
   };
 };
+
+export async function generateUniqueDeckId(title: string, preferredId?: string): Promise<string> {
+  let base = preferredId ? slugify(preferredId) : slugify(title);
+  if (!base || base.length < 2) {
+    base = 'deck';
+  }
+
+  // Prevent reserved route collisions
+  const reserved = ['create', 'new', 'edit', 'study', 'test', 'games', 'all', 'search', 'admin', 'minigame', 'shooter'];
+  if (reserved.includes(base)) {
+    base = `${base}-deck`;
+  }
+
+  let candidate = base;
+  const existing = await prisma.deck.findUnique({ where: { id: candidate } });
+  if (!existing) {
+    return candidate;
+  }
+
+  // If collision, append numeric suffix (-2, -3, ...)
+  let counter = 2;
+  while (counter <= 50) {
+    candidate = `${base}-${counter}`;
+    const collision = await prisma.deck.findUnique({ where: { id: candidate } });
+    if (!collision) return candidate;
+    counter++;
+  }
+
+  // Fallback to short random hash suffix
+  const randomSuffix = Math.random().toString(36).substring(2, 6);
+  return `${base}-${randomSuffix}`;
+}
 
 export class DeckService {
   static async getAllDecks(options?: {
@@ -127,6 +161,8 @@ export class DeckService {
       // Fallback to provided creatorName
     }
 
+    const deckId = await generateUniqueDeckId(dto.title, dto.id);
+
     const cardsData = (dto.cards || []).map((c, index) => {
       if (c.type === 'drag_drop') {
         return {
@@ -152,6 +188,7 @@ export class DeckService {
 
     const newDeck = await prisma.deck.create({
       data: {
+        id: deckId,
         title: dto.title.trim(),
         description: dto.description?.trim() || '',
         creatorName: finalCreatorName,

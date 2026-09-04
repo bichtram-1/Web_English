@@ -8,11 +8,18 @@ export function isDeckCreator(deck: Deck | null | undefined, user: User | null |
   if (!deck) return false;
   if (!user) return false;
   if (user.role === 'admin') return true;
-  if (deck.creatorId && deck.creatorId === user.id) return true;
-  if (deck.creator && user.name && deck.creator.toLowerCase() === user.name.toLowerCase()) return true;
-  if (deck.creator && user.email && deck.creator.toLowerCase() === user.email.split('@')[0].toLowerCase()) return true;
+  if (deck.creatorId) {
+    return deck.creatorId === user.id;
+  }
+  // If no creatorId (legacy decks), ensure generic system names cannot be claimed
+  const systemNames = ['linguateam', 'linguauser', 'người dùng', 'learner', 'admin'];
+  if (deck.creator && !systemNames.includes(deck.creator.toLowerCase())) {
+    if (user.name && deck.creator.toLowerCase() === user.name.toLowerCase()) return true;
+    if (user.email && deck.creator.toLowerCase() === user.email.split('@')[0].toLowerCase()) return true;
+  }
   return false;
 }
+
 
 /**
  * Check if the user has edit permission for a Deck (Creator OR Collaborator with 'editor' role)

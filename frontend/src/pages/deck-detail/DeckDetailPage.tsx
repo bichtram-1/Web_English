@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
@@ -21,7 +21,9 @@ import {
   Volume2,
   Layers,
   Search,
+  Copy,
 } from 'lucide-react';
+
 import deckApi from '../../api/deckApi';
 import { recordViewedDeck } from '../../utils/recentDecks';
 import { useAuth } from '../../hooks/useAuth';
@@ -51,7 +53,8 @@ import type { StudyMode } from '../../types/deck.types';
 export default function DeckDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -60,6 +63,7 @@ export default function DeckDetailPage() {
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
   const [cardSearch, setCardSearch] = useState('');
 
   const speakWord = (text: string) => {
@@ -69,6 +73,34 @@ export default function DeckDetailPage() {
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleCloneDeck = async () => {
+    if (!isAuthenticated || !user) {
+      navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+      return;
+    }
+    if (!deck) return;
+
+    setIsCloning(true);
+    try {
+      const clonedDeck = await deckApi.createDeck({
+        title: `${deck.title} (${isVi ? 'Bản sao' : 'Copy'})`,
+        description: deck.description || '',
+        category: deck.category || 'Beginner',
+        color: deck.color || 'from-indigo-500 to-violet-600',
+        isPublic: false,
+        cards: deck.cards || [],
+      });
+      if (clonedDeck?.id) {
+        navigate(getEditDeckRoute(clonedDeck.id));
+      }
+    } catch (e) {
+      console.error('Failed to clone deck:', e);
+      alert(isVi ? 'Không thể sao chép bộ thẻ. Vui lòng thử lại!' : 'Failed to clone deck. Please try again!');
+    } finally {
+      setIsCloning(false);
+    }
   };
 
   const handleDeleteDeck = async () => {
@@ -84,6 +116,7 @@ export default function DeckDetailPage() {
       setIsDeleting(false);
     }
   };
+
 
   useEffect(() => {
     if (!id) return;
@@ -221,6 +254,18 @@ export default function DeckDetailPage() {
                 <span>{isVi ? 'Xuất / Nhập File' : 'Export / Import'}</span>
               </button>
 
+              {/* Clone deck for community users */}
+              <button
+                disabled={isCloning}
+                onClick={handleCloneDeck}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm disabled:opacity-50"
+                style={{ fontFamily: 'var(--font-display)' }}
+                title={isVi ? 'Tạo bản sao để tự do chỉnh sửa theo ý bạn' : 'Clone this deck to your own library to edit'}
+              >
+                <Copy size={14} />
+                <span>{isCloning ? (isVi ? 'Đang sao chép...' : 'Cloning...') : (isVi ? 'Sao chép bộ thẻ' : 'Clone Deck')}</span>
+              </button>
+
               {/* Add to collection button */}
               <button
                 onClick={() => setIsAddCollectionOpen(true)}
@@ -230,6 +275,7 @@ export default function DeckDetailPage() {
                 <FolderPlus size={14} />
                 <span>{t('collection_add_to_collection')}</span>
               </button>
+
 
               {/* 3-dots Menu with permission check */}
               <ItemOptionsMenu

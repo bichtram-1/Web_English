@@ -238,7 +238,36 @@ async function main() {
     },
   });
 
+  // Deck 5: Business English
+
+  await prisma.deck.create({
+    data: {
+      id: 'business-english',
+      title: 'Business English',
+      description: 'Thuật ngữ và từ vựng tiếng Anh chuyên ngành kinh tế, tài chính và quản trị.',
+      category: 'Advanced',
+      color: 'from-blue-600 to-cyan-500',
+      isPublic: true,
+      creatorName: 'CorpLingo',
+      creatorId: admin.id,
+      itemCount: 8,
+      cards: {
+        create: [
+          { type: 'flashcard', front: 'Acquisition', back: 'Sáp nhập / Thu mua doanh nghiệp', phonetic: '/ˌæk.wɪˈzɪʃ.ən/', orderIndex: 1 },
+          { type: 'flashcard', front: 'Stakeholder', back: 'Các bên liên quan', phonetic: '/ˈsteɪkˌhəʊl.dər/', orderIndex: 2 },
+          { type: 'flashcard', front: 'Liability', back: 'Trách nhiệm pháp lý / Nghĩa vụ nợ', phonetic: '/ˌlaɪ.əˈbɪl.ə.ti/', orderIndex: 3 },
+          { type: 'flashcard', front: 'Dividend', back: 'Cổ tức chia cho cổ đông', phonetic: '/ˈdɪv.ɪ.dend/', orderIndex: 4 },
+          { type: 'flashcard', front: 'Benchmark', back: 'Tiêu chuẩn đối sánh chuẩn mực', phonetic: '/ˈbentʃ.mɑːk/', orderIndex: 5 },
+          { type: 'flashcard', front: 'Leverage', back: 'Đòn bẩy tài chính', phonetic: '/ˈliː.vər.ɪdʒ/', orderIndex: 6 },
+          { type: 'flashcard', front: 'Portfolio', back: 'Danh mục đầu tư', phonetic: '/ˌpɔːtˈfəʊ.li.əʊ/', orderIndex: 7 },
+          { type: 'flashcard', front: 'Compliance', back: 'Sự tuân thủ pháp luật / Quy chế', phonetic: '/kəmˈplaɪ.əns/', orderIndex: 8 },
+        ],
+      },
+    },
+  });
+
   // 5. Phiên học mẫu (Seed Study Sessions)
+
   await prisma.studySession.create({
     data: {
       userId: student.id,

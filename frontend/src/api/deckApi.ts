@@ -134,7 +134,10 @@ export const deckApi = {
         saveDecksToStorage([res.data, ...stored]);
         return res.data;
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 403) {
+        throw e;
+      }
       console.warn('Backend unavailable for createDeck, saving locally:', e);
     }
 
@@ -164,7 +167,10 @@ export const deckApi = {
       if (res?.data) {
         return res.data;
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 403) {
+        throw e;
+      }
       console.warn('Backend unavailable for updateDeck, updating locally:', e);
     }
     const decks = getStoredDecks();
@@ -180,7 +186,10 @@ export const deckApi = {
   deleteDeck: async (id: string): Promise<boolean> => {
     try {
       await axiosInstance.delete(ENDPOINTS.DELETE_DECK(id));
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 403) {
+        throw e;
+      }
       console.warn('Backend unavailable for deleteDeck, removing locally:', e);
     }
     const decks = getStoredDecks();
@@ -188,6 +197,7 @@ export const deckApi = {
     saveDecksToStorage(filtered);
     return true;
   },
+
 
   rateDeck: async (id: string, score: number, userId: string = 'guest'): Promise<Deck> => {
     try {

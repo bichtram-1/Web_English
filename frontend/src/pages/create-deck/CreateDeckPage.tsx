@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal, Upload, Sparkles, Edit3 } from 'lucide-react';
@@ -241,10 +242,12 @@ export default function CreateDeckPage() {
   const { id } = useParams<{ id?: string }>();
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const { addDeck, updateDeck } = useDecks();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+
 
   const [isLoadingDeck, setIsLoadingDeck] = useState(isEditMode);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -446,12 +449,18 @@ export default function CreateDeckPage() {
           navigate(getDeckDetailRoute(id));
         }, 800);
       } else {
+        if (!isAuthenticated || !user) {
+          alert(isVi ? 'Vui lòng đăng nhập để tạo và lưu bộ thẻ!' : 'Please log in to create and save a deck!');
+          navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+          return;
+        }
+
         const newDeck: Deck = {
           id: `deck-${Date.now()}`,
           title: title.trim(),
           description: description.trim(),
-          creator: user ? user.name : (isVi ? 'Người dùng' : 'Learner'),
-          creatorId: user?.id,
+          creator: user.name || user.email.split('@')[0],
+          creatorId: user.id,
           itemCount: formattedCards.length,
           category,
           color: 'from-indigo-500 to-violet-600',
@@ -477,10 +486,46 @@ export default function CreateDeckPage() {
 
   const filledCards = cards.filter((c) => c.term.trim() || c.definition.trim()).length;
 
-  if (isLoadingDeck) {
+  if (isLoadingDeck || isLoading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center">
         <Loading />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+            <Lock size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {isVi ? 'Yêu cầu đăng nhập' : 'Authentication Required'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            {isVi
+              ? 'Vui lòng đăng nhập để tạo, chỉnh sửa và quản lý bộ thẻ từ vựng của riêng bạn cho cộng đồng.'
+              : 'Please log in to create, edit, and manage your flashcard decks for the community.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
+            <button
+              onClick={() => navigate(ROUTES.LOGIN, { state: { from: location.pathname } })}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {isVi ? 'Đăng nhập ngay' : 'Log In Now'}
+            </button>
+            <button
+              onClick={() => navigate(ROUTES.HOME)}
+              className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {t('back')}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

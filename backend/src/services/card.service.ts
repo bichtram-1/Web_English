@@ -4,10 +4,18 @@ import { AppError } from '../utils/appError';
 import { DeckService } from './deck.service';
 
 export class CardService {
-  static async addCardToDeck(deckId: string, card: CardItem): Promise<Deck> {
+  static async addCardToDeck(deckId: string, card: CardItem, userId?: string, userRole?: string): Promise<Deck> {
     const deck = await prisma.deck.findUnique({ where: { id: deckId } });
     if (!deck) {
       throw new AppError('Không tìm thấy bộ thẻ', 404);
+    }
+
+    if (!userId) {
+      throw new AppError('Vui lòng đăng nhập để thêm thẻ vào bộ thẻ này', 401);
+    }
+
+    if (userRole !== 'admin' && (!deck.creatorId || deck.creatorId !== userId)) {
+      throw new AppError('Bạn không có quyền thêm thẻ vào bộ thẻ này', 403);
     }
 
     if (card.type === 'drag_drop') {
@@ -44,7 +52,20 @@ export class CardService {
     return DeckService.getDeckById(deckId);
   }
 
-  static async updateCardInDeck(deckId: string, cardId: number, cardData: Partial<CardItem>): Promise<Deck> {
+  static async updateCardInDeck(deckId: string, cardId: number, cardData: Partial<CardItem>, userId?: string, userRole?: string): Promise<Deck> {
+    const deck = await prisma.deck.findUnique({ where: { id: deckId } });
+    if (!deck) {
+      throw new AppError('Không tìm thấy bộ thẻ', 404);
+    }
+
+    if (!userId) {
+      throw new AppError('Vui lòng đăng nhập để chỉnh sửa thẻ', 401);
+    }
+
+    if (userRole !== 'admin' && (!deck.creatorId || deck.creatorId !== userId)) {
+      throw new AppError('Bạn không có quyền chỉnh sửa thẻ trong bộ thẻ này', 403);
+    }
+
     const existing = await prisma.card.findFirst({
       where: { id: cardId, deckId },
     });
@@ -76,7 +97,20 @@ export class CardService {
     return DeckService.getDeckById(deckId);
   }
 
-  static async deleteCardFromDeck(deckId: string, cardId: number): Promise<Deck> {
+  static async deleteCardFromDeck(deckId: string, cardId: number, userId?: string, userRole?: string): Promise<Deck> {
+    const deck = await prisma.deck.findUnique({ where: { id: deckId } });
+    if (!deck) {
+      throw new AppError('Không tìm thấy bộ thẻ', 404);
+    }
+
+    if (!userId) {
+      throw new AppError('Vui lòng đăng nhập để xóa thẻ', 401);
+    }
+
+    if (userRole !== 'admin' && (!deck.creatorId || deck.creatorId !== userId)) {
+      throw new AppError('Bạn không có quyền xóa thẻ khỏi bộ thẻ này', 403);
+    }
+
     const existing = await prisma.card.findFirst({
       where: { id: cardId, deckId },
     });

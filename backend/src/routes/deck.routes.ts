@@ -6,8 +6,9 @@ const router = Router();
 
 router.get('/', optionalAuth, DeckController.getAllDecks);
 router.get('/:id', optionalAuth, DeckController.getDeckById);
-router.post('/', optionalAuth, DeckController.createDeck);
-router.put('/:id', optionalAuth, DeckController.updateDeck);
-router.delete('/:id', optionalAuth, DeckController.deleteDeck);
+router.post('/', requireAuth, DeckController.createDeck);
+router.put('/:id', requireAuth, DeckController.updateDeck);
+router.delete('/:id', requireAuth, DeckController.deleteDeck);
 
 export default router;
+

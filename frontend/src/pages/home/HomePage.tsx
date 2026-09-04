@@ -143,8 +143,9 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
 export default function HomePage() {
   const navigate = useNavigate();
   const { decks, loading, deleteDeck } = useDecks();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
+
   const isVi = i18n.language === 'vi';
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
@@ -257,12 +258,19 @@ export default function HomePage() {
                 </button>
 
                 <button
-                  onClick={() => navigate(ROUTES.CREATE_DECK)}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate(ROUTES.LOGIN, { state: { from: ROUTES.CREATE_DECK } });
+                      return;
+                    }
+                    navigate(ROUTES.CREATE_DECK);
+                  }}
                   className="px-5 py-2.5 rounded-2xl bg-white text-indigo-600 font-bold text-xs sm:text-sm shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Plus size={16} />
                   <span>{t('nav_create_deck')}</span>
                 </button>
+
 
                 <button
                   onClick={() => navigate(ROUTES.COLLECTIONS)}
@@ -432,13 +440,20 @@ export default function HomePage() {
               />
             </div>
             <button
-              onClick={() => navigate(ROUTES.CREATE_DECK)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate(ROUTES.LOGIN, { state: { from: ROUTES.CREATE_DECK } });
+                  return;
+                }
+                navigate(ROUTES.CREATE_DECK);
+              }}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none active:scale-95 shrink-0 cursor-pointer"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={15} />
               <span className="hidden sm:inline">{t('create')}</span>
             </button>
+
           </div>
 
           {/* Category level filter tabs */}

@@ -142,13 +142,20 @@ export default function DefaultHeader() {
 
             {/* Quick Create Button (Hidden on small mobile) */}
             <button
-              onClick={() => navigate(ROUTES.CREATE_DECK)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate(ROUTES.LOGIN, { state: { from: ROUTES.CREATE_DECK } });
+                  return;
+                }
+                navigate(ROUTES.CREATE_DECK);
+              }}
               className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 dark:shadow-none active:scale-95 transition-all cursor-pointer whitespace-nowrap"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={15} />
               <span>{t('create')}</span>
             </button>
+
 
             {/* User Auth */}
             {isAuthenticated && user ? (

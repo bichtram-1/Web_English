@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Plus, BookOpen, Layers, BarChart3, LogIn, LogOut, Menu, FolderOpen } from 'lucide-react';
+import { Sparkles, Plus, BookOpen, Layers, BarChart3, LogIn, LogOut, Menu, FolderOpen, Gamepad2, Languages } from 'lucide-react';
 import { ROUTES } from '../../constants/routers';
 import { useAuth } from '../../hooks/useAuth';
 import ThemeToggle from './ThemeToggle';
@@ -12,15 +12,16 @@ import UserProfileModal from './UserProfileModal';
 export default function DefaultHeader() {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [initialLogoutConfirm, setInitialLogoutConfirm] = useState(false);
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/80 shadow-sm transition-colors duration-200">
+        <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2">
             {/* Mobile Hamburger Button */}
             <button
@@ -31,10 +32,17 @@ export default function DefaultHeader() {
               <Menu size={20} />
             </button>
 
-            {/* Brand Logo */}
+            {/* Brand Logo with Chicken Mascot Icon */}
             <Link to={ROUTES.HOME} className="flex items-center gap-2 group shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 dark:shadow-indigo-950/50 group-hover:scale-105 transition-transform">
-                <Sparkles size={17} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-white shadow-md shadow-amber-200 dark:shadow-amber-950/50 group-hover:scale-105 transition-transform overflow-hidden p-0.5">
+                <img
+                  src="/iconChicken.png"
+                  alt="Chicken Mascot"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/favicon.svg';
+                  }}
+                />
               </div>
               <div>
                 <span
@@ -42,7 +50,7 @@ export default function DefaultHeader() {
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {t('app_name')}
-                  <span className="hidden sm:inline text-[10px] uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-100/50 dark:border-indigo-800/50">
+                  <span className="hidden sm:inline text-[10px] uppercase px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 font-bold border border-amber-200/50 dark:border-amber-800/50">
                     {t('app_tag')}
                   </span>
                 </span>
@@ -51,43 +59,81 @@ export default function DefaultHeader() {
           </div>
 
           {/* Center Nav Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-1">
-            <Link
+          <nav className="hidden lg:flex items-center gap-1">
+            <NavLink
               to={ROUTES.HOME}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                }`
+              }
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Layers size={16} />
-              {t('nav_decks')}
-            </Link>
-            <Link
+              <span>{t('nav_decks')}</span>
+            </NavLink>
+            <NavLink
               to={ROUTES.COLLECTIONS}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                }`
+              }
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <FolderOpen size={16} />
-              {t('nav_collections')}
-            </Link>
-            <Link
-              to={ROUTES.CREATE_DECK}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+              <span>{t('nav_collections')}</span>
+            </NavLink>
+            <NavLink
+              to={ROUTES.GAMES}
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                }`
+              }
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              <BookOpen size={16} />
-              {t('nav_create_deck')}
-            </Link>
-            <Link
+              <Gamepad2 size={16} />
+              <span>{isVi ? 'Trò Chơi' : 'Arcade Games'}</span>
+            </NavLink>
+            <NavLink
+              to={ROUTES.TRANSLATE_EXTRACT}
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Languages size={16} />
+              <span>{isVi ? 'Dịch & Trích Từ' : 'Translate & Extract'}</span>
+            </NavLink>
+            <NavLink
               to={ROUTES.STATS}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                }`
+              }
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <BarChart3 size={16} />
-              {t('nav_analytics')}
-            </Link>
+              <span>{t('nav_analytics')}</span>
+            </NavLink>
           </nav>
 
           {/* Right CTA, Language, Theme & Auth */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Language Switcher */}
             <LanguageSelect />
 
@@ -97,7 +143,7 @@ export default function DefaultHeader() {
             {/* Quick Create Button (Hidden on small mobile) */}
             <button
               onClick={() => navigate(ROUTES.CREATE_DECK)}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 dark:shadow-none active:scale-95 transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 dark:shadow-none active:scale-95 transition-all cursor-pointer whitespace-nowrap"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={15} />
@@ -112,7 +158,7 @@ export default function DefaultHeader() {
                     setInitialLogoutConfirm(false);
                     setProfileModalOpen(true);
                   }}
-                  title="Xem thông tin tài khoản"
+                  title={isVi ? 'Xem thông tin tài khoản' : 'View profile'}
                   className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 py-1 px-2 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer group active:scale-95"
                 >
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
@@ -133,8 +179,9 @@ export default function DefaultHeader() {
                     setInitialLogoutConfirm(true);
                     setProfileModalOpen(true);
                   }}
-                  title={t('logout')}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
+                  title={t('auth_logout_btn')}
+                  className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all cursor-pointer"
+                  aria-label={t('auth_logout_btn')}
                 >
                   <LogOut size={16} />
                 </button>

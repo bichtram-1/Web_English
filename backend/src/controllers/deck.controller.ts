@@ -44,7 +44,8 @@ export class DeckController {
     try {
       const { id } = req.params;
       const userId = req.user?.userId;
-      const updated = await DeckService.updateDeck(id, req.body, userId);
+      const userRole = req.user?.role;
+      const updated = await DeckService.updateDeck(id, req.body, userId, userRole);
       return ApiResponseHandler.success(res, updated, 'Cập nhật bộ thẻ thành công');
     } catch (err) {
       next(err);
@@ -55,7 +56,8 @@ export class DeckController {
     try {
       const { id } = req.params;
       const userId = req.user?.userId;
-      await DeckService.deleteDeck(id, userId);
+      const userRole = req.user?.role;
+      await DeckService.deleteDeck(id, userId, userRole);
       return ApiResponseHandler.success(res, { deleted: true, id }, 'Xóa bộ thẻ thành công');
     } catch (err) {
       next(err);

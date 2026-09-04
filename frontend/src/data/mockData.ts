@@ -34,6 +34,9 @@ export interface Deck {
   category: string;
   color: string;
   cards: CardItem[];
+  rating?: number;
+  ratingCount?: number;
+  userRatings?: Record<string, number>;
 }
 
 export const mockDecks: Deck[] = [
@@ -44,6 +47,8 @@ export const mockDecks: Deck[] = [
     itemCount: 20,
     category: 'Beginner',
     color: 'from-violet-500 to-indigo-600',
+    rating: 4.9,
+    ratingCount: 128,
     cards: [
       { id: 1, type: 'flashcard', front: 'Developer', back: 'Lập trình viên' },
       {
@@ -115,6 +120,8 @@ export const mockDecks: Deck[] = [
     itemCount: 35,
     category: 'Intermediate',
     color: 'from-rose-500 to-orange-500',
+    rating: 4.8,
+    ratingCount: 94,
     cards: [
       { id: 1, type: 'flashcard', front: 'Negotiate', back: 'Đàm phán' },
       { id: 2, type: 'flashcard', front: 'Implement', back: 'Thực hiện' },
@@ -153,6 +160,8 @@ export const mockDecks: Deck[] = [
     itemCount: 18,
     category: 'Beginner',
     color: 'from-emerald-500 to-teal-600',
+    rating: 4.7,
+    ratingCount: 62,
     cards: [
       { id: 1, type: 'flashcard', front: 'Passport', back: 'Hộ chiếu' },
       { id: 2, type: 'flashcard', front: 'Departure', back: 'Khởi hành' },
@@ -171,6 +180,8 @@ export const mockDecks: Deck[] = [
     itemCount: 42,
     category: 'Advanced',
     color: 'from-blue-600 to-cyan-500',
+    rating: 5.0,
+    ratingCount: 115,
     cards: [
       { id: 1, type: 'flashcard', front: 'Acquisition', back: 'Sáp nhập / Thu mua' },
       { id: 2, type: 'flashcard', front: 'Stakeholder', back: 'Các bên liên quan' },
@@ -189,6 +200,8 @@ export const mockDecks: Deck[] = [
     itemCount: 28,
     category: 'Advanced',
     color: 'from-purple-600 to-pink-500',
+    rating: 4.8,
+    ratingCount: 84,
     cards: [
       { id: 1, type: 'flashcard', front: 'Furthermore', back: 'Hơn nữa / Thêm vào đó' },
       { id: 2, type: 'flashcard', front: 'Nevertheless', back: 'Tuy nhiên / Dù vậy' },
@@ -207,6 +220,8 @@ export const mockDecks: Deck[] = [
     itemCount: 15,
     category: 'Beginner',
     color: 'from-amber-500 to-yellow-400',
+    rating: 4.9,
+    ratingCount: 56,
     cards: [
       { id: 1, type: 'flashcard', front: 'How are you?', back: 'Bạn có khỏe không?' },
       { id: 2, type: 'flashcard', front: 'See you later', back: 'Hẹn gặp lại' },

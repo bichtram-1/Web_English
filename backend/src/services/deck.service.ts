@@ -159,7 +159,7 @@ export class DeckService {
     return mapDeckFromDb(newDeck);
   }
 
-  static async updateDeck(id: string, dto: UpdateDeckDTO, userId?: string): Promise<Deck> {
+  static async updateDeck(id: string, dto: UpdateDeckDTO, userId?: string, userRole?: string): Promise<Deck> {
     const existing = await prisma.deck.findUnique({
       where: { id },
     });
@@ -168,8 +168,13 @@ export class DeckService {
       throw new AppError('Không tìm thấy bộ thẻ để cập nhật', 404);
     }
 
-    if (userId && existing.creatorId && existing.creatorId !== userId) {
-      throw new AppError('Bạn không có quyền chỉnh sửa bộ thẻ này', 403);
+    if (existing.creatorId) {
+      if (!userId) {
+        throw new AppError('Vui lòng đăng nhập để chỉnh sửa bộ thẻ này', 401);
+      }
+      if (userRole !== 'admin' && existing.creatorId !== userId) {
+        throw new AppError('Bạn không có quyền chỉnh sửa bộ thẻ này', 403);
+      }
     }
 
     // Update main fields
@@ -225,14 +230,19 @@ export class DeckService {
     return this.getDeckById(id);
   }
 
-  static async deleteDeck(id: string, userId?: string): Promise<boolean> {
+  static async deleteDeck(id: string, userId?: string, userRole?: string): Promise<boolean> {
     const existing = await prisma.deck.findUnique({ where: { id } });
     if (!existing) {
       throw new AppError('Không tìm thấy bộ thẻ để xóa', 404);
     }
 
-    if (userId && existing.creatorId && existing.creatorId !== userId) {
-      throw new AppError('Bạn không có quyền xóa bộ thẻ này', 403);
+    if (existing.creatorId) {
+      if (!userId) {
+        throw new AppError('Vui lòng đăng nhập để xóa bộ thẻ này', 401);
+      }
+      if (userRole !== 'admin' && existing.creatorId !== userId) {
+        throw new AppError('Bạn không có quyền xóa bộ thẻ này', 403);
+      }
     }
 
     await prisma.deck.delete({ where: { id } });

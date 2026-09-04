@@ -21,7 +21,7 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 max-w-6xl mx-auto" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto bg-transparent">
       {/* Top navigation */}
       <div className="flex items-center justify-between mb-8">
         <button

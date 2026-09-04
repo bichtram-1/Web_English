@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Layers, Sparkles, ChevronLeft, ChevronRight, BarChart3, PlusCircle, FolderOpen } from 'lucide-react';
+import { BookOpen, Layers, Sparkles, ChevronLeft, ChevronRight, BarChart3, PlusCircle, FolderOpen, Gamepad2, Languages } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 
@@ -13,14 +13,15 @@ interface DefaultSiderProps {
 export default function DefaultSider({ collapsed: externalCollapsed, onToggle }: DefaultSiderProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const { decks } = useDecks();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
 
   const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
   const toggle = onToggle || (() => setInternalCollapsed((prev) => !prev));
 
   return (
     <aside
-      className={`relative bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
+      className={`relative bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
@@ -55,6 +56,21 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
             </NavLink>
 
             <NavLink
+              to={ROUTES.GAMES}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Gamepad2 size={18} className="shrink-0" />
+              {!collapsed && <span>{isVi ? 'Đấu Trường Trò Chơi' : 'Arcade Games'}</span>}
+            </NavLink>
+
+            <NavLink
               to={ROUTES.COLLECTIONS}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
@@ -67,6 +83,21 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
             >
               <FolderOpen size={18} className="shrink-0" />
               {!collapsed && <span>{t('nav_collections')}</span>}
+            </NavLink>
+
+            <NavLink
+              to={ROUTES.TRANSLATE_EXTRACT}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                }`
+              }
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Languages size={18} className="shrink-0" />
+              {!collapsed && <span>{isVi ? 'Dịch & Trích Từ Vựng' : 'Translate & Extract'}</span>}
             </NavLink>
 
             <NavLink

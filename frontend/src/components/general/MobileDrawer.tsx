@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layers, PlusCircle, BarChart3, BookOpen, Sparkles, LogIn, LogOut, User as UserIcon, FolderOpen } from 'lucide-react';
+import { X, Layers, PlusCircle, BarChart3, BookOpen, Sparkles, LogIn, LogOut, User as UserIcon, FolderOpen, Gamepad2, Languages } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
@@ -16,7 +16,8 @@ interface MobileDrawerProps {
 }
 
 export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { decks } = useDecks();
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -53,8 +54,8 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               {/* Header */}
               <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-200 dark:shadow-none">
-                    <Sparkles size={16} />
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-white font-bold shadow-md shadow-amber-200 dark:shadow-none p-0.5 overflow-hidden">
+                    <img src="/iconChicken.png" alt="Chicken" className="w-full h-full object-contain" />
                   </div>
                   <span className="font-black text-slate-900 dark:text-white text-base" style={{ fontFamily: 'var(--font-display)' }}>
                     {t('app_name')}
@@ -135,6 +136,22 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     </NavLink>
 
                     <NavLink
+                      to={ROUTES.GAMES}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`
+                      }
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      <Gamepad2 size={16} />
+                      <span>{isVi ? 'Đấu Trường Trò Chơi' : 'Arcade Games'}</span>
+                    </NavLink>
+
+                    <NavLink
                       to={ROUTES.COLLECTIONS}
                       onClick={onClose}
                       className={({ isActive }) =>
@@ -148,6 +165,22 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     >
                       <FolderOpen size={16} />
                       <span>{t('nav_collections')}</span>
+                    </NavLink>
+
+                    <NavLink
+                      to={ROUTES.TRANSLATE_EXTRACT}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`
+                      }
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      <Languages size={16} />
+                      <span>{isVi ? 'Dịch & Trích Từ Vựng' : 'Translate & Extract'}</span>
                     </NavLink>
 
                     <NavLink

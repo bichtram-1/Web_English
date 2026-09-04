@@ -19,14 +19,18 @@ import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { getCollectionDetailRoute, getStudyRoute, ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
+import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
+import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
+import { isCollectionCreator, canEditCollection } from '../../utils/permission';
 import type { DeckCollection } from '../../types/DeckType';
 
 export default function CollectionsPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
   const { decks } = useDecks();
-  const { collections, loading, createCollection } = useCollections();
+  const { collections, loading, createCollection, deleteCollection } = useCollections();
 
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'all' | 'my'>('all');
@@ -34,6 +38,22 @@ export default function CollectionsPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newIsPublic, setNewIsPublic] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [colToDelete, setColToDelete] = useState<DeckCollection | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!colToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteCollection(colToDelete.id);
+      setColToDelete(null);
+    } catch (e) {
+      console.error('Failed to delete collection:', e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) return <Loading />;
 
@@ -51,20 +71,27 @@ export default function CollectionsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (isCreating || !newTitle.trim()) return;
 
-    const created = await createCollection({
-      title: newTitle.trim(),
-      description: newDesc.trim(),
-      isPublic: newIsPublic,
-      deckIds: [],
-    });
+    setIsCreating(true);
+    try {
+      const created = await createCollection({
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        isPublic: newIsPublic,
+        deckIds: [],
+      });
 
-    if (created) {
-      setIsCreateModalOpen(false);
-      setNewTitle('');
-      setNewDesc('');
-      navigate(getCollectionDetailRoute(created.id));
+      if (created) {
+        setIsCreateModalOpen(false);
+        setNewTitle('');
+        setNewDesc('');
+        navigate(getCollectionDetailRoute(created.id));
+      }
+    } catch (e) {
+      console.error('Error creating collection:', e);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -75,7 +102,7 @@ export default function CollectionsPage() {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 max-w-6xl mx-auto flex flex-col gap-6" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1700px] w-full mx-auto flex flex-col gap-6 bg-transparent">
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-100 dark:shadow-none relative overflow-hidden">
         <div
@@ -160,7 +187,7 @@ export default function CollectionsPage() {
       </div>
 
       {/* Grid of Collections */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
         {filtered.map((col, index) => {
           const totalCards = getCollectionCardCount(col.deckIds);
           return (
@@ -178,14 +205,26 @@ export default function CollectionsPage() {
                     <FolderOpen size={20} className="text-white" />
                   </div>
 
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md flex items-center gap-1 ${
-                      col.isPublic ? 'bg-white/20 text-white' : 'bg-amber-400/30 text-amber-200 border border-amber-300/40'
-                    }`}
-                  >
-                    {col.isPublic ? <Globe size={11} /> : <Lock size={11} />}
-                    <span>{col.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md flex items-center gap-1 ${
+                        col.isPublic ? 'bg-white/20 text-white' : 'bg-amber-400/30 text-amber-200 border border-amber-300/40'
+                      }`}
+                    >
+                      {col.isPublic ? <Globe size={11} /> : <Lock size={11} />}
+                      <span>{col.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
+                    </span>
+
+                    {/* 3-dots menu with permission check */}
+                    <ItemOptionsMenu
+                      onStudy={() => navigate(getStudyRoute(col.id))}
+                      onDelete={() => setColToDelete(col)}
+                      canEdit={canEditCollection(col, user)}
+                      canDelete={isCollectionCreator(col, user)}
+                      creatorName={col.creator}
+                      isOwner={isCollectionCreator(col, user)}
+                    />
+                  </div>
                 </div>
 
                 {/* Body */}
@@ -351,16 +390,25 @@ export default function CollectionsPage() {
                 <div className="flex gap-2 pt-2">
                   <button
                     type="button"
+                    disabled={isCreating}
                     onClick={() => setIsCreateModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
                   >
                     {t('cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 dark:shadow-none transition-all cursor-pointer"
+                    disabled={isCreating}
+                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 dark:shadow-none transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    {t('create')}
+                    {isCreating ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>{isVi ? 'Đang tạo...' : 'Creating...'}</span>
+                      </>
+                    ) : (
+                      <span>{t('create')}</span>
+                    )}
                   </button>
                 </div>
               </form>
@@ -368,6 +416,21 @@ export default function CollectionsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Delete Collection Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!colToDelete}
+        onClose={() => setColToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title={isVi ? 'Xóa danh sách bộ thẻ' : 'Delete Deck Collection'}
+        itemName={colToDelete?.title}
+        description={
+          isVi
+            ? `Bạn có chắc chắn muốn xóa danh sách bộ thẻ "${colToDelete?.title}"? (Các bộ thẻ con bên trong vẫn được giữ nguyên).`
+            : `Are you sure you want to delete the collection "${colToDelete?.title}"? (The included decks will remain safe).`
+        }
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

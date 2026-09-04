@@ -4,7 +4,7 @@ import Loading from '../shared/Loading';
 
 export default function AuthLayout() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center">
+    <div className="min-h-screen w-full flex flex-col bg-transparent text-slate-900 dark:text-slate-100">
       <Suspense fallback={<Loading />}>
         <Outlet />
       </Suspense>

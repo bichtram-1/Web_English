@@ -1,4 +1,4 @@
-export type StudyMode = 'flashcard' | 'test' | 'minigame' | 'zen' | 'written';
+export type StudyMode = 'flashcard' | 'test' | 'minigame' | 'zen' | 'written' | 'match' | 'treasure';
 
 export interface StudySessionRecord {
   id: string;

@@ -30,13 +30,17 @@ import collectionApi from '../../api/collectionApi';
 import { getDeckDetailRoute, getStudyRoute, getWrittenRoute, ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
 import InviteCollaboratorModal from '../../components/shared/InviteCollaboratorModal';
+import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
+import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
+import { isCollectionCreator, canEditCollection } from '../../utils/permission';
 import type { Deck, DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
 export default function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
   const { decks } = useDecks();
   const { addDeckToCollection, removeDeckFromCollection, deleteCollection } = useCollections();
@@ -46,6 +50,8 @@ export default function CollectionDetailPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
   const fetchCollection = async () => {
@@ -89,7 +95,7 @@ export default function CollectionDetailPage() {
   };
 
   // Permissions calculation
-  const isOwner = Boolean(user?.id && collection?.creatorId === user.id);
+  const isOwner = isCollectionCreator(collection, user);
   const isEditor = Boolean(
     collection?.collaborators?.some(
       (c) =>
@@ -104,7 +110,7 @@ export default function CollectionDetailPage() {
         c.role === 'viewer'
     )
   );
-  const canEdit = isOwner || isEditor;
+  const canEdit = canEditCollection(collection, user);
 
   // Included decks details
   const includedDecks = useMemo(() => {
@@ -167,10 +173,16 @@ export default function CollectionDetailPage() {
   };
 
   const handleDeleteCollection = async () => {
-    if (!collection || !isOwner) return;
-    if (window.confirm('Bạn có chắc muốn xóa danh sách bộ thẻ này?')) {
+    if (!collection || !isCollectionCreator(collection, user)) return;
+    setIsDeleting(true);
+    try {
       await deleteCollection(collection.id);
+      setIsDeleteModalOpen(false);
       navigate(ROUTES.COLLECTIONS);
+    } catch (e) {
+      console.error('Error deleting collection:', e);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -193,7 +205,7 @@ export default function CollectionDetailPage() {
   const collaborators = collection.collaborators || [];
 
   return (
-    <div className="min-h-screen py-8 px-4 max-w-5xl mx-auto flex flex-col gap-6" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto flex flex-col gap-6 bg-transparent">
       {/* Toast */}
       <AnimatePresence>
         {toastMsg && (
@@ -249,15 +261,15 @@ export default function CollectionDetailPage() {
             <span>{collection.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
           </span>
 
-          {isOwner && (
-            <button
-              onClick={handleDeleteCollection}
-              title="Xóa danh sách này"
-              className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+          {/* 3-dots Menu with permission check */}
+          <ItemOptionsMenu
+            darkIcon
+            onDelete={() => setIsDeleteModalOpen(true)}
+            canEdit={canEditCollection(collection, user)}
+            canDelete={isCollectionCreator(collection, user)}
+            creatorName={collection.creator}
+            isOwner={isCollectionCreator(collection, user)}
+          />
         </div>
       </div>
 
@@ -360,7 +372,7 @@ export default function CollectionDetailPage() {
               </span>
             </div>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold hidden sm:inline">
-              Nhấp dấu cộng để thêm ngay vào danh sách
+              {isVi ? 'Nhấp dấu cộng để thêm ngay vào danh sách' : 'Click plus to add to collection'}
             </span>
           </div>
 
@@ -377,13 +389,13 @@ export default function CollectionDetailPage() {
                   <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
                     <span>{deckItem.creator}</span>
                     <span>·</span>
-                    <span>{deckItem.itemCount} thẻ</span>
+                    <span>{deckItem.itemCount} {isVi ? 'thẻ' : 'cards'}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleAddDeck(deckItem.id)}
-                  title="Thêm vào danh sách"
+                  title={isVi ? 'Thêm vào danh sách' : 'Add to collection'}
                   className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 dark:shadow-none cursor-pointer"
                 >
                   <Plus size={16} />
@@ -399,7 +411,7 @@ export default function CollectionDetailPage() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2" style={{ fontFamily: 'var(--font-display)' }}>
             <Layers size={20} className="text-indigo-600 dark:text-indigo-400" />
-            <span>Các bộ thẻ trong danh sách</span>
+            <span>{isVi ? 'Các bộ thẻ trong danh sách' : 'Decks in Collection'}</span>
             <span className="text-xs text-slate-400 font-semibold">({includedDecks.length})</span>
           </h2>
 
@@ -419,7 +431,7 @@ export default function CollectionDetailPage() {
           <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center gap-3">
             <BookOpen size={40} className="text-slate-300 dark:text-slate-600" />
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Danh sách này hiện chưa có bộ thẻ nào.
+              {isVi ? 'Danh sách này hiện chưa có bộ thẻ nào.' : 'This collection currently has no decks.'}
             </p>
             {canEdit && (
               <button
@@ -431,7 +443,7 @@ export default function CollectionDetailPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             {includedDecks.map((deck) => (
               <div
                 key={deck.id}
@@ -445,7 +457,7 @@ export default function CollectionDetailPage() {
                     {canEdit && (
                       <button
                         onClick={() => handleRemoveDeck(deck.id)}
-                        title="Gỡ khỏi danh sách"
+                        title={isVi ? 'Gỡ khỏi danh sách' : 'Remove from collection'}
                         className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
@@ -474,7 +486,7 @@ export default function CollectionDetailPage() {
                     onClick={() => navigate(getStudyRoute(deck.id))}
                     className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
                   >
-                    Học riêng bộ này →
+                    {isVi ? 'Học riêng bộ này →' : 'Study this deck →'}
                   </button>
                 </div>
               </div>
@@ -572,6 +584,21 @@ export default function CollectionDetailPage() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onUpdateCollection={(updated) => setCollection(updated)}
+      />
+
+      {/* Delete Collection Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteCollection}
+        title={isVi ? 'Xóa danh sách bộ thẻ' : 'Delete Deck Collection'}
+        itemName={collection.title}
+        description={
+          isVi
+            ? `Bạn có chắc chắn muốn xóa danh sách bộ thẻ "${collection.title}"? Các bộ thẻ con bên trong vẫn được giữ nguyên.`
+            : `Are you sure you want to permanently delete the collection "${collection.title}"?`
+        }
+        isDeleting={isDeleting}
       />
     </div>
   );

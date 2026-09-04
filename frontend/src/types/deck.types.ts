@@ -54,6 +54,9 @@ export interface Deck {
   collaborators?: Collaborator[];
   inviteCode?: string;
   cards: CardItem[];
+  rating?: number; // Average rating 1.0 - 5.0
+  ratingCount?: number; // Total number of ratings submitted
+  userRatings?: Record<string, number>; // Map userId/email -> rating (1-5)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,7 +76,7 @@ export interface DeckCollection {
   updatedAt?: string;
 }
 
-export type StudyMode = 'flashcard' | 'test' | 'minigame' | 'zen' | 'written';
+export type StudyMode = 'flashcard' | 'test' | 'minigame' | 'zen' | 'written' | 'match' | 'treasure';
 
 export interface CreateDeckDTO {
   title: string;

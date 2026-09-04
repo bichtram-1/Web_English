@@ -21,7 +21,8 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
   { card, onFlipped },
   ref
 ) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [flipped, setFlipped] = useState(false);
   const [hasFlipped, setHasFlipped] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -38,18 +39,21 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
     window.speechSynthesis.speak(utterance);
   }, []);
 
+  useEffect(() => {
+    setFlipped(false);
+    setHasFlipped(false);
+  }, [card.id]);
+
   const triggerFlip = useCallback(
     (targetFlipped?: boolean) => {
-      setFlipped((prev) => {
-        const next = targetFlipped !== undefined ? targetFlipped : !prev;
-        if (next && !hasFlipped) {
-          setHasFlipped(true);
-          onFlipped();
-        }
-        return next;
-      });
+      const next = targetFlipped !== undefined ? targetFlipped : !flipped;
+      setFlipped(next);
+      if (next && !hasFlipped) {
+        setHasFlipped(true);
+        onFlipped();
+      }
     },
-    [hasFlipped, onFlipped]
+    [flipped, hasFlipped, onFlipped]
   );
 
   useImperativeHandle(
@@ -84,11 +88,13 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             WebkitBackfaceVisibility: 'hidden',
             background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
             boxShadow: '0 20px 60px rgba(79,70,229,0.35)',
+            zIndex: flipped ? 1 : 2,
+            pointerEvents: flipped ? 'none' : 'auto',
           }}
         >
           <div className="w-full flex items-center justify-between">
             <span className="text-indigo-200 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm">
-              English
+              {isVi ? 'Tiếng Anh' : 'English'}
             </span>
             <span className="text-indigo-200/80 text-xs font-semibold flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">Space</kbd> {t('study_audio')}
@@ -171,11 +177,13 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
+            zIndex: flipped ? 2 : 1,
+            pointerEvents: flipped ? 'auto' : 'none',
           }}
         >
           <div className="w-full flex items-center justify-between">
             <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/60">
-              Tiếng Việt
+              {isVi ? 'Tiếng Việt' : 'Vietnamese'}
             </span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">{t('study_meaning')}</span>
           </div>

@@ -1,16 +1,22 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Layers, PlusCircle, BarChart3, FolderOpen } from 'lucide-react';
+import { Layers, PlusCircle, BarChart3, FolderOpen, Gamepad2 } from 'lucide-react';
 import { ROUTES } from '../../constants/routers';
 
 export default function MobileBottomNav() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
 
   const navItems = [
     {
       to: ROUTES.HOME,
       label: t('nav_decks'),
       icon: <Layers size={18} />,
+    },
+    {
+      to: ROUTES.GAMES,
+      label: isVi ? 'Trò chơi' : 'Games',
+      icon: <Gamepad2 size={18} className="text-amber-500" />,
     },
     {
       to: ROUTES.COLLECTIONS,

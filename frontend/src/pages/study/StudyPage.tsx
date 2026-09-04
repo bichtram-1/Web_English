@@ -1,17 +1,28 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2 } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import ThemeToggle from '../../components/general/ThemeToggle';
 import LanguageSelect from '../../components/general/LanguageSelect';
-import deckApi from '../../api/deckApi';
+import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
 import type { Deck } from '../../types/DeckType';
+import { mockDecks } from '../../data/mockData';
 import Loading from '../../components/shared/Loading';
 import { getDeckDetailRoute } from '../../constants/routers';
+import {
+  getCardSM2Record,
+  calculateSM2,
+  saveSM2Record,
+  getSM2RatingOptions,
+  getDeckSRSStats,
+  type SM2Rating,
+  type SM2Record,
+} from '../../utils/sm2';
+import { playMatchSound, playMismatchSound } from '../../utils/soundEffects';
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
@@ -35,32 +46,92 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 export default function StudyPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [deck, setDeck] = useState<Deck | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
+
+  const targetId = id || 'basic-comm';
+
+  const [deck, setDeck] = useState<Deck | null>(() => {
+    const directMock = mockDecks.find((d) => d.id === targetId);
+    if (directMock) return directMock;
+    const stored = getStoredDecks().find((d) => d.id === targetId);
+    if (stored && stored.cards && stored.cards.length > 0) return stored;
+    return null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    const directMock = mockDecks.find((d) => d.id === targetId);
+    if (directMock) return false;
+    const stored = getStoredDecks().find((d) => d.id === targetId);
+    if (stored && stored.cards && stored.cards.length > 0) return false;
+    return Boolean(id);
+  });
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionProgress, setSessionProgress] = useState<{ cardId: number; completed: boolean }[]>([]);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const [direction, setDirection] = useState(1);
   const [isFinished, setIsFinished] = useState(false);
-  const startTimeRef = useRef<number>(Date.now());
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [sm2Enabled, setSm2Enabled] = useState(true);
+  const [currentSM2Record, setCurrentSM2Record] = useState<SM2Record | null>(null);
 
   const flashCardRef = useRef<FlashCardRef>(null);
   const dragDropRef = useRef<DragDropCardRef>(null);
+  const startTimeRef = useRef<number>(Date.now());
+  const toastTimerRef = useRef<any>(null);
+
+  const currentDeck = useMemo(() => {
+    if (deck && deck.cards && deck.cards.length > 0) return deck;
+    const mock = mockDecks.find((d) => d.id === targetId);
+    if (mock) return mock;
+    const stored = getStoredDecks().find((d) => d.id === targetId);
+    if (stored && stored.cards && stored.cards.length > 0) return stored;
+    return null;
+  }, [deck, targetId]);
+
+  const cards = currentDeck?.cards || [];
+  const card = cards[currentIndex] || cards[0];
 
   useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    deckApi.getDeckById(id).then((data) => {
-      setDeck(data || null);
+    if (!id) {
       setLoading(false);
-      startTimeRef.current = Date.now();
-    });
+      return;
+    }
+    setLoading(true);
+    deckApi.getDeckById(id)
+      .then((data) => {
+        if (data && data.cards && data.cards.length > 0) {
+          setDeck(data);
+        } else {
+          const directMock = mockDecks.find((d) => d.id === id);
+          setDeck(directMock || null);
+        }
+      })
+      .catch((err) => {
+        console.warn('API error loading deck:', err);
+        const directMock = mockDecks.find((d) => d.id === id);
+        setDeck(directMock || null);
+      })
+      .finally(() => {
+        setLoading(false);
+        startTimeRef.current = Date.now();
+      });
   }, [id]);
 
-  const cards = deck?.cards || [];
+  // Refresh SM2 record when current card changes
+  useEffect(() => {
+    if (currentDeck && card) {
+      const rec = getCardSM2Record(card.id, currentDeck.id);
+      setCurrentSM2Record(rec);
+      setIsCardFlipped(false);
+    }
+  }, [currentDeck, card]);
+
+  const activeSM2Record = useMemo(() => {
+    if (currentSM2Record) return currentSM2Record;
+    if (currentDeck && card) return getCardSM2Record(card.id, currentDeck.id);
+    return null;
+  }, [currentSM2Record, currentDeck, card]);
 
   const showToast = useCallback((message: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -69,6 +140,7 @@ export default function StudyPage() {
   }, []);
 
   const markProgress = useCallback((cardId: number) => {
+    setIsCardFlipped(true);
     setSessionProgress((prev) => {
       if (prev.find((p) => p.cardId === cardId)) return prev;
       const next = [...prev, { cardId, completed: true }];
@@ -80,12 +152,12 @@ export default function StudyPage() {
   }, [showToast, t]);
 
   const handleFinish = useCallback(async () => {
-    if (!deck) return;
+    if (!currentDeck) return;
     setIsFinished(true);
     const durationSeconds = Math.max(5, Math.floor((Date.now() - startTimeRef.current) / 1000));
     try {
       await studyApi.submitSession({
-        deckId: deck.id,
+        deckId: currentDeck.id,
         mode: 'flashcard',
         cardsStudied: cards.length,
         correctCount: sessionProgress.length || cards.length,
@@ -95,7 +167,7 @@ export default function StudyPage() {
     } catch (e) {
       console.error('Error submitting study session:', e);
     }
-  }, [deck, cards.length, sessionProgress.length, showToast, t]);
+  }, [currentDeck, cards.length, sessionProgress.length, showToast, t]);
 
   const goNext = useCallback(() => {
     if (currentIndex < cards.length - 1) {
@@ -113,9 +185,37 @@ export default function StudyPage() {
     }
   }, [currentIndex]);
 
-  const card = cards[currentIndex];
+  // Handle SM-2 Quality Rating
+  const handleRateSM2 = useCallback(
+    (rating: SM2Rating) => {
+      if (!currentDeck || !card || !currentSM2Record) return;
 
-  // Global keyboard shortcuts
+      const updated = calculateSM2(currentSM2Record, rating);
+      saveSM2Record(updated);
+      setCurrentSM2Record(updated);
+      markProgress(card.id);
+
+      if (rating >= 3) {
+        playMatchSound();
+      } else {
+        playMismatchSound();
+      }
+
+      const days = updated.interval;
+      const intervalMsg =
+        days === 1
+          ? isVi ? 'Ôn lại vào ngày mai' : 'Next review tomorrow'
+          : isVi ? `Lên lịch ôn tập sau ${days} ngày (Thuật toán SM-2)` : `Scheduled review in ${days} days (SM-2 SRS)`;
+      showToast(intervalMsg);
+
+      setTimeout(() => {
+        goNext();
+      }, 350);
+    },
+    [currentDeck, card, currentSM2Record, markProgress, showToast, goNext, isVi]
+  );
+
+  // Global keyboard shortcuts (including 1, 2, 3, 4 for SM-2 ratings)
   useEffect(() => {
     if (isFinished || !card) return;
 
@@ -123,6 +223,27 @@ export default function StudyPage() {
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
         return;
+      }
+
+      // SM-2 shortcuts
+      if (sm2Enabled && isCardFlipped) {
+        if (e.key === '1') {
+          e.preventDefault();
+          handleRateSM2(1);
+          return;
+        } else if (e.key === '2') {
+          e.preventDefault();
+          handleRateSM2(2);
+          return;
+        } else if (e.key === '3') {
+          e.preventDefault();
+          handleRateSM2(3);
+          return;
+        } else if (e.key === '4') {
+          e.preventDefault();
+          handleRateSM2(5);
+          return;
+        }
       }
 
       if (e.key === 'ArrowRight') {
@@ -134,22 +255,14 @@ export default function StudyPage() {
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (card.type === 'flashcard') {
-          // ArrowDown: Flip from front to back or toggle
-          if (!flashCardRef.current?.isFlipped()) {
-            flashCardRef.current?.flipTo(true);
-          } else {
-            flashCardRef.current?.flipTo(false);
-          }
+          flashCardRef.current?.flipTo(true);
+          setIsCardFlipped(true);
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (card.type === 'flashcard') {
-          // ArrowUp: Flip from back to front or toggle
-          if (flashCardRef.current?.isFlipped()) {
-            flashCardRef.current?.flipTo(false);
-          } else {
-            flashCardRef.current?.flipTo(true);
-          }
+          flashCardRef.current?.flipTo(false);
+          setIsCardFlipped(false);
         }
       } else if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
@@ -163,11 +276,11 @@ export default function StudyPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isFinished, card, goNext, goPrev]);
+  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, isCardFlipped, handleRateSM2]);
 
-  if (loading) return <Loading />;
+  if (loading && (!currentDeck || cards.length === 0)) return <Loading />;
 
-  if (!deck || cards.length === 0) {
+  if (!currentDeck || cards.length === 0) {
     return (
       <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center">
         <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">{t('not_found')}</h2>
@@ -181,10 +294,14 @@ export default function StudyPage() {
     );
   }
 
+  if (!card) {
+    return <Loading />;
+  }
+
   const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
 
   const handleExit = () => {
-    navigate(getDeckDetailRoute(deck.id));
+    navigate(getDeckDetailRoute(currentDeck.id));
   };
 
   if (isFinished) {
@@ -202,7 +319,7 @@ export default function StudyPage() {
             {t('study_completed_title')}
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-            {t('study_completed_desc', { count: cards.length, deckTitle: deck.title })}
+            {t('study_completed_desc', { count: cards.length, deckTitle: currentDeck.title })}
           </p>
 
           <div className="bg-slate-50 dark:bg-slate-800/70 rounded-2xl p-4 mb-6 flex justify-around text-center border border-slate-100 dark:border-slate-700/60">
@@ -244,7 +361,7 @@ export default function StudyPage() {
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       {/* Header */}
       <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
           <button
             onClick={handleExit}
             className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-semibold cursor-pointer"
@@ -281,13 +398,13 @@ export default function StudyPage() {
       </header>
 
       {/* Deck info strip */}
-      <div className="max-w-3xl mx-auto w-full px-4 pt-5 pb-1">
+      <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-5 pb-1">
         <div className="flex items-center gap-2">
           <span
             className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            {deck.title}
+            {currentDeck.title}
           </span>
           <span className="text-slate-300 dark:text-slate-700">·</span>
           <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
@@ -309,11 +426,49 @@ export default function StudyPage() {
             className="w-full flex flex-col items-center"
           >
             {card.type === 'flashcard' ? (
-              <FlashCard
-                ref={flashCardRef}
-                card={card}
-                onFlipped={() => markProgress(card.id)}
-              />
+              <div className="w-full flex flex-col items-center">
+                <FlashCard
+                  ref={flashCardRef}
+                  card={card}
+                  onFlipped={() => markProgress(card.id)}
+                />
+
+                {/* SM-2 Spaced Repetition Rating Panel */}
+                <div className="mt-5 w-full max-w-lg">
+                  <div className="flex items-center justify-between px-1 mb-2">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Brain size={14} className="text-indigo-500" />
+                      {isVi ? 'Đánh giá độ nhớ (Thuật toán SM-2)' : 'SM-2 SRS Recall Rating'}
+                    </span>
+                    {activeSM2Record && activeSM2Record.interval > 0 && (
+                      <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
+                        {isVi ? `Lần ${activeSM2Record.repetition} · ${activeSM2Record.interval} ngày` : `Rep ${activeSM2Record.repetition} · ${activeSM2Record.interval}d`}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 4 SM-2 Decision Buttons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {getSM2RatingOptions(activeSM2Record || (card && currentDeck ? getCardSM2Record(card.id, currentDeck.id) : ({} as any))).map((opt, idx) => (
+                      <button
+                        key={opt.rating}
+                        onClick={() => handleRateSM2(opt.rating)}
+                        className={`flex flex-col items-center justify-center p-2.5 rounded-2xl bg-gradient-to-br ${opt.colorClass} shadow-md active:scale-95 transition-all cursor-pointer group`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <kbd className="px-1 py-0.2 rounded bg-black/20 text-[10px] font-mono text-white/90">
+                            {idx + 1}
+                          </kbd>
+                          <span className="text-xs font-extrabold">{isVi ? opt.labelVi.split(' ')[0] : opt.labelEn}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-white/80 mt-0.5">
+                          {isVi ? opt.intervalLabelVi : opt.intervalLabelEn}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : (
               <DragDropCard
                 ref={dragDropRef}
@@ -324,8 +479,13 @@ export default function StudyPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Keyboard shortcuts helper pills (Hidden on small mobile screens) */}
-        <div className="mt-6 hidden sm:flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-slate-500 dark:text-slate-400 text-xs font-semibold select-none">
+        {/* Keyboard shortcuts helper pills */}
+        <div className="mt-5 hidden sm:flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-slate-500 dark:text-slate-400 text-xs font-semibold select-none">
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
+            <span className="font-mono text-indigo-500 font-bold">1 2 3 4</span>
+            <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Đánh giá SM-2' : 'Rate SM-2'}</span>
+          </div>
+
           <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
             <div className="flex items-center gap-0.5">
               <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">↑</kbd>
@@ -338,20 +498,12 @@ export default function StudyPage() {
             <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">Space</kbd>
             <span className="text-slate-600 dark:text-slate-300">{t('shortcut_audio')}</span>
           </div>
-
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
-            <div className="flex items-center gap-0.5">
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">←</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">→</kbd>
-            </div>
-            <span className="text-slate-600 dark:text-slate-300">{t('shortcut_nav')}</span>
-          </div>
         </div>
       </main>
 
       {/* Navigation */}
       <footer className="sticky bottom-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <button
             onClick={goPrev}
             disabled={currentIndex === 0}
@@ -365,14 +517,14 @@ export default function StudyPage() {
           </button>
 
           {/* Dot indicators */}
-          <div className="flex items-center gap-1.5">
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto py-1 max-w-[280px]">
             {cards.map((_, i) => {
-              const isCompleted = sessionProgress.some((p) => p.cardId === cards[i].id);
+              const isCompleted = sessionProgress.some((p) => p.cardId === cards[i]?.id);
               return (
                 <button
                   key={i}
                   onClick={() => { setDirection(i > currentIndex ? 1 : -1); setCurrentIndex(i); }}
-                  className={`rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`rounded-full transition-all duration-200 cursor-pointer shrink-0 ${
                     i === currentIndex
                       ? 'w-5 h-2.5 bg-indigo-600'
                       : isCompleted
@@ -383,6 +535,10 @@ export default function StudyPage() {
               );
             })}
           </div>
+
+          <span className="sm:hidden text-xs font-bold text-slate-500 dark:text-slate-400">
+            {currentIndex + 1} / {cards.length}
+          </span>
 
           <button
             onClick={goNext}

@@ -1,43 +1,6 @@
-export type WordType = 'noun' | 'verb' | 'adjective' | 'pronoun' | 'other';
+import type { Deck, CardItem, FlashcardItem, DragDropItem, DragDropWord, WordType } from '../types/DeckType';
 
-export interface FlashcardItem {
-  id: number;
-  type: 'flashcard';
-  front: string;
-  back: string;
-}
-
-export interface DragDropWord {
-  id: string;
-  word: string;
-  type: WordType;
-}
-
-export interface DragDropItem {
-  id: number;
-  type: 'drag_drop';
-  meaning: string;
-  shuffled: DragDropWord[];
-  correctOrder: string[];
-  grammarRule?: string;
-  grammarExplanation?: string;
-  grammarNote?: string;
-}
-
-export type CardItem = FlashcardItem | DragDropItem;
-
-export interface Deck {
-  id: string;
-  title: string;
-  creator: string;
-  itemCount: number;
-  category: string;
-  color: string;
-  cards: CardItem[];
-  rating?: number;
-  ratingCount?: number;
-  userRatings?: Record<string, number>;
-}
+export type { Deck, CardItem, FlashcardItem, DragDropItem, DragDropWord, WordType };
 
 export const mockDecks: Deck[] = [
   {

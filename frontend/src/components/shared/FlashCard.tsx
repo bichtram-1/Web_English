@@ -1,4 +1,4 @@
-import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
@@ -14,7 +14,7 @@ export interface FlashCardRef {
 
 interface FlashCardProps {
   card: FlashcardItem;
-  onFlipped: () => void;
+  onFlipped?: (flipped: boolean) => void;
 }
 
 const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
@@ -50,8 +50,8 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
       setFlipped(next);
       if (next && !hasFlipped) {
         setHasFlipped(true);
-        onFlipped();
       }
+      onFlipped?.(next);
     },
     [flipped, hasFlipped, onFlipped]
   );

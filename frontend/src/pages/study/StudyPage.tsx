@@ -430,7 +430,12 @@ export default function StudyPage() {
                 <FlashCard
                   ref={flashCardRef}
                   card={card}
-                  onFlipped={() => markProgress(card.id)}
+                  onFlipped={(flipped) => {
+                    setIsCardFlipped(flipped);
+                    if (flipped) {
+                      markProgress(card.id);
+                    }
+                  }}
                 />
 
                 {/* SM-2 Spaced Repetition Rating Panel */}

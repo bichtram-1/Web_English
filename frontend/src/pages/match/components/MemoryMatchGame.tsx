@@ -28,6 +28,7 @@ import {
   playComboSound,
   playWinFanfare,
   isSoundEnabled,
+  toggleSound,
 } from '../../../utils/soundEffects';
 
 export interface MemoryMatchGameProps {

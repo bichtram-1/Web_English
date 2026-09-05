@@ -65,3 +65,45 @@ export function canEditCollection(collection: DeckCollection | null | undefined,
   );
   return collaborator?.role === 'editor';
 }
+
+/**
+ * Check if the user has view/study permission for a Deck
+ * - Public decks: accessible to everyone
+ * - Private decks: accessible ONLY to original creator, collaborators, or Admin
+ */
+export function canViewDeck(deck: Deck | null | undefined, user: User | null | undefined): boolean {
+  if (!deck) return false;
+  // Public deck is visible to everyone
+  if (deck.isPublic !== false) return true;
+  // Private deck requires login and ownership/access
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (isDeckCreator(deck, user)) return true;
+
+  const collaborator = deck.collaborators?.find(
+    (c) =>
+      (c.userId && c.userId === user.id) ||
+      (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase())
+  );
+  return Boolean(collaborator);
+}
+
+/**
+ * Check if the user has view/study permission for a Collection
+ * - Public collections: accessible to everyone
+ * - Private collections: accessible ONLY to creator, collaborators, or Admin
+ */
+export function canViewCollection(collection: DeckCollection | null | undefined, user: User | null | undefined): boolean {
+  if (!collection) return false;
+  if (collection.isPublic !== false) return true;
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (isCollectionCreator(collection, user)) return true;
+
+  const collaborator = collection.collaborators?.find(
+    (c) =>
+      (c.userId && c.userId === user.id) ||
+      (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase())
+  );
+  return Boolean(collaborator);
+}

@@ -18,6 +18,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
+import { useAuth } from '../../hooks/useAuth';
+import { canViewDeck } from '../../utils/permission';
 import ChickenMascot from '../../components/general/ChickenMascot';
 import {
   getMatchRoute,
@@ -47,12 +49,13 @@ export default function ArcadeGamesPage() {
   const isVi = i18n.language === 'vi';
   const navigate = useNavigate();
   const { decks } = useDecks();
+  const { user } = useAuth();
 
   const [selectedGame, setSelectedGame] = useState<GameItem | null>(null);
   const [isDeckSelectOpen, setIsDeckSelectOpen] = useState(false);
 
-  const publicDecks = decks.filter((d) => d.isPublic !== false);
-  const defaultDeckId = publicDecks[0]?.id || 'all';
+  const availableDecks = decks.filter((d) => canViewDeck(d, user));
+  const defaultDeckId = availableDecks[0]?.id || 'all';
 
   const games: GameItem[] = [
     {
@@ -244,7 +247,7 @@ export default function ArcadeGamesPage() {
               </p>
 
               <div className="max-h-60 overflow-y-auto space-y-2 mb-4 pr-1">
-                {publicDecks.map((d) => (
+                {availableDecks.map((d) => (
                   <div
                     key={d.id}
                     onClick={() => {

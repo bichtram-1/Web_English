@@ -33,7 +33,7 @@ import ImportExportModal from '../../components/general/ImportExportModal';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckRatingStars from '../../components/shared/DeckRatingStars';
-import { isDeckCreator, canEditDeck } from '../../utils/permission';
+import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission';
 import { generateFriendlyId } from '../../utils/slugify';
 import { getCategoryLabel } from '../home/HomePage';
 
@@ -136,16 +136,30 @@ export default function DeckDetailPage() {
 
   if (loading) return <Loading />;
 
-  if (!deck) {
+  if (!deck || !canViewDeck(deck, user)) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">{t('not_found')}</h2>
-        <button
-          onClick={() => navigate(ROUTES.HOME)}
-          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm cursor-pointer"
-        >
-          {t('go_home')}
-        </button>
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <Lock size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {deck && deck.isPublic === false ? (isVi ? 'Bộ Thẻ Riêng Tư' : 'Private Deck') : t('not_found')}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            {deck && deck.isPublic === false
+              ? (isVi
+                  ? 'Bộ thẻ này được thiết lập ở chế độ Riêng tư (Private). Chỉ tác giả sở hữu hoặc thành viên được mời mới có quyền xem và học.'
+                  : 'This deck is private. Only the creator and invited members have permission to view and study it.')
+              : (isVi ? 'Không tìm thấy bộ thẻ hoặc bộ thẻ đã bị xóa.' : 'Deck not found or has been deleted.')}
+          </p>
+          <button
+            onClick={() => navigate(ROUTES.HOME)}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+          >
+            {t('go_home')}
+          </button>
+        </div>
       </div>
     );
   }

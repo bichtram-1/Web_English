@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import ThemeToggle from '../../components/general/ThemeToggle';
@@ -11,8 +11,10 @@ import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
 import type { Deck } from '../../types/DeckType';
 import { mockDecks } from '../../data/mockData';
+import { useAuth } from '../../hooks/useAuth';
+import { canViewDeck } from '../../utils/permission';
 import Loading from '../../components/shared/Loading';
-import { getDeckDetailRoute } from '../../constants/routers';
+import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 import {
   getCardSM2Record,
   calculateSM2,
@@ -46,6 +48,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 export default function StudyPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
 
@@ -103,14 +106,12 @@ export default function StudyPage() {
         if (data && data.cards && data.cards.length > 0) {
           setDeck(data);
         } else {
-          const directMock = mockDecks.find((d) => d.id === id);
-          setDeck(directMock || null);
+          setDeck(null);
         }
       })
       .catch((err) => {
         console.warn('API error loading deck:', err);
-        const directMock = mockDecks.find((d) => d.id === id);
-        setDeck(directMock || null);
+        setDeck(null);
       })
       .finally(() => {
         setLoading(false);
@@ -279,6 +280,32 @@ export default function StudyPage() {
   }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, isCardFlipped, handleRateSM2]);
 
   if (loading && (!currentDeck || cards.length === 0)) return <Loading />;
+
+  if (currentDeck && !canViewDeck(currentDeck, user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <Lock size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {isVi ? 'Bộ Thẻ Riêng Tư' : 'Private Deck'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            {isVi
+              ? 'Bộ thẻ này được thiết lập ở chế độ Riêng tư (Private). Bạn không có quyền xem và học bộ thẻ này.'
+              : 'This deck is private. You do not have permission to view or study it.'}
+          </p>
+          <button
+            onClick={() => navigate(ROUTES.HOME)}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+          >
+            {isVi ? 'Về Trang Chủ' : 'Go Home'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentDeck || cards.length === 0) {
     return (

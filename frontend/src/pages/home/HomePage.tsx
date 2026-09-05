@@ -13,7 +13,7 @@ import ChickenMascot from '../../components/general/ChickenMascot';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckRatingStars from '../../components/shared/DeckRatingStars';
-import { isDeckCreator, canEditDeck } from '../../utils/permission';
+import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission';
 
 const categoryColors: Record<string, string> = {
   Beginner: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300',
@@ -167,13 +167,11 @@ export default function HomePage() {
 
   const categories = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
-  // Only show public decks OR private decks created by the logged-in user
+  // Only show public decks OR private decks the logged-in user is authorized to view
   const visibleDecks = useMemo(() => {
     const list = decks && decks.length > 0 ? decks : mockDecks;
-    return list.filter(
-      (d) => d.isPublic !== false || (user?.id && d.creatorId === user.id)
-    );
-  }, [decks, user?.id]);
+    return list.filter((d) => canViewDeck(d, user));
+  }, [decks, user]);
 
   const filtered = visibleDecks.filter((d) => {
     const matchSearch =

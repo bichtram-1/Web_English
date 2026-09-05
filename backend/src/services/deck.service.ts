@@ -90,6 +90,8 @@ export class DeckService {
     search?: string;
     category?: string;
     creatorId?: string;
+    currentUserId?: string;
+    currentUserRole?: string;
   }): Promise<Deck[]> {
     const where: any = {};
 
@@ -106,8 +108,38 @@ export class DeckService {
       where.category = { equals: options.category };
     }
 
-    if (options?.creatorId) {
-      where.creatorId = options.creatorId;
+    // Visibility control:
+    // Admin sees all.
+    // Logged-in user sees public decks OR their own private decks.
+    // Guest (anonymous) sees ONLY public decks.
+    if (options?.currentUserRole === 'admin') {
+      if (options?.creatorId) {
+        where.creatorId = options.creatorId;
+      }
+    } else if (options?.currentUserId) {
+      if (options?.creatorId) {
+        if (options.creatorId === options.currentUserId) {
+          where.creatorId = options.currentUserId;
+        } else {
+          where.creatorId = options.creatorId;
+          where.isPublic = true;
+        }
+      } else {
+        where.AND = [
+          ...(where.AND || []),
+          {
+            OR: [
+              { isPublic: true },
+              { creatorId: options.currentUserId },
+            ],
+          },
+        ];
+      }
+    } else {
+      where.isPublic = true;
+      if (options?.creatorId) {
+        where.creatorId = options.creatorId;
+      }
     }
 
     const decks = await prisma.deck.findMany({
@@ -124,7 +156,7 @@ export class DeckService {
     return decks.map(mapDeckFromDb);
   }
 
-  static async getDeckById(id: string): Promise<Deck> {
+  static async getDeckById(id: string, currentUserId?: string, currentUserRole?: string): Promise<Deck> {
     const deck = await prisma.deck.findUnique({
       where: { id },
       include: {
@@ -137,6 +169,16 @@ export class DeckService {
 
     if (!deck) {
       throw new AppError('Không tìm thấy bộ thẻ', 404);
+    }
+
+    // Access control for private decks: only creator or admin can view
+    if (deck.isPublic === false) {
+      if (!currentUserId) {
+        throw new AppError('Bộ thẻ này ở chế độ riêng tư. Vui lòng đăng nhập để truy cập.', 403);
+      }
+      if (currentUserRole !== 'admin' && deck.creatorId !== currentUserId) {
+        throw new AppError('Bạn không có quyền truy cập bộ thẻ riêng tư này', 403);
+      }
     }
 
     return mapDeckFromDb(deck);

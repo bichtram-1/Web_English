@@ -32,7 +32,7 @@ import Loading from '../../components/shared/Loading';
 import InviteCollaboratorModal from '../../components/shared/InviteCollaboratorModal';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
-import { isCollectionCreator, canEditCollection } from '../../utils/permission';
+import { isCollectionCreator, canEditCollection, canViewCollection } from '../../utils/permission';
 import type { Deck, DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
 export default function CollectionDetailPage() {
@@ -188,16 +188,30 @@ export default function CollectionDetailPage() {
 
   if (loading) return <Loading />;
 
-  if (!collection) {
+  if (!collection || !canViewCollection(collection, user)) {
     return (
-      <div className="p-12 text-center">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Không tìm thấy danh sách bộ thẻ</h2>
-        <button
-          onClick={() => navigate(ROUTES.COLLECTIONS)}
-          className="mt-4 px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl cursor-pointer"
-        >
-          {t('back')}
-        </button>
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <Lock size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {collection && collection.isPublic === false ? (isVi ? 'Bộ Sưu Tập Riêng Tư' : 'Private Collection') : (isVi ? 'Không tìm thấy bộ sưu tập' : 'Collection not found')}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            {collection && collection.isPublic === false
+              ? (isVi
+                  ? 'Bộ sưu tập này được thiết lập ở chế độ Riêng tư (Private). Chỉ tác giả hoặc thành viên được mời mới có quyền xem.'
+                  : 'This collection is private. Only the creator and invited members have permission to view it.')
+              : (isVi ? 'Bộ sưu tập không tồn tại hoặc đã bị xóa.' : 'Collection not found or has been deleted.')}
+          </p>
+          <button
+            onClick={() => navigate(ROUTES.COLLECTIONS)}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+          >
+            {isVi ? 'Về Danh Sách Bộ Sưu Tập' : 'Back to Collections'}
+          </button>
+        </div>
       </div>
     );
   }

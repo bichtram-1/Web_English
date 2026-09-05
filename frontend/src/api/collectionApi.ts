@@ -1,9 +1,9 @@
 import axiosInstance from './axiosInstance';
 import { STORAGE_KEYS } from '../constants/storage';
-import { deckApi } from './deckApi';
+import { deckApi, getCurrentUserFromStorage } from './deckApi';
 import type { Deck, DeckCollection, CardItem } from '../types/DeckType';
 import { generateFriendlyId } from '../utils/slugify';
-
+import { canViewCollection } from '../utils/permission';
 
 const mockDefaultCollections: DeckCollection[] = [
   {
@@ -52,14 +52,9 @@ export const collectionApi = {
   getCollections: async (params?: { search?: string; userId?: string }): Promise<DeckCollection[]> => {
     let collections = getStoredCollections();
 
-    // Filter by visibility: show all public OR collections owned by current user
-    if (params?.userId) {
-      collections = collections.filter(
-        (c) => c.isPublic || c.creatorId === params.userId
-      );
-    } else {
-      collections = collections.filter((c) => c.isPublic);
-    }
+    // Enforce visibility with canViewCollection
+    const currentUser = getCurrentUserFromStorage();
+    collections = collections.filter((c) => canViewCollection(c, currentUser));
 
     if (params?.search) {
       const q = params.search.toLowerCase();
@@ -76,7 +71,14 @@ export const collectionApi = {
 
   getCollectionById: async (id: string): Promise<DeckCollection | undefined> => {
     const collections = getStoredCollections();
-    return collections.find((c) => c.id === id);
+    const found = collections.find((c) => c.id === id);
+    if (!found) return undefined;
+
+    const currentUser = getCurrentUserFromStorage();
+    if (!canViewCollection(found, currentUser)) {
+      return undefined;
+    }
+    return found;
   },
 
   createCollection: async (data: {

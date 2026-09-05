@@ -11,6 +11,8 @@ export class DeckController {
         search: search as string,
         category: category as string,
         creatorId: creatorId as string,
+        currentUserId: req.user?.userId,
+        currentUserRole: req.user?.role,
       });
       return ApiResponseHandler.success(res, decks, 'Lấy danh sách bộ thẻ thành công', 200, {
         total: decks.length,
@@ -23,7 +25,7 @@ export class DeckController {
   static async getDeckById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const deck = await DeckService.getDeckById(id);
+      const deck = await DeckService.getDeckById(id, req.user?.userId, req.user?.role);
       return ApiResponseHandler.success(res, deck, 'Lấy thông tin bộ thẻ thành công');
     } catch (err) {
       next(err);

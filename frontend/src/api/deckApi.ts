@@ -4,6 +4,18 @@ import { mockDecks } from '../data/mockData';
 import { STORAGE_KEYS } from '../constants/storage';
 import type { Deck, CreateDeckDTO } from '../types/deck.types';
 import type { ApiResponse } from '../types/api.types';
+import type { User } from '../types/auth.types';
+import { canViewDeck } from '../utils/permission';
+
+export const getCurrentUserFromStorage = (): User | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading user data from storage:', e);
+  }
+  return null;
+};
 
 export const getStoredDecks = (): Deck[] => {
   try {
@@ -48,35 +60,42 @@ const saveDecksToStorage = (decks: Deck[]) => {
 
 export const deckApi = {
   getDecks: async (params?: { search?: string; category?: string }): Promise<Deck[]> => {
+    let result: Deck[] = [];
     try {
       const res = (await axiosInstance.get(ENDPOINTS.DECKS, {
         params,
       })) as any;
       if (Array.isArray(res) && res.length > 0) {
         saveDecksToStorage(res);
-        return res;
-      }
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        result = res;
+      } else if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
         saveDecksToStorage(res.data);
-        return res.data;
+        result = res.data;
       }
     } catch (e) {
       console.warn('Backend unavailable, fallback to local decks cache:', e);
     }
-    // Fallback to local storage or mockDecks
-    let local = getStoredDecks();
-    if (!local || local.length === 0) {
-      local = mockDecks;
-      saveDecksToStorage(mockDecks);
+
+    if (!result || result.length === 0) {
+      // Fallback to local storage or mockDecks
+      let local = getStoredDecks();
+      if (!local || local.length === 0) {
+        local = mockDecks;
+        saveDecksToStorage(mockDecks);
+      }
+      if (params?.search) {
+        const q = params.search.toLowerCase();
+        local = local.filter((d) => d.title.toLowerCase().includes(q) || d.creator.toLowerCase().includes(q));
+      }
+      if (params?.category && params.category !== 'All') {
+        local = local.filter((d) => d.category?.toLowerCase() === params.category?.toLowerCase());
+      }
+      result = local;
     }
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      local = local.filter((d) => d.title.toLowerCase().includes(q) || d.creator.toLowerCase().includes(q));
-    }
-    if (params?.category && params.category !== 'All') {
-      local = local.filter((d) => d.category?.toLowerCase() === params.category?.toLowerCase());
-    }
-    return local;
+
+    // Always filter by view permission so private decks owned by others are never leaked
+    const currentUser = getCurrentUserFromStorage();
+    return result.filter((d) => canViewDeck(d, currentUser));
   },
 
   getAllDecks: async (): Promise<Deck[]> => {
@@ -90,6 +109,7 @@ export const deckApi = {
     }
     let found: Deck | undefined;
     let is404 = false;
+    let is403 = false;
     try {
       const res = (await axiosInstance.get(ENDPOINTS.DECK_BY_ID(id))) as unknown as ApiResponse<Deck>;
       if (res?.data && typeof res.data === 'object') {
@@ -98,6 +118,9 @@ export const deckApi = {
         found = res as any;
       }
     } catch (e: any) {
+      if (e?.status === 403) {
+        is403 = true;
+      }
       if (e?.status === 404) {
         is404 = true;
         // Clean up deleted deck from local cache
@@ -107,6 +130,11 @@ export const deckApi = {
       }
       console.warn(`Backend unavailable for deck ${id}, fallback to local cache:`, e);
     }
+
+    if (is403) {
+      return undefined;
+    }
+
     if (!found && !is404) {
       const decks = getStoredDecks();
       found = decks.find((d) => d.id === id);
@@ -120,6 +148,15 @@ export const deckApi = {
         found = { ...found, cards: mock.cards, itemCount: mock.cards.length };
       }
     }
+
+    // Enforce view permission check on found deck
+    if (found) {
+      const currentUser = getCurrentUserFromStorage();
+      if (!canViewDeck(found, currentUser)) {
+        return undefined;
+      }
+    }
+
     return found;
   },
 
@@ -146,9 +183,11 @@ export const deckApi = {
       title: newDeckData.title,
       description: newDeckData.description || '',
       creator: (newDeckData as Deck).creator || 'User',
+      creatorId: (newDeckData as Deck).creatorId,
       itemCount: newDeckData.cards?.length || 0,
       category: newDeckData.category || 'Beginner',
       color: newDeckData.color || 'from-indigo-500 to-violet-600',
+      isPublic: newDeckData.isPublic !== undefined ? newDeckData.isPublic : true,
       cards: newDeckData.cards || [],
     };
 

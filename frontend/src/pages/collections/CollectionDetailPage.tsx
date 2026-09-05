@@ -461,7 +461,7 @@ export default function CollectionDetailPage() {
             {includedDecks.map((deck) => (
               <div
                 key={deck.id}
-                className="group bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200/80 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                className="group bg-white/95 dark:bg-slate-900/95 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-4 shadow-sm hover:shadow-md dark:shadow-black/50 transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">

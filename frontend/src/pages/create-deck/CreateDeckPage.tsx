@@ -598,7 +598,7 @@ export default function CreateDeckPage() {
   return (
     <div className="min-h-screen flex flex-col pb-24 bg-transparent">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
+      <header className="sticky top-16 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
         <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(isEditMode && id ? getDeckDetailRoute(id) : ROUTES.HOME)}

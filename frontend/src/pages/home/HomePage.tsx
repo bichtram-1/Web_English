@@ -56,11 +56,11 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: [0.23, 1, 0.32, 1] }}
-      className="group bg-white/85 dark:bg-slate-900/85 backdrop-blur-md rounded-2xl border border-slate-200/60 dark:border-slate-800/80 overflow-hidden hover:shadow-xl dark:hover:shadow-black/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col relative"
+      className="group bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 overflow-hidden shadow-md dark:shadow-xl dark:shadow-black/70 hover:shadow-2xl dark:hover:shadow-indigo-500/20 hover:-translate-y-1.5 dark:hover:border-indigo-500/60 dark:hover:ring-indigo-400/40 transition-all duration-300 cursor-pointer flex flex-col relative"
       onClick={() => onStudy(deck)}
     >
       {/* Gradient banner */}
-      <div className={`h-24 bg-gradient-to-br ${deck.color} relative overflow-hidden`}>
+      <div className={`h-24 bg-gradient-to-br ${deck.color} relative overflow-hidden border-b border-black/5 dark:border-white/10`}>
         <div
           className="absolute inset-0 opacity-20"
           style={{
@@ -70,19 +70,19 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
           }}
         />
         <div className="absolute bottom-3 left-4">
-          <div className="w-10 h-10 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-xs">
             <BookOpen size={20} className="text-white" />
           </div>
         </div>
         <div className="absolute top-3 right-3 flex items-center gap-1.5">
           {!isPublic && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 text-amber-300 backdrop-blur-sm flex items-center gap-1">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 text-amber-300 backdrop-blur-sm flex items-center gap-1 shadow-xs">
               <Lock size={10} />
               <span>{t('deck_private_badge')}</span>
             </span>
           )}
           <span
-            className={`text-xs font-bold px-2.5 py-1 rounded-full ${categoryColors[deck.category] ?? 'bg-white/30 text-white'} backdrop-blur-sm`}
+            className={`text-xs font-bold px-2.5 py-1 rounded-full ${categoryColors[deck.category] ?? 'bg-white/30 text-white'} backdrop-blur-sm shadow-xs`}
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {getCategoryLabel(deck.category, t)}
@@ -102,19 +102,19 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-4 flex flex-col flex-1 bg-white dark:bg-slate-900/90">
         <h3
-          className="font-bold text-slate-900 dark:text-white text-base leading-tight mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+          className="font-bold text-slate-900 dark:text-white text-base leading-tight mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {deck.title}
         </h3>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 mb-3">
-          <Users size={11} />
-          <span>{t('deck_creator_label')}: <strong className="text-slate-600 dark:text-slate-300 font-semibold">{deck.creator}</strong></span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-3">
+          <Users size={11} className="text-slate-400 dark:text-slate-500" />
+          <span>{t('deck_creator_label')}: <strong className="text-slate-700 dark:text-slate-200 font-semibold">{deck.creator}</strong></span>
         </div>
-        <div className="mt-auto flex items-center justify-between">
-          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
             <Sparkles size={12} className="text-amber-400" />
             {t('cards_count', { count: deck.itemCount })}
           </div>
@@ -127,9 +127,9 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
       </div>
 
       {/* CTA */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 pt-1 bg-white dark:bg-slate-900/90">
         <div
-          className="w-full py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-sm font-bold flex items-center justify-center gap-1.5 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 dark:group-hover:text-white transition-all duration-200"
+          className="w-full py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/60 text-sm font-bold flex items-center justify-center gap-1.5 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 dark:group-hover:text-white transition-all duration-200 shadow-xs"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {t('deck_start_btn')}
@@ -335,7 +335,7 @@ export default function HomePage() {
 
       {/* ARCADE MINIGAMES SHOWCASE STRIP */}
       <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8 relative z-20">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-5">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
@@ -402,7 +402,7 @@ export default function HomePage() {
               <button
                 key={game.id}
                 onClick={() => navigate(game.route)}
-                className="group p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col justify-between cursor-pointer"
+                className="group p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 hover:shadow-md hover:-translate-y-0.5 transition-all text-left flex flex-col justify-between cursor-pointer"
               >
                 <div className="font-extrabold text-xs text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {game.title}
@@ -424,7 +424,7 @@ export default function HomePage() {
 
       {/* Search & filters */}
       <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-md rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-800/80 p-5 -mt-6 mb-6 relative z-10">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-5 -mt-6 mb-6 relative z-10">
           <div className="flex gap-2 mb-3">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
@@ -463,7 +463,7 @@ export default function HomePage() {
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-150 cursor-pointer ${
                   activeCategory === cat
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
-                    : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 border border-slate-200/50 dark:border-slate-700/50'
+                    : 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
                 }`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
@@ -475,13 +475,18 @@ export default function HomePage() {
 
         {/* Section heading */}
         <div className="flex items-center justify-between mb-5">
-          <h2
-            className="text-lg font-black text-slate-900 dark:text-white"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {activeCategory === 'All' ? t('nav_all_decks') : getCategoryLabel(activeCategory, t)}
-            <span className="ml-2 text-base text-slate-400 dark:text-slate-500 font-semibold">({filtered.length})</span>
-          </h2>
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
+            <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
+            <h2
+              className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <span>{activeCategory === 'All' ? t('nav_all_decks') : getCategoryLabel(activeCategory, t)}</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/90 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/80 shadow-xs">
+                {filtered.length}
+              </span>
+            </h2>
+          </div>
         </div>
 
         {/* Grid */}

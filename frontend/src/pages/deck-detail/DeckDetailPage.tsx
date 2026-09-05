@@ -347,11 +347,11 @@ export default function DeckDetailPage() {
                   className="text-white text-xl font-black flex items-center justify-center gap-1"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  <Star size={18} className="fill-amber-300 text-amber-300" />
-                  <span>{deck.rating ? deck.rating.toFixed(1) : '5.0'}</span>
+                  <Star size={18} className={deck.ratingCount && deck.ratingCount > 0 ? "fill-amber-300 text-amber-300" : "text-amber-200/60"} />
+                  <span>{deck.ratingCount && deck.ratingCount > 0 ? (deck.rating ? deck.rating.toFixed(1) : '5.0') : (isVi ? 'Mới' : 'New')}</span>
                 </div>
                 <div className="text-white/80 text-xs font-semibold">
-                  {deck.ratingCount ? `${deck.ratingCount} ${isVi ? 'đánh giá' : 'reviews'}` : (isVi ? 'Đánh giá' : 'Rating')}
+                  {deck.ratingCount && deck.ratingCount > 0 ? `${deck.ratingCount} ${isVi ? 'đánh giá' : 'reviews'}` : (isVi ? 'Chưa có đánh giá' : 'No ratings yet')}
                 </div>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
@@ -406,7 +406,7 @@ export default function DeckDetailPage() {
         />
 
         {/* Mode selection heading */}
-        <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
           <div className="w-10 h-10 rounded-xl bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-200 dark:shadow-none shrink-0">
             <Sparkles size={20} />
           </div>
@@ -431,7 +431,7 @@ export default function DeckDetailPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               onClick={() => handleSelectMode(item.mode)}
-              className="group bg-white dark:bg-slate-900 rounded-2xl p-5 border-2 border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-all duration-200 cursor-pointer flex items-center justify-between gap-4"
+              className="group bg-white/95 dark:bg-slate-900/95 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm hover:shadow-xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-all duration-200 cursor-pointer flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 <div
@@ -486,7 +486,7 @@ export default function DeckDetailPage() {
 
           return (
             <div className="mt-8 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200 dark:shadow-none shrink-0">
                     <Layers size={20} />
@@ -531,7 +531,7 @@ export default function DeckDetailPage() {
                   {filteredCards.map((c, index) => (
                     <div
                       key={c.id || index}
-                      className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all shadow-xs flex items-center justify-between gap-4 group"
+                      className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all shadow-xs flex items-center justify-between gap-4 group"
                     >
                       {c.type === 'flashcard' ? (
                         <>

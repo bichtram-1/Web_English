@@ -59,9 +59,9 @@ export default function DefaultLayout() {
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <DefaultHeader />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 pt-16">
           <DefaultSider collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-          <main className="flex-1 overflow-y-auto min-h-[calc(100vh-64px)] pb-16 md:pb-0">
+          <main className="flex-1 min-w-0 pb-16 md:pb-0">
             <Suspense fallback={<Loading />}>
               <Outlet />
             </Suspense>

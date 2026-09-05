@@ -196,7 +196,7 @@ export default function CollectionsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-black/40 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+              className="bg-white/95 dark:bg-slate-900/95 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 overflow-hidden shadow-sm hover:shadow-xl dark:shadow-black/60 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
               <div>
                 {/* Banner */}

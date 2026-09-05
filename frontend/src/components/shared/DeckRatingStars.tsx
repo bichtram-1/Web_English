@@ -17,8 +17,8 @@ const STAR_LABELS_VI = ['', 'Rất tệ', 'Tạm được', 'Hữu ích', 'Rất
 const STAR_LABELS_EN = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent!'];
 
 export default function DeckRatingStars({
-  rating = 5.0,
-  ratingCount = 0,
+  rating,
+  ratingCount,
   userRating,
   interactive = false,
   onRate,
@@ -40,7 +40,9 @@ export default function DeckRatingStars({
     lg: 22,
   };
 
-  const currentScore = hoveredStar || currentUserRating || Math.round(rating);
+  const hasRatings = (ratingCount !== undefined && ratingCount > 0) || (rating !== undefined && rating > 0 && ratingCount !== 0);
+  const displayRating = rating !== undefined && rating > 0 ? rating : 5.0;
+  const currentScore = hoveredStar || currentUserRating || (hasRatings ? Math.round(displayRating) : 0);
 
   const handleStarClick = async (score: number) => {
     if (!interactive || isSubmitting) return;
@@ -61,16 +63,33 @@ export default function DeckRatingStars({
 
   // Compact non-interactive view (Used on Deck cards in Home page)
   if (!interactive) {
-    const hasRatings = ratingCount > 0 || rating > 0;
+    if (!hasRatings) {
+      return (
+        <div
+          className="inline-flex items-center gap-1.5 text-slate-400 dark:text-slate-500 select-none"
+          title={isVi ? 'Bộ thẻ mới · Chưa có lượt đánh giá nào' : 'New deck · No reviews yet'}
+        >
+          <div className="flex items-center gap-0.5 text-slate-300 dark:text-slate-700">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star key={s} size={starSizes[size]} className="text-slate-300 dark:text-slate-700" />
+            ))}
+          </div>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60">
+            {isVi ? 'Mới' : 'New'}
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div
         className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 select-none"
-        title={hasRatings ? `${rating.toFixed(1)} / 5.0 (${ratingCount} lượt đánh giá)` : 'Chưa có đánh giá'}
+        title={`${displayRating.toFixed(1)} / 5.0 (${ratingCount || 0} ${isVi ? 'lượt đánh giá' : 'reviews'})`}
       >
         <div className="flex items-center gap-0.5 text-amber-400">
           {[1, 2, 3, 4, 5].map((s) => {
-            const isFilled = rating >= s;
-            const isHalf = !isFilled && rating >= s - 0.5;
+            const isFilled = displayRating >= s;
+            const isHalf = !isFilled && displayRating >= s - 0.5;
             return (
               <Star
                 key={s}
@@ -87,9 +106,9 @@ export default function DeckRatingStars({
           })}
         </div>
         <span className="text-xs font-bold text-slate-700 dark:text-slate-200 ml-0.5">
-          {rating > 0 ? rating.toFixed(1) : '5.0'}
+          {displayRating.toFixed(1)}
         </span>
-        {showCount && ratingCount > 0 && (
+        {showCount && ratingCount !== undefined && ratingCount > 0 && (
           <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
             ({ratingCount})
           </span>
@@ -107,9 +126,16 @@ export default function DeckRatingStars({
           <span>{isVi ? 'Đánh giá từ cộng đồng' : 'Community Rating'}</span>
         </span>
 
-        {ratingCount > 0 && (
+        {hasRatings ? (
           <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-            {rating.toFixed(1)} / 5.0 <span className="text-slate-400 font-normal">({ratingCount} {isVi ? 'đánh giá' : 'reviews'})</span>
+            {displayRating.toFixed(1)} / 5.0{' '}
+            <span className="text-slate-400 font-normal">
+              ({ratingCount} {isVi ? 'đánh giá' : 'reviews'})
+            </span>
+          </span>
+        ) : (
+          <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-full border border-amber-200/50 dark:border-amber-800/50">
+            {isVi ? 'Bộ thẻ mới · Hãy là người đầu tiên đánh giá!' : 'New deck · Be the first to rate!'}
           </span>
         )}
       </div>

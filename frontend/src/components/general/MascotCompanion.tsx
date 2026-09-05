@@ -18,19 +18,19 @@ import ChickenMascot from './ChickenMascot';
 
 const MASCOT_QUOTES_VI = [
   {
-    text: 'Chào bạn! Mình là Học Giả Gà 🐔. Hôm nay bạn muốn chinh phục bao nhiêu từ vựng?',
+    text: 'Chào bạn! Mình là Học Giả Gà 🐔. Hôm nay bạn muốn chinh phục bao nhiêu từ mới nào?',
     badge: 'Đồng hành',
   },
   {
-    text: 'Mẹo nhỏ: Hãy dùng thuật toán SM-2 để ôn lại từ vựng đúng thời điểm trước khi não bộ quên nhé! 🧠',
-    badge: 'Mẹo SM-2',
+    text: 'Mẹo nhỏ nè: Hãy ôn lại từ vựng ngắt quãng đều đặn mỗi ngày trước khi não bộ kịp quên nhé! 🧠',
+    badge: 'Mẹo học',
   },
   {
-    text: 'Thử ngay Đấu Trường Trò Chơi: Truy Tìm Kho Báu & Lật Thẻ Ghép Đôi để vừa giải trí vừa nhớ từ siêu lâu! 🎮',
-    badge: 'Minigame',
+    text: 'Hãy thử ngay Đấu Trường Trò Chơi: Săn Kho Báu và Lật Thẻ để vừa giải trí vừa nhớ từ siêu lâu! 🎮',
+    badge: 'Trò chơi',
   },
   {
-    text: 'Bạn có thể tự đổi hình nền không gian học giống trang chủ Google ở nút hình nền đấy! 🎨',
+    text: 'Bạn có thể tự đổi hình nền không gian học tập ở nút tùy chỉnh nền phía góc dưới đấy! 🎨',
     badge: 'Hình nền',
   },
   {
@@ -76,14 +76,13 @@ export default function MascotCompanion() {
   const isVi = i18n.language === 'vi';
   const quotes = isVi ? MASCOT_QUOTES_VI : MASCOT_QUOTES_EN;
 
-  const { speak } = useSpeech();
+  const { speak, stop, isSpeaking } = useSpeech();
   const { setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
 
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
   const [isBubbleOpen, setIsBubbleOpen] = useState(true);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [isSpeakingQuote, setIsSpeakingQuote] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
   const currentQuote = quotes[quoteIndex] || quotes[0]!;
@@ -97,9 +96,11 @@ export default function MascotCompanion() {
   }, [quotes.length]);
 
   const handleSpeak = () => {
-    setIsSpeakingQuote(true);
-    speak(currentQuote.text);
-    setTimeout(() => setIsSpeakingQuote(false), 2000);
+    if (isSpeaking) {
+      stop();
+      return;
+    }
+    speak(currentQuote.text, isVi ? 'vi-VN' : 'en-US');
   };
 
   const handleMascotClick = () => {
@@ -156,10 +157,10 @@ export default function MascotCompanion() {
                 {/* Audio TTS button */}
                 <button
                   onClick={handleSpeak}
-                  title={isVi ? 'Nghe phát âm' : 'Listen'}
+                  title={isSpeaking ? (isVi ? 'Dừng đọc' : 'Stop speaking') : (isVi ? 'Nghe Học Giả Gà đọc' : 'Listen to Scholar Chicken')}
                   className={`p-1 rounded-md transition-colors cursor-pointer ${
-                    isSpeakingQuote
-                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800'
+                    isSpeaking
+                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-slate-800 animate-pulse'
                       : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                   }`}
                 >

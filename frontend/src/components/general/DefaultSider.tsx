@@ -21,7 +21,7 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
 
   return (
     <aside
-      className={`relative z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
+      className={`sticky top-16 h-[calc(100vh-4rem)] z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >

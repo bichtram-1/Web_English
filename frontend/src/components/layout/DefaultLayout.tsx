@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import DefaultHeader from '../general/DefaultHeader';
 import DefaultSider from '../general/DefaultSider';
 import MobileBottomNav from '../general/MobileBottomNav';
@@ -14,7 +14,13 @@ export default function DefaultLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const { config, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
   const { i18n } = useTranslation();
+  const location = useLocation();
   const isVi = i18n.language === 'vi';
+
+  // Check if current page has a fixed bottom bar (such as create deck, edit deck) to avoid overlapping
+  const hasFixedBottomBar =
+    location.pathname.startsWith('/create-deck') ||
+    location.pathname.includes('/edit');
 
   return (
     <div
@@ -63,15 +69,17 @@ export default function DefaultLayout() {
         </div>
         <MobileBottomNav />
 
-        {/* Floating Quick Background Customizer Button (Google-style bottom corner) */}
-        <button
-          onClick={() => setWallpaperModalOpen(true)}
-          title={isVi ? 'Tùy chỉnh hình nền (như Google)' : 'Customize Wallpaper (Google style)'}
-          className="fixed bottom-4 left-4 z-40 hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer active:scale-95 group"
-        >
-          <Image size={14} className="text-indigo-500 group-hover:rotate-12 transition-transform" />
-          <span>{isVi ? 'Tùy chỉnh nền' : 'Wallpaper'}</span>
-        </button>
+        {/* Floating Quick Background Customizer Button (Google-style bottom corner, hidden on editor pages to avoid overlapping action bar) */}
+        {!hasFixedBottomBar && (
+          <button
+            onClick={() => setWallpaperModalOpen(true)}
+            title={isVi ? 'Tùy chỉnh hình nền (như Google)' : 'Customize Wallpaper (Google style)'}
+            className="fixed bottom-4 left-4 z-40 hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer active:scale-95 group"
+          >
+            <Image size={14} className="text-indigo-500 group-hover:rotate-12 transition-transform" />
+            <span>{isVi ? 'Tùy chỉnh nền' : 'Wallpaper'}</span>
+          </button>
+        )}
 
         {/* Interactive Chicken Scholar Mascot Companion */}
         <MascotCompanion />

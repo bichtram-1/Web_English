@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal, Upload, Sparkles, Edit3 } from 'lucide-react';
+import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal, Upload, Sparkles, Edit3, Check, Palette } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { recordCreatedDeck } from '../../utils/recentDecks';
@@ -18,6 +18,15 @@ import deckApi from '../../api/deckApi';
 import { canEditDeck } from '../../utils/permission';
 import { generateFriendlyId } from '../../utils/slugify';
 import Loading from '../../components/shared/Loading';
+
+export const DECK_GRADIENTS = [
+  { name: 'Indigo / Violet', value: 'from-indigo-600 to-violet-600' },
+  { name: 'Blue / Cyan', value: 'from-blue-600 to-cyan-600' },
+  { name: 'Emerald / Teal', value: 'from-emerald-600 to-teal-600' },
+  { name: 'Rose / Pink', value: 'from-rose-600 to-pink-600' },
+  { name: 'Amber / Orange', value: 'from-amber-500 to-orange-600' },
+  { name: 'Purple / Fuchsia', value: 'from-purple-600 to-fuchsia-600' },
+];
 
 
 type CardType = 'flashcard' | 'drag_drop';
@@ -265,6 +274,7 @@ export default function CreateDeckPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Beginner');
+  const [color, setColor] = useState('from-indigo-600 to-violet-600');
   const [isPublic, setIsPublic] = useState(true);
   const [cards, setCards] = useState<CardRow[]>([
     { id: 1, term: '', definition: '', type: 'flashcard' },
@@ -302,6 +312,7 @@ export default function CreateDeckPage() {
         setTitle(fetched.title || '');
         setDescription(fetched.description || '');
         setCategory(fetched.category || 'Beginner');
+        setColor(fetched.color || 'from-indigo-600 to-violet-600');
         setIsPublic(fetched.isPublic !== undefined ? fetched.isPublic : true);
 
         if (Array.isArray(fetched.cards) && fetched.cards.length > 0) {
@@ -448,6 +459,7 @@ export default function CreateDeckPage() {
           title: title.trim(),
           description: description.trim(),
           category,
+          color,
           isPublic,
           cards: formattedCards,
           itemCount: formattedCards.length,
@@ -475,7 +487,7 @@ export default function CreateDeckPage() {
           creatorId: user.id,
           itemCount: formattedCards.length,
           category,
-          color: 'from-indigo-500 to-violet-600',
+          color,
           isPublic,
           cards: formattedCards,
           createdAt: new Date().toISOString(),
@@ -637,7 +649,7 @@ export default function CreateDeckPage() {
           transition={{ duration: 0.3 }}
           className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden"
         >
-          <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+          <div className={`h-2.5 bg-gradient-to-r ${color} transition-all duration-300`} />
 
           <div className="p-6 flex flex-col gap-5">
             <div>
@@ -707,6 +719,49 @@ export default function CreateDeckPage() {
                 <option value="Intermediate">{t('category_intermediate')}</option>
                 <option value="Advanced">{t('category_advanced')}</option>
               </select>
+            </div>
+
+            {/* Color / Gradient Theme Picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Palette size={13} className="text-indigo-500" />
+                  <span>{isVi ? 'Màu sắc chủ đề' : 'Theme Color'}</span>
+                </label>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  {DECK_GRADIENTS.find((g) => g.value === color)?.name || (isVi ? 'Mặc định' : 'Default')}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                {DECK_GRADIENTS.map((g) => {
+                  const isSelected = color === g.value;
+                  return (
+                    <button
+                      key={g.value}
+                      type="button"
+                      onClick={() => setColor(g.value)}
+                      className={`group relative p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-950/40 shadow-sm'
+                          : 'border-slate-100 dark:border-slate-800/80 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30'
+                      }`}
+                    >
+                      <div
+                        className={`w-full h-8 rounded-lg bg-gradient-to-r ${g.value} flex items-center justify-center shadow-xs transition-transform group-hover:scale-105`}
+                      >
+                        {isSelected && <Check size={14} className="text-white drop-shadow-md" />}
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate w-full text-center">
+                        {g.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Visibility */}
@@ -788,16 +843,16 @@ export default function CreateDeckPage() {
       </main>
 
       {/* Fixed save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-slate-800">
-        <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:block">
-            <span className="font-bold text-slate-700 dark:text-slate-200">{filledCards}</span> {t('cards')}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800 shadow-2xl">
+        <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center flex-wrap gap-1">
+            <span className="font-extrabold text-slate-800 dark:text-slate-100">{filledCards}</span> {t('cards')}
             {cards.length > filledCards && (
               <span className="text-amber-500 font-medium ml-1">
                 ({isVi ? `bỏ qua ${cards.length - filledCards} thẻ trống` : `ignoring ${cards.length - filledCards} empty`})
               </span>
-            )} · {isPublic ? (isVi ? 'Công khai' : 'Public') : (isVi ? 'Riêng tư' : 'Private')}
-            {title && <span className="text-slate-600 dark:text-slate-300"> · "{title}"</span>}
+            )} · <span className="font-semibold">{isPublic ? (isVi ? 'Công khai' : 'Public') : (isVi ? 'Riêng tư' : 'Private')}</span>
+            {title && <span className="text-slate-600 dark:text-slate-300 hidden md:inline"> · "{title}"</span>}
           </div>
           <div className="flex gap-3 ml-auto">
             <button

@@ -21,22 +21,24 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
 
   return (
     <aside
-      className={`relative bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
+      className={`relative z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-r border-slate-200/80 dark:border-slate-800 hidden md:flex flex-col transition-all duration-300 shrink-0 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Toggle button */}
       <button
         onClick={toggle}
-        className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 z-10 cursor-pointer"
+        title={collapsed ? (isVi ? 'Mở rộng menu' : 'Expand menu') : (isVi ? 'Thu gọn menu' : 'Collapse menu')}
+        className="absolute -right-3.5 top-6 w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-110 active:scale-95 transition-all z-30 cursor-pointer"
+        style={{ fontFamily: 'var(--font-display)' }}
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
       <div className="p-4 flex-1 overflow-y-auto space-y-6">
         <div>
-          <div className="px-3 mb-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            {!collapsed && t('nav_main_categories')}
+          <div className="px-3 pr-4 mb-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            {!collapsed && <span>{t('nav_main_categories')}</span>}
           </div>
           <div className="space-y-1">
             <NavLink

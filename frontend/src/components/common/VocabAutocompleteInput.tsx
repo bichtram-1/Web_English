@@ -116,6 +116,9 @@ export default function VocabAutocompleteInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Do not intercept keyboard events when user is composing via IME (e.g. Vietnamese Telex)
+    if (e.nativeEvent.isComposing || e.key === 'Process') return;
+
     if (!isOpen || suggestions.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -166,6 +169,7 @@ export default function VocabAutocompleteInput({
         className={className}
         style={style}
         autoComplete="off"
+        autoCorrect="off"
         spellCheck="false"
       />
 

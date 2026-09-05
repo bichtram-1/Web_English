@@ -49,13 +49,17 @@ export const authApi = {
       if (res && res.id && res.email) {
         return res;
       }
-    } catch {
+      throw new Error('Dữ liệu người dùng không hợp lệ');
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 404) {
+        throw err;
+      }
       const cached = localStorage.getItem('lingualeap_user');
       if (cached) {
         return JSON.parse(cached);
       }
+      throw new Error('Không thể tải thông tin người dùng');
     }
-    throw new Error('Không thể tải thông tin người dùng');
   },
 
   forgotPassword: async (data: { email: string }): Promise<{ message: string; devOtp?: string }> => {

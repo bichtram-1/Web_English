@@ -39,9 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const currentUser = await authApi.getMe();
           setUser(currentUser);
           localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(currentUser));
-        } catch {
-          // If token expired, clear
-          console.warn('Session expired or offline, using cached credentials');
+        } catch (err: any) {
+          if (err?.status === 401 || err?.status === 404) {
+            console.warn('Session expired or user not found, clearing cached credentials');
+            setUser(null);
+            setToken(null);
+            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          } else {
+            console.warn('Session check offline, using cached credentials');
+          }
         }
       }
       setIsLoading(false);
@@ -89,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         token,
         isLoading,
-        isAuthenticated: !!user || !!token,
+        isAuthenticated: !!user && !!token,
         login,
         register,
         logout,

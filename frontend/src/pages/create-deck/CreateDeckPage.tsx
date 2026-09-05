@@ -166,6 +166,9 @@ function CardRowItem({
             placeholder={card.type === 'drag_drop' ? 'e.g. Cô ấy thích học tiếng Anh' : 'e.g. Lập trình viên, Tuyệt đẹp...'}
             className="w-full text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-300 dark:placeholder-slate-600 outline-none border-b-2 border-transparent focus:border-indigo-400 py-1 transition-colors bg-transparent"
             style={{ fontFamily: 'var(--font-display)' }}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
           />
         </div>
       </div>
@@ -198,6 +201,9 @@ function CardRowItem({
                     onChange={(e) => onChange(card.id, 'grammarRule', e.target.value)}
                     placeholder={t('create_deck_grammar_rule_placeholder')}
                     className="w-full text-xs font-semibold text-indigo-950 dark:text-indigo-100 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
                 <div>
@@ -210,6 +216,9 @@ function CardRowItem({
                     onChange={(e) => onChange(card.id, 'grammarExplanation', e.target.value)}
                     placeholder={t('create_deck_grammar_exp_placeholder')}
                     className="w-full text-xs font-semibold text-indigo-950 dark:text-indigo-100 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
                 </div>
               </div>
@@ -481,9 +490,24 @@ export default function CreateDeckPage() {
           navigate(getDeckDetailRoute(created?.id || friendlyId));
         }, 800);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error saving deck:', e);
       setIsSubmitting(false);
+      const isAuthError = e?.status === 401 || e?.status === 403;
+      if (isAuthError) {
+        alert(
+          isVi
+            ? 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại để lưu bộ thẻ!'
+            : 'Session expired or invalid. Please log in again to save your deck!'
+        );
+        navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+      } else {
+        const errorMsg =
+          e?.message ||
+          e?.data?.message ||
+          (isVi ? 'Có lỗi xảy ra khi lưu bộ thẻ. Vui lòng thử lại!' : 'An error occurred while saving the deck.');
+        alert(errorMsg);
+      }
     }
   };
 

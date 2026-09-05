@@ -75,5 +75,23 @@ export class DeckController {
       next(err);
     }
   }
+
+  static async rateDeck(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { score, userId: bodyUserId } = req.body;
+      const scoreNum = Number(score);
+
+      if (!scoreNum || scoreNum < 1 || scoreNum > 5) {
+        throw new AppError('Điểm đánh giá phải là số từ 1 đến 5', 400);
+      }
+
+      const effectiveUserId = req.user?.userId || bodyUserId || 'guest';
+      const updated = await DeckService.rateDeck(id, scoreNum, effectiveUserId);
+      return ApiResponseHandler.success(res, updated, 'Đánh giá bộ thẻ thành công');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

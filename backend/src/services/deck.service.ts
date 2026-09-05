@@ -37,6 +37,15 @@ const mapCardFromDb = (card: any): CardItem => {
 
 const mapDeckFromDb = (d: any): Deck => {
   const cards: CardItem[] = (d.cards || []).map(mapCardFromDb);
+  let userRatings: Record<string, number> | undefined;
+  if (d.userRatingsJson) {
+    try {
+      userRatings = JSON.parse(d.userRatingsJson);
+    } catch {
+      userRatings = undefined;
+    }
+  }
+
   return {
     id: d.id,
     title: d.title,
@@ -48,6 +57,9 @@ const mapDeckFromDb = (d: any): Deck => {
     color: d.color,
     isPublic: d.isPublic,
     cards,
+    rating: typeof d.rating === 'number' ? d.rating : 0,
+    ratingCount: typeof d.ratingCount === 'number' ? d.ratingCount : 0,
+    userRatings,
     createdAt: d.createdAt ? d.createdAt.toISOString() : undefined,
     updatedAt: d.updatedAt ? d.updatedAt.toISOString() : undefined,
   };
@@ -320,6 +332,61 @@ export class DeckService {
     }
 
     return this.getDeckById(id);
+  }
+
+  static async rateDeck(id: string, score: number, userId: string = 'guest'): Promise<Deck> {
+    const existing = await prisma.deck.findUnique({
+      where: { id },
+      include: {
+        cards: { orderBy: { orderIndex: 'asc' } },
+        creator: true,
+      },
+    });
+
+    if (!existing) {
+      throw new AppError('Không tìm thấy bộ thẻ để đánh giá', 404);
+    }
+
+    let userRatings: Record<string, number> = {};
+    if (existing.userRatingsJson) {
+      try {
+        userRatings = JSON.parse(existing.userRatingsJson);
+      } catch {
+        userRatings = {};
+      }
+    }
+
+    userRatings[userId] = score;
+
+    const scores = Object.values(userRatings);
+    let totalSum = 0;
+    let totalCount = 0;
+
+    if (existing.rating && existing.ratingCount && !existing.userRatingsJson) {
+      totalSum = existing.rating * existing.ratingCount + score;
+      totalCount = existing.ratingCount + 1;
+    } else {
+      totalSum = scores.reduce((sum, s) => sum + s, 0);
+      totalCount = scores.length;
+    }
+
+    const avg = totalCount > 0 ? totalSum / totalCount : score;
+    const roundedAvg = Math.min(5, Math.max(1, Math.round(avg * 10) / 10));
+
+    const updated = await prisma.deck.update({
+      where: { id },
+      data: {
+        rating: roundedAvg,
+        ratingCount: totalCount,
+        userRatingsJson: JSON.stringify(userRatings),
+      },
+      include: {
+        cards: { orderBy: { orderIndex: 'asc' } },
+        creator: true,
+      },
+    });
+
+    return mapDeckFromDb(updated);
   }
 
   static async deleteDeck(id: string, userId?: string, userRole?: string): Promise<boolean> {

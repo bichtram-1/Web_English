@@ -42,6 +42,9 @@ export interface Deck {
   color: string;
   isPublic: boolean;
   cards: CardItem[];
+  rating?: number;
+  ratingCount?: number;
+  userRatings?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }

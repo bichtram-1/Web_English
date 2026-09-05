@@ -66,11 +66,27 @@ export const deckApi = {
         params,
       })) as any;
       if (Array.isArray(res) && res.length > 0) {
-        saveDecksToStorage(res);
         result = res;
       } else if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        saveDecksToStorage(res.data);
         result = res.data;
+      }
+
+      if (result.length > 0) {
+        const cachedDecks = getStoredDecks();
+        const merged = result.map((d) => {
+          const cached = cachedDecks.find((c) => c.id === d.id);
+          if (cached && (!d.ratingCount || d.ratingCount === 0) && cached.ratingCount && cached.ratingCount > 0) {
+            return {
+              ...d,
+              rating: cached.rating,
+              ratingCount: cached.ratingCount,
+              userRatings: cached.userRatings,
+            };
+          }
+          return d;
+        });
+        saveDecksToStorage(merged);
+        result = merged;
       }
     } catch (e) {
       console.warn('Backend unavailable, fallback to local decks cache:', e);
@@ -146,6 +162,19 @@ export const deckApi = {
       const mock = mockDecks.find((d) => d.id === id);
       if (mock && mock.cards && mock.cards.length > 0) {
         found = { ...found, cards: mock.cards, itemCount: mock.cards.length };
+      }
+    }
+
+    // Preserve local rating if backend has no ratings yet
+    if (found) {
+      const cached = getStoredDecks().find((d) => d.id === id);
+      if (cached && (!found.ratingCount || found.ratingCount === 0) && cached.ratingCount && cached.ratingCount > 0) {
+        found = {
+          ...found,
+          rating: cached.rating,
+          ratingCount: cached.ratingCount,
+          userRatings: cached.userRatings,
+        };
       }
     }
 
@@ -239,16 +268,31 @@ export const deckApi = {
 
 
   rateDeck: async (id: string, score: number, userId: string = 'guest'): Promise<Deck> => {
+    let serverDeck: Deck | undefined;
     try {
       const res = (await axiosInstance.post(
         `${ENDPOINTS.DECK_BY_ID(id)}/rate`,
         { score, userId }
-      )) as unknown as ApiResponse<Deck>;
-      if (res?.data) {
-        return res.data;
+      )) as any;
+      if (res?.data && typeof res.data === 'object') {
+        serverDeck = res.data;
+      } else if (res?.id) {
+        serverDeck = res;
       }
     } catch (e) {
       console.warn('Backend unavailable for rateDeck, updating locally:', e);
+    }
+
+    if (serverDeck) {
+      const decks = getStoredDecks();
+      const index = decks.findIndex((d) => d.id === id);
+      if (index !== -1) {
+        decks[index] = { ...decks[index], ...serverDeck };
+      } else {
+        decks.unshift(serverDeck);
+      }
+      saveDecksToStorage(decks);
+      return serverDeck;
     }
 
     const decks = getStoredDecks();

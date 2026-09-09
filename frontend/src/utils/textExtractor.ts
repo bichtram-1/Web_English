@@ -343,7 +343,6 @@ const DICTIONARY_MAP: Record<string, { pos: VocabPOS; meaning: string }> = {
   create: { pos: 'verb', meaning: 'Tạo ra, sáng tạo' },
   reduce: { pos: 'verb', meaning: 'Giảm bớt, cắt giảm' },
   increase: { pos: 'verb', meaning: 'Gia tăng, tăng cường' },
-  maintain: { pos: 'verb', meaning: 'Duy trì, gìn giữ' },
   manage: { pos: 'verb', meaning: 'Quản lý, điều hành' },
   control: { pos: 'verb', meaning: 'Kiểm soát, làm chủ' },
   identify: { pos: 'verb', meaning: 'Nhận diện, xác định' },

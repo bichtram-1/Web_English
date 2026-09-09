@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -78,6 +78,14 @@ export default function TextTranslateExtractPage() {
   const [translatedText, setTranslatedText] = useState('');
   const [extractedVocab, setExtractedVocab] = useState<ExtractedVocabItem[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isEnrichingMeanings, setIsEnrichingMeanings] = useState(false);
+  const enrichRequestIdRef = useRef(0);
+
+  // Check if any items are currently having their Vietnamese meaning retrieved
+  const isFetchingMeanings =
+    isEnrichingMeanings ||
+    extractedVocab.some((item) => item.meaning === 'Đang tra nghĩa...');
+
   const [copiedOriginal, setCopiedOriginal] = useState(false);
   const [copiedTranslated, setCopiedTranslated] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -109,6 +117,8 @@ export default function TextTranslateExtractPage() {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const text = await navigator.clipboard.readText();
         if (text) {
+          enrichRequestIdRef.current++;
+          setIsEnrichingMeanings(false);
           setInputText(text);
           setTranslatedText('');
           setExtractedVocab([]);
@@ -124,13 +134,37 @@ export default function TextTranslateExtractPage() {
     const text = textToProcess.trim();
     if (!text) return;
     setIsTranslating(true);
+    const currentRequestId = ++enrichRequestIdRef.current;
     try {
       // 1. Extract vocabulary, phrases, and grammar patterns
       const vocabList = extractKeyVocabulary(text);
       setExtractedVocab(vocabList);
 
-      // 2. Start immediate background enrichment for custom words without blocking
-      enrichExtractedItemsMeanings(vocabList, setExtractedVocab);
+      const hasPendingWords = vocabList.some(
+        (item) =>
+          item.categoryType === 'vocab' &&
+          (item.meaning === 'Đang tra nghĩa...' || item.meaning.includes('(trong ngữ cảnh)'))
+      );
+
+      // 2. Start immediate background enrichment for custom words without blocking text translation
+      if (hasPendingWords) {
+        setIsEnrichingMeanings(true);
+        enrichExtractedItemsMeanings(vocabList, (updater) => {
+          if (currentRequestId === enrichRequestIdRef.current) {
+            setExtractedVocab(updater);
+          }
+        })
+          .catch((err) => {
+            console.error('Enrichment error:', err);
+          })
+          .finally(() => {
+            if (currentRequestId === enrichRequestIdRef.current) {
+              setIsEnrichingMeanings(false);
+            }
+          });
+      } else {
+        setIsEnrichingMeanings(false);
+      }
 
       // 3. Translate full text
       const viTranslation = await translateText(text);
@@ -194,6 +228,15 @@ export default function TextTranslateExtractPage() {
 
   // Open Modal to customize Deck title, level, privacy before saving
   const handleOpenCreateDeckModal = () => {
+    if (isFetchingMeanings || isTranslating) {
+      alert(
+        isVi
+          ? 'Hệ thống đang lấy nghĩa tiếng Việt cho các từ vựng. Vui lòng đợi hoàn tất trước khi tạo bộ thẻ!'
+          : 'Vocabulary meanings are being fetched. Please wait until completed before creating deck!'
+      );
+      return;
+    }
+
     if (selectedCount === 0) {
       alert(isVi ? 'Vui lòng chọn ít nhất 1 mục để tạo bộ thẻ!' : 'Please select at least 1 item to create deck!');
       return;
@@ -227,7 +270,7 @@ export default function TextTranslateExtractPage() {
 
   // Confirm creation inside modal (guarded against duplicate clicks)
   const handleConfirmCreateDeck = async () => {
-    if (isCreatingDeck) return;
+    if (isCreatingDeck || isFetchingMeanings || isTranslating) return;
     if (selectedCount === 0 || !deckTitle.trim()) return;
 
     setIsCreatingDeck(true);
@@ -285,6 +328,15 @@ export default function TextTranslateExtractPage() {
 
   // Export selected cards to CSV
   const handleExportSelectedCsv = () => {
+    if (isFetchingMeanings || isTranslating) {
+      alert(
+        isVi
+          ? 'Hệ thống đang lấy nghĩa tiếng Việt cho các từ vựng. Vui lòng đợi hoàn tất trước khi tải file!'
+          : 'Vocabulary meanings are being fetched. Please wait until completed before exporting file!'
+      );
+      return;
+    }
+
     if (selectedCount === 0) return;
 
     const tempDeck: Deck = {
@@ -465,6 +517,8 @@ export default function TextTranslateExtractPage() {
                                   key={idx}
                                   type="button"
                                   onClick={() => {
+                                    enrichRequestIdRef.current++;
+                                    setIsEnrichingMeanings(false);
                                     setInputText(sample.text);
                                     setTranslatedText('');
                                     setExtractedVocab([]);
@@ -507,6 +561,8 @@ export default function TextTranslateExtractPage() {
                   {inputText && (
                     <button
                       onClick={() => {
+                        enrichRequestIdRef.current++;
+                        setIsEnrichingMeanings(false);
                         setInputText('');
                         setTranslatedText('');
                         setExtractedVocab([]);
@@ -818,26 +874,70 @@ export default function TextTranslateExtractPage() {
               {/* Action Buttons: Save to Deck / Export */}
               {extractedVocab.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  {/* Status Banner when fetching Vietnamese meanings */}
+                  {isFetchingMeanings && (
+                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300 animate-pulse">
+                      <Loader2 size={13} className="animate-spin text-amber-600 shrink-0" />
+                      <span>
+                        {isVi
+                          ? 'Đang lấy nghĩa tiếng Việt cho các từ vựng... Vui lòng đợi hoàn tất để tạo bộ thẻ và tải file.'
+                          : 'Fetching Vietnamese meanings... Please wait until completed to create deck or export file.'}
+                      </span>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleOpenCreateDeckModal}
-                    disabled={selectedCount === 0 || isCreatingDeck}
-                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    disabled={selectedCount === 0 || isCreatingDeck || isFetchingMeanings || isTranslating}
+                    title={
+                      isFetchingMeanings
+                        ? (isVi
+                            ? 'Đang lấy nghĩa tiếng Việt, vui lòng đợi hoàn tất trước khi tạo bộ thẻ'
+                            : 'Fetching meanings, please wait before creating deck')
+                        : undefined
+                    }
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-white font-bold text-xs shadow-md shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
-                    <FolderPlus size={15} />
-                    <span>
-                      {isVi
-                        ? `Tạo Bộ Thẻ Mới (${selectedCount} mục đã chọn)`
-                        : `Create Deck with ${selectedCount} items`}
-                    </span>
+                    {isFetchingMeanings ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>{isVi ? 'Đang lấy nghĩa tiếng Việt...' : 'Fetching meanings...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <FolderPlus size={15} />
+                        <span>
+                          {isVi
+                            ? `Tạo Bộ Thẻ Mới (${selectedCount} mục đã chọn)`
+                            : `Create Deck with ${selectedCount} items`}
+                        </span>
+                      </>
+                    )}
                   </button>
 
                   <button
                     onClick={handleExportSelectedCsv}
-                    disabled={selectedCount === 0}
-                    className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    disabled={selectedCount === 0 || isFetchingMeanings || isTranslating}
+                    title={
+                      isFetchingMeanings
+                        ? (isVi
+                            ? 'Đang lấy nghĩa tiếng Việt, vui lòng đợi hoàn tất trước khi tải file'
+                            : 'Fetching meanings, please wait before exporting file')
+                        : undefined
+                    }
+                    className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-slate-700 dark:text-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Download size={13} />
-                    <span>{isVi ? 'Tải File CSV / Anki' : 'Export CSV'}</span>
+                    {isFetchingMeanings ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>{isVi ? 'Đang lấy nghĩa tiếng Việt...' : 'Fetching meanings...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={13} />
+                        <span>{isVi ? 'Tải File CSV / Anki' : 'Export CSV'}</span>
+                      </>
+                    )}
                   </button>
                 </div>
               )}
@@ -1026,7 +1126,7 @@ export default function TextTranslateExtractPage() {
                 <button
                   type="button"
                   onClick={handleConfirmCreateDeck}
-                  disabled={!deckTitle.trim() || isCreatingDeck}
+                  disabled={!deckTitle.trim() || isCreatingDeck || isFetchingMeanings || isTranslating}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold shadow-md shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all cursor-pointer active:scale-95"
                 >
                   {isCreatingDeck ? (

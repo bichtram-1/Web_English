@@ -1379,8 +1379,24 @@ export async function enrichExtractedItemsMeanings(
               )
             );
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          console.warn(`Failed to enrich meaning for "${item.word}":`, err);
+          const posLabel =
+            item.pos === 'verb'
+              ? 'Động từ'
+              : item.pos === 'adjective'
+              ? 'Tính từ'
+              : item.pos === 'adverb'
+              ? 'Trạng từ'
+              : 'Danh từ';
+          onUpdate((prev) =>
+            prev.map((it) =>
+              it.id === item.id &&
+              (it.meaning === 'Đang tra nghĩa...' || it.meaning.includes('(trong ngữ cảnh)'))
+                ? { ...it, meaning: `[${posLabel}] Bấm ✏️ để nhập nghĩa` }
+                : it
+            )
+          );
         }
       })
     );

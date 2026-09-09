@@ -20,6 +20,7 @@ import {
   X,
   Info,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import useSpeech from '../../hooks/useSpeech';
 import { useDecks } from '../../hooks/useDecks';
@@ -128,12 +129,12 @@ export default function TextTranslateExtractPage() {
       const vocabList = extractKeyVocabulary(text);
       setExtractedVocab(vocabList);
 
-      // 2. Translate text
+      // 2. Start immediate background enrichment for custom words without blocking
+      enrichExtractedItemsMeanings(vocabList, setExtractedVocab);
+
+      // 3. Translate full text
       const viTranslation = await translateText(text);
       setTranslatedText(viTranslation);
-
-      // 3. Background async enrichment for words needing translated meanings
-      enrichExtractedItemsMeanings(vocabList, setExtractedVocab);
     } catch (e) {
       console.error('Translation error:', e);
     } finally {
@@ -793,7 +794,14 @@ export default function TextTranslateExtractPage() {
                           onClick={() => handleToggleSelectVocab(item.id)}
                           className="mt-1 text-xs text-slate-700 dark:text-slate-300 font-medium pl-6 cursor-pointer"
                         >
-                          {item.meaning}
+                          {item.meaning === 'Đang tra nghĩa...' ? (
+                            <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 italic text-[11px] font-semibold animate-pulse">
+                              <Loader2 size={12} className="animate-spin text-amber-500" />
+                              Đang lấy nghĩa tiếng Việt...
+                            </span>
+                          ) : (
+                            item.meaning
+                          )}
                         </div>
                       )}
 

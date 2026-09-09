@@ -16,6 +16,91 @@ export interface ExtractedVocabItem {
   selected: boolean;
 }
 
+// Built-in tech, computing, science, and everyday acronyms with full Vietnamese definitions
+export const ACRONYM_DICTIONARY: Record<string, { pos: VocabPOS; meaning: string }> = {
+  https: { pos: 'noun', meaning: 'Giao thức truyền siêu văn bản bảo mật (Hypertext Transfer Protocol Secure)' },
+  http: { pos: 'noun', meaning: 'Giao thức truyền siêu văn bản (Hypertext Transfer Protocol)' },
+  api: { pos: 'noun', meaning: 'Giao diện lập trình ứng dụng (Application Programming Interface)' },
+  url: { pos: 'noun', meaning: 'Định vị tài nguyên thống nhất, địa chỉ trang web (Uniform Resource Locator)' },
+  html: { pos: 'noun', meaning: 'Ngôn ngữ đánh dấu siêu văn bản tạo trang web (Hypertext Markup Language)' },
+  css: { pos: 'noun', meaning: 'Bảng định kiểu xếp tầng cho giao diện web (Cascading Style Sheets)' },
+  sql: { pos: 'noun', meaning: 'Ngôn ngữ truy vấn cơ sở dữ liệu có cấu trúc (Structured Query Language)' },
+  dns: { pos: 'noun', meaning: 'Hệ thống phân giải tên miền (Domain Name System)' },
+  ip: { pos: 'noun', meaning: 'Giao thức Internet, địa chỉ IP mạng (Internet Protocol)' },
+  cpu: { pos: 'noun', meaning: 'Bộ vi xử lý trung tâm của máy tính (Central Processing Unit)' },
+  gpu: { pos: 'noun', meaning: 'Bộ xử lý đồ họa (Graphics Processing Unit)' },
+  ram: { pos: 'noun', meaning: 'Bộ nhớ truy xuất ngẫu nhiên (Random Access Memory)' },
+  rom: { pos: 'noun', meaning: 'Bộ nhớ chỉ đọc (Read-Only Memory)' },
+  ai: { pos: 'noun', meaning: 'Trí tuệ nhân tạo (Artificial Intelligence)' },
+  ml: { pos: 'noun', meaning: 'Máy học, học máy (Machine Learning)' },
+  iot: { pos: 'noun', meaning: 'Internet vạn vật kết nối thông minh (Internet of Things)' },
+  seo: { pos: 'noun', meaning: 'Tối ưu hóa công cụ tìm kiếm (Search Engine Optimization)' },
+  ui: { pos: 'noun', meaning: 'Giao diện người dùng (User Interface)' },
+  ux: { pos: 'noun', meaning: 'Trải nghiệm người dùng (User Experience)' },
+  sdk: { pos: 'noun', meaning: 'Bộ công cụ phát triển phần mềm (Software Development Kit)' },
+  ide: { pos: 'noun', meaning: 'Môi trường phát triển tích hợp (Integrated Development Environment)' },
+  cli: { pos: 'noun', meaning: 'Giao diện dòng lệnh (Command Line Interface)' },
+  gui: { pos: 'noun', meaning: 'Giao diện đồ họa người dùng (Graphical User Interface)' },
+  json: { pos: 'noun', meaning: 'Định dạng trao đổi dữ liệu JavaScript (JavaScript Object Notation)' },
+  rest: { pos: 'noun', meaning: 'Kiến trúc chuyển giao trạng thái đại diện (Representational State Transfer)' },
+  ssl: { pos: 'noun', meaning: 'Giao thức bảo mật tầng truyền tải (Secure Sockets Layer)' },
+  tls: { pos: 'noun', meaning: 'Giao thức bảo mật truyền tải nâng cao (Transport Layer Security)' },
+  vpn: { pos: 'noun', meaning: 'Mạng riêng ảo bảo mật kết nối (Virtual Private Network)' },
+  wifi: { pos: 'noun', meaning: 'Mạng kết nối không dây (Wireless Fidelity)' },
+  lan: { pos: 'noun', meaning: 'Mạng máy tính cục bộ (Local Area Network)' },
+  wan: { pos: 'noun', meaning: 'Mạng diện rộng (Wide Area Network)' },
+  os: { pos: 'noun', meaning: 'Hệ điều hành máy tính / thiết bị (Operating System)' },
+  pdf: { pos: 'noun', meaning: 'Định dạng tài liệu di động (Portable Document Format)' },
+  svg: { pos: 'noun', meaning: 'Đồ họa vector có thể co giãn không vỡ nét (Scalable Vector Graphics)' },
+  png: { pos: 'noun', meaning: 'Định dạng ảnh đồ họa mạng không mất chi tiết (PNG)' },
+  jpg: { pos: 'noun', meaning: 'Định dạng nén ảnh kỹ thuật số (JPEG)' },
+  jpeg: { pos: 'noun', meaning: 'Định dạng nén ảnh kỹ thuật số (JPEG)' },
+  gif: { pos: 'noun', meaning: 'Định dạng ảnh động kỹ thuật số (GIF)' },
+  mp3: { pos: 'noun', meaning: 'Định dạng nén âm thanh kỹ thuật số MP3' },
+  mp4: { pos: 'noun', meaning: 'Định dạng tệp đa phương tiện video MP4' },
+  usb: { pos: 'noun', meaning: 'Cổng kết nối nối tiếp vạn năng (Universal Serial Bus)' },
+  gps: { pos: 'noun', meaning: 'Hệ thống định vị toàn cầu (Global Positioning System)' },
+  sms: { pos: 'noun', meaning: 'Dịch vụ tin nhắn văn bản ngắn (Short Message Service)' },
+  atm: { pos: 'noun', meaning: 'Máy rút tiền tự động (Automated Teller Machine)' },
+  ceo: { pos: 'noun', meaning: 'Tổng giám đốc điều hành (Chief Executive Officer)' },
+  cto: { pos: 'noun', meaning: 'Giám đốc công nghệ (Chief Technology Officer)' },
+  cfo: { pos: 'noun', meaning: 'Giám đốc tài chính (Chief Financial Officer)' },
+  hr: { pos: 'noun', meaning: 'Phòng nhân sự, quản trị nhân lực (Human Resources)' },
+  pr: { pos: 'noun', meaning: 'Quan hệ công chúng (Public Relations)' },
+  b2b: { pos: 'noun', meaning: 'Mô hình kinh doanh giữa doanh nghiệp với doanh nghiệp (B2B)' },
+  b2c: { pos: 'noun', meaning: 'Mô hình kinh doanh giữa doanh nghiệp với người tiêu dùng (B2C)' },
+  faq: { pos: 'noun', meaning: 'Câu hỏi thường gặp và giải đáp (Frequently Asked Questions)' },
+  vip: { pos: 'noun', meaning: 'Khách quý, nhân vật rất quan trọng (Very Important Person)' },
+  diy: { pos: 'noun', meaning: 'Tự tay sáng chế, làm lấy (Do It Yourself)' },
+  asap: { pos: 'adverb', meaning: 'Càng sớm càng tốt (As Soon As Possible)' },
+  fyi: { pos: 'phrase', meaning: 'Thông tin để bạn tham khảo (For Your Information)' },
+};
+
+/**
+ * Query Vietnamese Wikipedia REST API for authoritative concept / acronym / technical explanations
+ */
+async function fetchWikipediaSummary(term: string): Promise<string | null> {
+  try {
+    const url = `https://vi.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term.trim())}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.description && data.description.trim()) {
+        return data.description.trim();
+      }
+      if (data.extract && typeof data.extract === 'string') {
+        const firstSentence = data.extract.split(/[.\n]/)[0]?.trim();
+        if (firstSentence && firstSentence.length > 8 && firstSentence.length < 180) {
+          return firstSentence;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 // Built-in contextual English-Vietnamese vocabulary database with ~400+ high-frequency, daily, and academic terms
 const DICTIONARY_MAP: Record<string, { pos: VocabPOS; meaning: string }> = {
   // Common Academic, IELTS & Everyday Terms
@@ -245,6 +330,76 @@ const DICTIONARY_MAP: Record<string, { pos: VocabPOS; meaning: string }> = {
   student: { pos: 'noun', meaning: 'Học sinh, sinh viên' },
   family: { pos: 'noun', meaning: 'Gia đình' },
   house: { pos: 'noun', meaning: 'Ngôi nhà' },
+
+  // Frequent Verbs & Academic Terms
+  affect: { pos: 'verb', meaning: 'Tác động, ảnh hưởng đến' },
+  influence: { pos: 'verb', meaning: 'Gây ảnh hưởng, chi phối' },
+  impact: { pos: 'noun', meaning: 'Tác động mạnh mẽ, ảnh hưởng sâu rộng' },
+  provide: { pos: 'verb', meaning: 'Cung cấp, đem lại' },
+  require: { pos: 'verb', meaning: 'Yêu cầu, đòi hỏi bắt buộc' },
+  support: { pos: 'verb', meaning: 'Hỗ trợ, ủng hộ' },
+  protect: { pos: 'verb', meaning: 'Bảo vệ, che chở' },
+  prevent: { pos: 'verb', meaning: 'Ngăn chặn, phòng ngừa' },
+  create: { pos: 'verb', meaning: 'Tạo ra, sáng tạo' },
+  reduce: { pos: 'verb', meaning: 'Giảm bớt, cắt giảm' },
+  increase: { pos: 'verb', meaning: 'Gia tăng, tăng cường' },
+  maintain: { pos: 'verb', meaning: 'Duy trì, gìn giữ' },
+  manage: { pos: 'verb', meaning: 'Quản lý, điều hành' },
+  control: { pos: 'verb', meaning: 'Kiểm soát, làm chủ' },
+  identify: { pos: 'verb', meaning: 'Nhận diện, xác định' },
+  involve: { pos: 'verb', meaning: 'Bao gồm, liên quan đến' },
+  contain: { pos: 'verb', meaning: 'Chứa đựng, bao hàm' },
+  include: { pos: 'verb', meaning: 'Bao gồm, tính cả' },
+  occur: { pos: 'verb', meaning: 'Xảy ra, xuất hiện' },
+  indicate: { pos: 'verb', meaning: 'Chỉ ra, biểu thị' },
+  express: { pos: 'verb', meaning: 'Bày tỏ, thể hiện cảm xúc' },
+  describe: { pos: 'verb', meaning: 'Miêu tả, khắc họa' },
+  explain: { pos: 'verb', meaning: 'Giải thích, làm rõ' },
+  discuss: { pos: 'verb', meaning: 'Thảo luận, bàn luận' },
+  discover: { pos: 'verb', meaning: 'Phát hiện, khám phá' },
+  produce: { pos: 'verb', meaning: 'Sản xuất, chế tạo' },
+  compete: { pos: 'verb', meaning: 'Cạnh tranh, đua tài' },
+  compare: { pos: 'verb', meaning: 'So sánh, đối chiếu' },
+  continue: { pos: 'verb', meaning: 'Tiếp tục, duy trì' },
+  prepare: { pos: 'verb', meaning: 'Chuẩn bị, sửa soạn' },
+  participate: { pos: 'verb', meaning: 'Tham gia, góp mặt' },
+  respond: { pos: 'verb', meaning: 'Phản hồi, hồi đáp' },
+  remember: { pos: 'verb', meaning: 'Ghi nhớ, nhớ lại' },
+  understand: { pos: 'verb', meaning: 'Thấu hiểu, lĩnh hội' },
+  believe: { pos: 'verb', meaning: 'Tin tưởng, tin cậy' },
+  consider: { pos: 'verb', meaning: 'Cân nhắc, xem xét' },
+  decide: { pos: 'verb', meaning: 'Quyết định, lựa chọn' },
+  suggest: { pos: 'verb', meaning: 'Gợi ý, đề xuất' },
+  recommend: { pos: 'verb', meaning: 'Khuyên dùng, tiến cử' },
+  agree: { pos: 'verb', meaning: 'Đồng ý, tán thành' },
+  accept: { pos: 'verb', meaning: 'Chấp nhận, đón nhận' },
+  prefer: { pos: 'verb', meaning: 'Thích hơn, ưu tiên hơn' },
+  expect: { pos: 'verb', meaning: 'Kỳ vọng, trông đợi' },
+  promise: { pos: 'verb', meaning: 'Hứa hẹn, cam kết' },
+  community: { pos: 'noun', meaning: 'Cộng đồng, tập thể' },
+  society: { pos: 'noun', meaning: 'Xã hội' },
+  culture: { pos: 'noun', meaning: 'Văn hóa, phong tục' },
+  environment: { pos: 'noun', meaning: 'Môi trường sống tự nhiên' },
+  structure: { pos: 'noun', meaning: 'Cấu trúc, kết cấu' },
+  function: { pos: 'noun', meaning: 'Chức năng, nhiệm vụ' },
+  process: { pos: 'noun', meaning: 'Quá trình, quy trình' },
+  behavior: { pos: 'noun', meaning: 'Hành vi, cách ứng xử' },
+  performance: { pos: 'noun', meaning: 'Hiệu suất, màn thể hiện' },
+  solution: { pos: 'noun', meaning: 'Giải pháp hữu hiệu' },
+  relationship: { pos: 'noun', meaning: 'Mối quan hệ, sự gắn kết' },
+  resource: { pos: 'noun', meaning: 'Nguồn lực, tài nguyên' },
+  factor: { pos: 'noun', meaning: 'Yếu tố, nhân tố ảnh hưởng' },
+  feature: { pos: 'noun', meaning: 'Đặc điểm, nét đặc trưng' },
+  system: { pos: 'noun', meaning: 'Hệ thống, mạng lưới' },
+  practical: { pos: 'adjective', meaning: 'Thực tế, có tính ứng dụng cao' },
+  reliable: { pos: 'adjective', meaning: 'Đáng tin cậy, chắc chắn' },
+  accurate: { pos: 'adjective', meaning: 'Chính xác, chuẩn xác' },
+  stable: { pos: 'adjective', meaning: 'Ổn định, vững vàng' },
+  flexible: { pos: 'adjective', meaning: 'Linh hoạt, uyển chuyển' },
+  diverse: { pos: 'adjective', meaning: 'Đa dạng, phong phú' },
+  comprehensive: { pos: 'adjective', meaning: 'Toàn diện, bao quát' },
+  permanent: { pos: 'adjective', meaning: 'Vĩnh viễn, lâu dài' },
+  temporary: { pos: 'adjective', meaning: 'Tạm thời, nhất thời' },
 };
 
 // Common stopwords to exclude from single-word extraction
@@ -859,14 +1014,34 @@ function splitTextIntoSafeChunks(text: string, maxLen = 380): { text: string; is
 
 /**
  * Translate a single chunk <= 380 chars via online translation API
+ * Uses Google Translate GTX with MyMemory fallback for 100% reliable translation
  */
 async function translateSingleChunk(chunk: string): Promise<string> {
   const clean = chunk.trim();
   if (!clean) return '';
 
+  // 1. Try Google Translate client API (GTX)
   try {
     const encoded = encodeURIComponent(clean);
-    const url = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi`;
+    const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encoded}`;
+    const gRes = await fetch(gUrl);
+    if (gRes.ok) {
+      const gData = await gRes.json();
+      if (Array.isArray(gData?.[0])) {
+        const fullTrans = gData[0].map((part: any) => part?.[0] || '').join('');
+        if (fullTrans && fullTrans.trim()) {
+          return fullTrans.trim();
+        }
+      }
+    }
+  } catch {
+    // fallback to MyMemory
+  }
+
+  // 2. Fallback to MyMemory with educational de parameter
+  try {
+    const encoded = encodeURIComponent(clean);
+    const url = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi&de=lingualeap_learner@gmail.com`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -919,36 +1094,76 @@ export async function translateText(text: string): Promise<string> {
 
 /**
  * Quick single word translation (English -> Vietnamese)
+ * Multi-tier translation pipeline:
+ * Tier 1: Local curated DICTIONARY_MAP
+ * Tier 2: Local curated VOCAB_DICTIONARY
+ * Tier 3: Morphological base-form & lemmatizer matches
+ * Tier 4: Online Google Translate GTX API
+ * Tier 5: Online MyMemory Translation API
  */
 export async function translateSingleWord(word: string): Promise<string> {
   const wordLower = word.trim().toLowerCase();
   if (!wordLower) return '';
 
-  // 1. Check local DICTIONARY_MAP
+  // 1. Check ACRONYM_DICTIONARY (instant accurate expansion for tech, acronyms, and computing)
+  if (ACRONYM_DICTIONARY[wordLower]) {
+    return ACRONYM_DICTIONARY[wordLower]!.meaning;
+  }
+
+  // 2. Check local DICTIONARY_MAP
   if (DICTIONARY_MAP[wordLower]) {
     return DICTIONARY_MAP[wordLower]!.meaning;
   }
 
-  // 2. Check local VOCAB_DICTIONARY
+  // 3. Check local VOCAB_DICTIONARY
   const vocabMatch = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === wordLower);
   if (vocabMatch?.definition) {
     return vocabMatch.definition;
   }
 
-  // 3. Check singular / base forms (e.g. strawberries -> strawberry, apples -> apple)
-  const baseForm = wordLower.replace(/(ing|ed|s|es|ly)$/, '');
-  if (DICTIONARY_MAP[baseForm]) {
-    return DICTIONARY_MAP[baseForm]!.meaning;
-  }
-  const baseVocabMatch = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === baseForm);
-  if (baseVocabMatch?.definition) {
-    return baseVocabMatch.definition;
+  // 4. Check singular / base forms (e.g. strawberries -> strawberry, apples -> apple, achieved -> achieve)
+  const baseCandidates = [
+    wordLower.replace(/(ing|ed|s|es|ly)$/, ''),
+    wordLower.replace(/(d|s)$/, ''),
+    wordLower.replace(/ed$/, 'e'),
+    wordLower.replace(/ing$/, 'e'),
+    wordLower.replace(/ies$/, 'y'),
+    wordLower.replace(/ier$/, 'y'),
+  ];
+  for (const base of baseCandidates) {
+    if (!base || base === wordLower) continue;
+    if (ACRONYM_DICTIONARY[base]) return ACRONYM_DICTIONARY[base]!.meaning;
+    if (DICTIONARY_MAP[base]) return DICTIONARY_MAP[base]!.meaning;
+    const baseVocabMatch = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === base);
+    if (baseVocabMatch?.definition) return baseVocabMatch.definition;
   }
 
-  // 4. Online translation fallback
+  // 5. Check Vietnamese Wikipedia REST API (Authoritative encyclopedia definition for acronyms, technology, entities)
+  const wikiDef = await fetchWikipediaSummary(word);
+  if (wikiDef) {
+    return wikiDef;
+  }
+
+  // 6. Online Tier 1: Google Translate GTX endpoint (instant client translation)
   try {
     const encoded = encodeURIComponent(word.trim());
-    const url = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi`;
+    const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encoded}`;
+    const gRes = await fetch(gUrl);
+    if (gRes.ok) {
+      const gData = await gRes.json();
+      const gTrans = gData?.[0]?.[0]?.[0]?.trim();
+      if (gTrans && gTrans.toLowerCase() !== wordLower) {
+        return gTrans;
+      }
+    }
+  } catch {
+    // fallback to MyMemory
+  }
+
+  // 7. Online Tier 2: MyMemory API with quota extension
+  try {
+    const encoded = encodeURIComponent(word.trim());
+    const url = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|vi&de=lingualeap_learner@gmail.com`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -956,10 +1171,16 @@ export async function translateSingleWord(word: string): Promise<string> {
       if (
         translated &&
         !translated.toUpperCase().includes('MYMEMORY WARNING') &&
-        !translated.includes('QUERY LENGTH LIMIT EXCEEDED') &&
-        translated.toLowerCase() !== wordLower
+        !translated.includes('QUERY LENGTH LIMIT EXCEEDED')
       ) {
-        return translated;
+        if (translated.toLowerCase() !== wordLower) {
+          return translated;
+        }
+        // If translated string is preserved (e.g. acronyms or international terms)
+        if (word === word.toUpperCase() && word.length >= 2) {
+          return `Thuật ngữ / Viết tắt: ${word}`;
+        }
+        return `Thuật ngữ quốc tế: ${translated}`;
       }
     }
   } catch (e) {
@@ -1025,15 +1246,20 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
     }
 
     // --- STEP 3: Tokenize and Extract Single Words with Accurate POS ---
-    const words = cleanSentence.match(/[a-zA-Z]{3,}/g) || [];
+    const words = cleanSentence.match(/[a-zA-Z]{2,}/g) || [];
 
     words.forEach((rawWord) => {
       const wordLower = rawWord.toLowerCase();
       if (STOP_WORDS.has(wordLower)) return;
       if (seenWordKeys.has(wordLower)) return;
 
-      // 1. Direct match in DICTIONARY_MAP
-      let matchedInfo = DICTIONARY_MAP[wordLower];
+      // 1. Direct match in ACRONYM_DICTIONARY
+      let matchedInfo = ACRONYM_DICTIONARY[wordLower];
+
+      // 2. Direct match in DICTIONARY_MAP
+      if (!matchedInfo) {
+        matchedInfo = DICTIONARY_MAP[wordLower];
+      }
 
       // 2. Direct match in VOCAB_DICTIONARY
       if (!matchedInfo) {
@@ -1084,25 +1310,17 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
           contextSentence: cleanSentence,
           selected: true,
         });
-      } else if (wordLower.length >= 5) {
+      } else if (wordLower.length >= 4) {
         // Fallback for custom user words: Infer accurate POS from morphological affixes
         seenWordKeys.add(wordLower);
         const inferredPos = inferWordPartOfSpeech(wordLower);
-        const posLabelVi =
-          inferredPos === 'verb'
-            ? 'Động từ quan trọng'
-            : inferredPos === 'adjective'
-            ? 'Tính từ quan trọng'
-            : inferredPos === 'adverb'
-            ? 'Trạng từ quan trọng'
-            : 'Từ vựng quan trọng';
 
         extractedList.push({
           id: `vocab-${wordLower}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           word: rawWord.charAt(0).toUpperCase() + rawWord.slice(1).toLowerCase(),
           pos: inferredPos,
           categoryType: 'vocab',
-          meaning: `${posLabelVi} (trong ngữ cảnh)`,
+          meaning: 'Đang tra nghĩa...',
           contextSentence: cleanSentence,
           selected: true,
         });
@@ -1115,30 +1333,57 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
 
 /**
  * Background auto-enrichment for newly extracted words that lack a full Vietnamese definition.
- * Translates up to 8 custom words in parallel and seamlessly updates the vocabulary list.
+ * Translates ALL custom words in parallel batches and seamlessly updates the vocabulary list.
+ * Completely eliminates placeholders like "(trong ngữ cảnh)".
  */
 export async function enrichExtractedItemsMeanings(
   items: ExtractedVocabItem[],
   onUpdate: (updater: (prev: ExtractedVocabItem[]) => ExtractedVocabItem[]) => void
 ) {
   const pendingWords = items.filter(
-    (item) => item.categoryType === 'vocab' && item.meaning.includes('quan trọng (trong ngữ cảnh)')
+    (item) =>
+      item.categoryType === 'vocab' &&
+      (item.meaning === 'Đang tra nghĩa...' || item.meaning.includes('(trong ngữ cảnh)'))
   );
 
   if (pendingWords.length === 0) return;
 
-  const toTranslate = pendingWords.slice(0, 8);
-  for (const item of toTranslate) {
-    try {
-      const translated = await translateSingleWord(item.word);
-      if (translated && translated.toLowerCase() !== item.word.toLowerCase()) {
-        onUpdate((prev) =>
-          prev.map((it) => (it.id === item.id ? { ...it, meaning: translated } : it))
-        );
-      }
-    } catch {
-      // ignore
-    }
+  // Process ALL words with controlled concurrency batches of 4
+  const BATCH_SIZE = 4;
+  for (let i = 0; i < pendingWords.length; i += BATCH_SIZE) {
+    const chunk = pendingWords.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      chunk.map(async (item) => {
+        try {
+          const translated = await translateSingleWord(item.word);
+          if (translated && translated.toLowerCase() !== item.word.toLowerCase()) {
+            onUpdate((prev) =>
+              prev.map((it) => (it.id === item.id ? { ...it, meaning: translated } : it))
+            );
+          } else {
+            // Friendly fallback if offline or completely untranslatable
+            const posLabel =
+              item.pos === 'verb'
+                ? 'Động từ'
+                : item.pos === 'adjective'
+                ? 'Tính từ'
+                : item.pos === 'adverb'
+                ? 'Trạng từ'
+                : 'Danh từ';
+            onUpdate((prev) =>
+              prev.map((it) =>
+                it.id === item.id &&
+                (it.meaning === 'Đang tra nghĩa...' || it.meaning.includes('(trong ngữ cảnh)'))
+                  ? { ...it, meaning: `[${posLabel}] Bấm ✏️ để nhập nghĩa` }
+                  : it
+              )
+            );
+          }
+        } catch {
+          // ignore
+        }
+      })
+    );
   }
 }
 

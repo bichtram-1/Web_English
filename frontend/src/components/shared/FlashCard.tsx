@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } fro
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
+import { cleanTtsText } from '../../hooks/useSpeech';
 import type { FlashcardItem } from '../../types/DeckType';
 
 export interface FlashCardRef {
@@ -30,7 +31,9 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
   const speakWord = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleaned = cleanTtsText(text);
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
     utterance.onstart = () => setSpeaking(true);

@@ -51,6 +51,7 @@ import {
   type SoundChannel,
   type ZenPresetId,
 } from '../../../utils/zenAudio';
+import { cleanTtsText } from '../../../hooks/useSpeech';
 
 // --- 🐉 LIÊN QUÂN MOBILE GUARDIANS & REALMS TYPE ---
 export type MythicType =
@@ -2729,7 +2730,9 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   const speakWord = (text: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
+    const cleaned = cleanTtsText(text);
+    if (!cleaned) return;
+    const utter = new SpeechSynthesisUtterance(cleaned);
     utter.lang = 'en-US';
     utter.rate = 0.85;
     window.speechSynthesis.speak(utter);

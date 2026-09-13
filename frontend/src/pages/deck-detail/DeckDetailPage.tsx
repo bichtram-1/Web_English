@@ -27,6 +27,7 @@ import {
 import deckApi from '../../api/deckApi';
 import { recordViewedDeck } from '../../utils/recentDecks';
 import { useAuth } from '../../hooks/useAuth';
+import { cleanTtsText } from '../../hooks/useSpeech';
 import Loading from '../../components/shared/Loading';
 import AddToCollectionModal from '../../components/shared/AddToCollectionModal';
 import ImportExportModal from '../../components/general/ImportExportModal';
@@ -71,7 +72,9 @@ export default function DeckDetailPage() {
   const speakWord = (text: string) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleaned = cleanTtsText(text);
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
@@ -262,14 +265,15 @@ export default function DeckDetailPage() {
             </button>
 
             <div className="flex items-center gap-2">
-              {/* Export / Import button */}
+              {/* Export button */}
               <button
                 onClick={() => setIsImportExportOpen(true)}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
                 style={{ fontFamily: 'var(--font-display)' }}
+                title={isVi ? 'Tải về dữ liệu bộ thẻ (CSV/JSON)' : 'Export deck data (CSV/JSON)'}
               >
                 <Download size={14} />
-                <span>{isVi ? 'Xuất / Nhập File' : 'Export / Import'}</span>
+                <span>{isVi ? 'Tải về (Export)' : 'Export'}</span>
               </button>
 
               {/* Clone deck for community users */}

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactConfetti from 'react-confetti';
 import { Volume2, Sparkles, BookOpen, Lightbulb, CheckCircle2, ArrowUpDown } from 'lucide-react';
 import { playCorrectSound, playIncorrectSound } from '../../utils/soundEffects';
+import { cleanTtsText } from '../../hooks/useSpeech';
 import type { DragDropItem, DragDropWord, WordType } from '../../types/DeckType';
 
 export interface DragDropCardRef {
@@ -188,7 +189,9 @@ const DragDropCard = forwardRef<DragDropCardRef, DragDropCardProps>(function Dra
   const speakSentence = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleaned = cleanTtsText(text);
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
     utterance.lang = 'en-US';
     utterance.rate = 0.88;
     utterance.onstart = () => setSpeaking(true);

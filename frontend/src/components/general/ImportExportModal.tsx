@@ -2,7 +2,6 @@ import { useState, useRef, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Download, FileText, FileSpreadsheet, Check, X, AlertCircle, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../hooks/useAuth';
 import { exportDeckToJson, exportDeckToCsv, parseVocabularyFile, ParsedCard } from '../../utils/deckExportImport';
 import type { Deck } from '../../types/DeckType';
 
@@ -21,9 +20,8 @@ export default function ImportExportModal({
 }: ImportExportModalProps) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const { isAuthenticated } = useAuth();
 
-  const [mode, setMode] = useState<'export' | 'import'>(deck ? 'export' : 'import');
+  const mode: 'export' | 'import' = deck ? 'export' : 'import';
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [previewCards, setPreviewCards] = useState<ParsedCard[]>([]);
@@ -86,7 +84,7 @@ export default function ImportExportModal({
               </span>
               <h3 className="font-bold text-base text-slate-900 dark:text-white">
                 {mode === 'export'
-                  ? (isVi ? 'Xuất Dữ Liệu Bộ Thẻ (Export)' : 'Export Deck')
+                  ? (isVi ? 'Tải Về Bộ Thẻ (Export)' : 'Export Deck')
                   : (isVi ? 'Nhập Từ Vựng Từ File (Import)' : 'Import Vocabulary')}
               </h3>
             </div>
@@ -96,35 +94,6 @@ export default function ImportExportModal({
               className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
             >
               <X size={18} />
-            </button>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="px-6 pt-3 flex gap-2 border-b border-slate-100 dark:border-slate-800">
-            {deck && (
-              <button
-                onClick={() => setMode('export')}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                  mode === 'export'
-                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Download size={14} />
-                <span>{isVi ? 'Tải Về (Export)' : 'Export'}</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setMode('import')}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                mode === 'import'
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Upload size={14} />
-              <span>{isVi ? 'Nạp File Vào (Import)' : 'Import'}</span>
             </button>
           </div>
 

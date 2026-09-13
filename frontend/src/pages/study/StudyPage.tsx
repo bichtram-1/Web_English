@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock, Star } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import ThemeToggle from '../../components/general/ThemeToggle';
@@ -15,6 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { canViewDeck } from '../../utils/permission';
 import Loading from '../../components/shared/Loading';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
+import { useStarredCards } from '../../utils/starredCards';
 import {
   getCardSM2Record,
   calculateSM2,
@@ -47,6 +48,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 
 export default function StudyPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
@@ -68,6 +70,11 @@ export default function StudyPage() {
     if (stored && stored.cards && stored.cards.length > 0) return false;
     return Boolean(id);
   });
+
+  const initialStarredOnly = searchParams.get('starred') === 'true';
+  const [starredOnly, setStarredOnly] = useState(initialStarredOnly);
+
+  const { starredIds, starredCount, isStarred, toggleStar } = useStarredCards(targetId);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionProgress, setSessionProgress] = useState<{ cardId: number; completed: boolean }[]>([]);
@@ -92,7 +99,19 @@ export default function StudyPage() {
     return null;
   }, [deck, targetId]);
 
-  const cards = currentDeck?.cards || [];
+  const rawCards = currentDeck?.cards || [];
+  const starredCards = useMemo(
+    () => rawCards.filter((c) => isStarred(c.id)),
+    [rawCards, isStarred]
+  );
+
+  const cards = useMemo(() => {
+    if (starredOnly) {
+      return starredCards.length > 0 ? starredCards : rawCards;
+    }
+    return rawCards;
+  }, [starredOnly, starredCards, rawCards]);
+
   const card = cards[currentIndex] || cards[0];
 
   useEffect(() => {
@@ -216,13 +235,45 @@ export default function StudyPage() {
     [currentDeck, card, currentSM2Record, markProgress, showToast, goNext, isVi]
   );
 
-  // Global keyboard shortcuts (including 1, 2, 3, 4 for SM-2 ratings)
+  const handleToggleStarredMode = useCallback(
+    (onlyStar: boolean) => {
+      if (onlyStar && starredCards.length === 0) {
+        showToast(isVi ? 'Chưa có thuật ngữ nào được gắn sao ⭐' : 'No terms have been starred yet ⭐');
+        return;
+      }
+      setStarredOnly(onlyStar);
+      setCurrentIndex(0);
+      setIsFinished(false);
+      if (onlyStar) {
+        setSearchParams({ starred: 'true' });
+        showToast(isVi ? `Đang học ${starredCards.length} thuật ngữ có gắn sao ⭐` : `Studying ${starredCards.length} starred terms ⭐`);
+      } else {
+        setSearchParams({});
+        showToast(isVi ? `Đang học tất cả ${rawCards.length} thuật ngữ` : `Studying all ${rawCards.length} terms`);
+      }
+    },
+    [starredCards.length, rawCards.length, isVi, setSearchParams, showToast]
+  );
+
+  // Global keyboard shortcuts (including 1, 2, 3, 4 for SM-2 ratings, and S for Star)
   useEffect(() => {
     if (isFinished || !card) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        return;
+      }
+
+      // Toggle star shortcut
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        const newState = toggleStar(card.id);
+        showToast(
+          newState
+            ? (isVi ? 'Đã gán sao ⭐' : 'Starred ⭐')
+            : (isVi ? 'Đã bỏ gán sao' : 'Unstarred')
+        );
         return;
       }
 
@@ -277,7 +328,7 @@ export default function StudyPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, isCardFlipped, handleRateSM2]);
+  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, isCardFlipped, handleRateSM2, toggleStar, isVi, showToast]);
 
   if (loading && (!currentDeck || cards.length === 0)) return <Loading />;
 
@@ -416,6 +467,31 @@ export default function StudyPage() {
             {currentIndex + 1} / {cards.length}
           </span>
 
+          {/* Quizlet-style Starred Filter Pill Selector */}
+          <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
+            <button
+              onClick={() => handleToggleStarredMode(false)}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                !starredOnly
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
+            </button>
+            <button
+              onClick={() => handleToggleStarredMode(true)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                starredOnly
+                  ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+              }`}
+            >
+              <Star size={12} className={starredOnly || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+              <span>{starredCount}</span>
+            </button>
+          </div>
+
           {/* Language & Theme toggles in study mode */}
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
             <LanguageSelect mini />
@@ -425,7 +501,7 @@ export default function StudyPage() {
       </header>
 
       {/* Deck info strip */}
-      <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-5 pb-1">
+      <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-5 pb-1 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span
             className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest"
@@ -438,6 +514,13 @@ export default function StudyPage() {
             {card.type === 'flashcard' ? t('study_card_flashcard') : t('study_card_grammar')}
           </span>
         </div>
+
+        {starredOnly && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold shadow-2xs">
+            <Star size={13} className="fill-amber-400 text-amber-500" />
+            <span>{isVi ? `Chế độ học: ${starredCards.length} từ có gắn sao` : `Starred mode: ${starredCards.length} terms`}</span>
+          </div>
+        )}
       </div>
 
       {/* Card area */}
@@ -457,6 +540,15 @@ export default function StudyPage() {
                 <FlashCard
                   ref={flashCardRef}
                   card={card}
+                  isStarred={isStarred(card.id)}
+                  onToggleStar={() => {
+                    const newState = toggleStar(card.id);
+                    showToast(
+                      newState
+                        ? (isVi ? 'Đã gán sao ⭐' : 'Starred ⭐')
+                        : (isVi ? 'Đã bỏ gán sao' : 'Unstarred')
+                    );
+                  }}
                   onFlipped={(flipped) => {
                     setIsCardFlipped(flipped);
                     if (flipped) {
@@ -513,6 +605,11 @@ export default function StudyPage() {
 
         {/* Keyboard shortcuts helper pills */}
         <div className="mt-5 hidden sm:flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-slate-500 dark:text-slate-400 text-xs font-semibold select-none">
+          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">S</kbd>
+            <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Gán sao ⭐' : 'Star term'}</span>
+          </div>
+
           <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
             <span className="font-mono text-indigo-500 font-bold">1 2 3 4</span>
             <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Đánh giá SM-2' : 'Rate SM-2'}</span>

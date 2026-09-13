@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2 } from 'lucide-react';
+import { Volume2, Star } from 'lucide-react';
 import { cleanTtsText } from '../../hooks/useSpeech';
 import type { FlashcardItem } from '../../types/DeckType';
 
@@ -16,10 +16,12 @@ export interface FlashCardRef {
 interface FlashCardProps {
   card: FlashcardItem;
   onFlipped?: (flipped: boolean) => void;
+  isStarred?: boolean;
+  onToggleStar?: () => void;
 }
 
 const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
-  { card, onFlipped },
+  { card, onFlipped, isStarred = false, onToggleStar },
   ref
 ) {
   const { t, i18n } = useTranslation();
@@ -99,9 +101,28 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             <span className="text-indigo-200 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm">
               {isVi ? 'Tiếng Anh' : 'English'}
             </span>
-            <span className="text-indigo-200/80 text-xs font-semibold flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">Space</kbd> {t('study_audio')}
-            </span>
+            <div className="flex items-center gap-2">
+              {onToggleStar && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStar();
+                  }}
+                  className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
+                    isStarred
+                      ? 'bg-amber-400 text-amber-950 shadow-md scale-105 ring-2 ring-amber-300'
+                      : 'bg-white/15 text-white/70 hover:text-white hover:bg-white/25'
+                  }`}
+                  title={isStarred ? (isVi ? 'Bỏ gắn sao thuật ngữ này' : 'Unstar this term') : (isVi ? 'Gán sao thuật ngữ này' : 'Star this term')}
+                >
+                  <Star size={15} className={isStarred ? 'fill-amber-900 text-amber-950' : ''} />
+                </button>
+              )}
+              <span className="text-indigo-200/80 text-xs font-semibold flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">Space</kbd> {t('study_audio')}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-col items-center my-auto">
@@ -188,7 +209,26 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             <span className="text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800/60">
               {isVi ? 'Tiếng Việt' : 'Vietnamese'}
             </span>
-            <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">{t('study_meaning')}</span>
+            <div className="flex items-center gap-2">
+              {onToggleStar && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStar();
+                  }}
+                  className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
+                    isStarred
+                      ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-500 shadow-xs ring-2 ring-amber-400'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-amber-500 hover:bg-amber-50'
+                  }`}
+                  title={isStarred ? (isVi ? 'Bỏ gắn sao thuật ngữ này' : 'Unstar this term') : (isVi ? 'Gán sao thuật ngữ này' : 'Star this term')}
+                >
+                  <Star size={15} className={isStarred ? 'fill-amber-400 text-amber-500' : ''} />
+                </button>
+              )}
+              <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">{t('study_meaning')}</span>
+            </div>
           </div>
 
           <div className="flex flex-col items-center my-auto">

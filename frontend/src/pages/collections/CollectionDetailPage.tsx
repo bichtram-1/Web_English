@@ -25,13 +25,14 @@ import {
 import { useCollections } from '../../hooks/useCollections';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
-import { getRecentViewedDecks, getRecentCreatedDecks } from '../../utils/recentDecks';
+import { getRecentViewedDecks, getRecentCreatedDecks, sortDecks, type DeckSortOption } from '../../utils/recentDecks';
 import collectionApi from '../../api/collectionApi';
 import { getDeckDetailRoute, getStudyRoute, getWrittenRoute, ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
 import InviteCollaboratorModal from '../../components/shared/InviteCollaboratorModal';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
+import DeckSortDropdown from '../../components/shared/DeckSortDropdown';
 import { isCollectionCreator, canEditCollection, canViewCollection } from '../../utils/permission';
 import type { Deck, DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
@@ -112,11 +113,18 @@ export default function CollectionDetailPage() {
   );
   const canEdit = canEditCollection(collection, user);
 
+  const [sortBy, setSortBy] = useState<DeckSortOption>('recent');
+
   // Included decks details
   const includedDecks = useMemo(() => {
     if (!collection) return [];
     return decks.filter((d) => collection.deckIds.includes(d.id));
   }, [collection, decks]);
+
+  // Quizlet-style sorted included decks
+  const sortedIncludedDecks = useMemo(() => {
+    return sortDecks(includedDecks, sortBy);
+  }, [includedDecks, sortBy]);
 
   // Total cards combined across all decks in this collection
   const totalCards = useMemo(() => {
@@ -429,16 +437,22 @@ export default function CollectionDetailPage() {
             <span className="text-xs text-slate-400 font-semibold">({includedDecks.length})</span>
           </h2>
 
-          {canEdit && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none active:scale-95 cursor-pointer"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              <Plus size={15} />
-              <span>{t('collection_add_deck_btn')}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {includedDecks.length > 1 && (
+              <DeckSortDropdown value={sortBy} onChange={setSortBy} compact />
+            )}
+
+            {canEdit && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 dark:shadow-none active:scale-95 cursor-pointer"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <Plus size={15} />
+                <span>{t('collection_add_deck_btn')}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {includedDecks.length === 0 ? (
@@ -458,7 +472,7 @@ export default function CollectionDetailPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {includedDecks.map((deck) => (
+            {sortedIncludedDecks.map((deck) => (
               <div
                 key={deck.id}
                 className="group bg-white/95 dark:bg-slate-900/95 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-4 shadow-sm hover:shadow-md dark:shadow-black/50 transition-all flex flex-col justify-between"

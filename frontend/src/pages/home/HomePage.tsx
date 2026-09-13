@@ -13,7 +13,9 @@ import ChickenMascot from '../../components/general/ChickenMascot';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckRatingStars from '../../components/shared/DeckRatingStars';
+import DeckSortDropdown from '../../components/shared/DeckSortDropdown';
 import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission';
+import { sortDecks, recordViewedDeck, type DeckSortOption } from '../../utils/recentDecks';
 
 const categoryColors: Record<string, string> = {
   Beginner: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300',
@@ -149,6 +151,7 @@ export default function HomePage() {
   const isVi = i18n.language === 'vi';
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<DeckSortOption>('recent');
   const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -181,7 +184,13 @@ export default function HomePage() {
     return matchSearch && matchCat;
   });
 
+  // Quizlet-style sorting by recent items or alphabetical title
+  const sortedDecks = useMemo(() => {
+    return sortDecks(filtered, sortBy);
+  }, [filtered, sortBy]);
+
   const handleStudy = (deck: Deck) => {
+    recordViewedDeck(deck);
     navigate(getDeckDetailRoute(deck.id));
   };
 
@@ -473,8 +482,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Section heading */}
-        <div className="flex items-center justify-between mb-5">
+        {/* Section heading & Quizlet-style Sort Controls */}
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
             <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
             <h2
@@ -483,15 +492,18 @@ export default function HomePage() {
             >
               <span>{activeCategory === 'All' ? t('nav_all_decks') : getCategoryLabel(activeCategory, t)}</span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/90 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/80 shadow-xs">
-                {filtered.length}
+                {sortedDecks.length}
               </span>
             </h2>
           </div>
+
+          {/* Quizlet-style Sort Dropdown */}
+          <DeckSortDropdown value={sortBy} onChange={setSortBy} />
         </div>
 
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 pb-12">
-          {filtered.map((deck, i) => (
+          {sortedDecks.map((deck, i) => (
             <DeckCard
               key={deck.id}
               deck={deck}
@@ -500,7 +512,7 @@ export default function HomePage() {
               index={i}
             />
           ))}
-          {filtered.length === 0 && (
+          {sortedDecks.length === 0 && (
             <div className="col-span-full flex flex-col items-center py-16 text-slate-400 dark:text-slate-500">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="font-semibold" style={{ fontFamily: 'var(--font-display)' }}>

@@ -22,6 +22,7 @@ import {
   Layers,
   Search,
   Copy,
+  Check,
 } from 'lucide-react';
 
 import deckApi from '../../api/deckApi';
@@ -37,6 +38,7 @@ import DeckRatingStars from '../../components/shared/DeckRatingStars';
 import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission';
 import { generateFriendlyId } from '../../utils/slugify';
 import { getCategoryLabel } from '../home/HomePage';
+import { useStarredCards } from '../../utils/starredCards';
 
 import {
   ROUTES,
@@ -68,6 +70,10 @@ export default function DeckDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
   const [cardSearch, setCardSearch] = useState('');
+
+  const targetDeckId = id || '';
+  const { starredIds, starredCount, isStarred, toggleStar, starAll, unstarAll } = useStarredCards(targetDeckId);
+  const [starredOnlyFilter, setStarredOnlyFilter] = useState(false);
 
   const speakWord = (text: string) => {
     if (!('speechSynthesis' in window)) return;
@@ -378,6 +384,16 @@ export default function DeckDetailPage() {
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
                 <div
+                  className="text-white text-xl font-black flex items-center justify-center gap-1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Star size={18} className={starredCount > 0 ? "fill-amber-300 text-amber-300" : "text-amber-200/60"} />
+                  <span>{starredCount}</span>
+                </div>
+                <div className="text-white/80 text-xs font-semibold">{isVi ? 'Đã gán sao' : 'Starred'}</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
+                <div
                   className="text-white text-xl font-black"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
@@ -408,6 +424,53 @@ export default function DeckDetailPage() {
             setDeck(updated);
           }}
         />
+
+        {/* Quizlet-style Quick Starred Study Mode Banner */}
+        {starredCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-orange-500/15 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-300/70 dark:border-amber-500/40 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-300/50 dark:shadow-none shrink-0">
+                <Star size={22} className="fill-white" />
+              </div>
+              <div>
+                <h3
+                  className="text-slate-900 dark:text-white text-sm sm:text-base font-black tracking-tight flex items-center gap-2"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <span>{isVi ? `Đang có ${starredCount} thuật ngữ được gắn sao ⭐` : `You have ${starredCount} starred terms ⭐`}</span>
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  {isVi
+                    ? 'Tập trung ôn luyện nhanh các từ vựng bạn đã đánh dấu sao'
+                    : 'Focus practice on terms you have flagged with a star'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+              <button
+                onClick={() => navigate(`${getStudyRoute(deck.id)}?starred=true`)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs shadow-md shadow-amber-300/50 dark:shadow-none transition-all cursor-pointer whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <BookOpen size={14} />
+                <span>{isVi ? `Lật ${starredCount} thẻ sao` : `Study ${starredCount} starred`}</span>
+              </button>
+              <button
+                onClick={() => navigate(`${getWrittenRoute(deck.id)}?starred=true`)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-amber-200 dark:border-amber-800/80 font-bold text-xs transition-all cursor-pointer whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <PenLine size={14} className="text-amber-500" />
+                <span>{isVi ? 'Luyện gõ từ sao' : 'Write starred'}</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Mode selection heading */}
         <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
@@ -472,6 +535,7 @@ export default function DeckDetailPage() {
         {(() => {
           const cardsList = deck.cards || [];
           const filteredCards = cardsList.filter((c) => {
+            if (starredOnlyFilter && !isStarred(c.id)) return false;
             if (!cardSearch.trim()) return true;
             const q = cardSearch.toLowerCase().trim();
             if (c.type === 'flashcard') {
@@ -490,36 +554,95 @@ export default function DeckDetailPage() {
 
           return (
             <div className="mt-8 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200 dark:shadow-none shrink-0">
-                    <Layers size={20} />
+              <div className="flex flex-col gap-4 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200 dark:shadow-none shrink-0">
+                      <Layers size={20} />
+                    </div>
+                    <div>
+                      <h2
+                        className="text-slate-900 dark:text-white text-base sm:text-lg font-black tracking-tight leading-tight"
+                        style={{ fontFamily: 'var(--font-display)' }}
+                      >
+                        {isVi ? `Danh sách từ vựng (${cardsList.length} thẻ)` : `Vocabulary Cards (${cardsList.length} cards)`}
+                      </h2>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">
+                        {isVi ? 'Xem trước, gắn sao ⭐ để lọc ôn tập và nghe phát âm' : 'Preview, star ⭐ to filter practice, and listen to pronunciation'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2
-                      className="text-slate-900 dark:text-white text-base sm:text-lg font-black tracking-tight leading-tight"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {isVi ? `Danh sách từ vựng (${cardsList.length} thẻ)` : `Vocabulary Cards (${cardsList.length} cards)`}
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">
-                      {isVi ? 'Xem trước và nghe phát âm tất cả các thẻ trong bộ này' : 'Preview and listen to all cards in this deck'}
-                    </p>
-                  </div>
+
+                  {cardsList.length > 3 && (
+                    <div className="relative max-w-xs w-full">
+                      <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={cardSearch}
+                        onChange={(e) => setCardSearch(e.target.value)}
+                        placeholder={isVi ? 'Tìm kiếm thẻ...' : 'Search cards...'}
+                        className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {cardsList.length > 3 && (
-                  <div className="relative max-w-xs w-full">
-                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={cardSearch}
-                      onChange={(e) => setCardSearch(e.target.value)}
-                      placeholder={isVi ? 'Tìm kiếm thẻ...' : 'Search cards...'}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    />
+                {/* Filter Tabs & Bulk Actions Bar */}
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex-wrap">
+                  {/* Tabs */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+                    <button
+                      onClick={() => setStarredOnlyFilter(false)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        !starredOnlyFilter
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {isVi ? 'Tất cả' : 'All'} ({cardsList.length})
+                    </button>
+                    <button
+                      onClick={() => setStarredOnlyFilter(true)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        starredOnlyFilter
+                          ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+                      }`}
+                    >
+                      <Star size={13} className={starredOnlyFilter || starredCount > 0 ? 'fill-amber-400 text-amber-500' : ''} />
+                      <span>{isVi ? 'Có gắn sao' : 'Starred'}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        starredOnlyFilter ? 'bg-amber-950/20 text-amber-950' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        {starredCount}
+                      </span>
+                    </button>
                   </div>
-                )}
+
+                  {/* Bulk Star / Unstar Actions */}
+                  {cardsList.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => starAll(cardsList.map((c) => c.id))}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 text-xs font-bold transition-all cursor-pointer"
+                        title={isVi ? 'Gán sao tất cả từ trong bộ này' : 'Star all cards in this deck'}
+                      >
+                        <Star size={13} className="text-amber-500" />
+                        <span>{isVi ? 'Gán sao tất cả' : 'Star all'}</span>
+                      </button>
+
+                      {starredCount > 0 && (
+                        <button
+                          onClick={() => unstarAll()}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 text-xs font-bold transition-all cursor-pointer"
+                          title={isVi ? 'Xóa toàn bộ sao đã gán' : 'Remove all stars'}
+                        >
+                          {isVi ? 'Bỏ gắn sao tất cả' : 'Unstar all'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {cardsList.length === 0 ? (
@@ -528,14 +651,20 @@ export default function DeckDetailPage() {
                 </div>
               ) : filteredCards.length === 0 ? (
                 <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-sm">
-                  {isVi ? 'Không tìm thấy thẻ phù hợp với từ khóa.' : 'No cards match your search.'}
+                  {starredOnlyFilter
+                    ? (isVi ? 'Chưa có từ vựng nào được gắn sao ⭐. Bạn có thể nhấn icon ngôi sao bên cạnh mỗi từ để gắn sao.' : 'No starred cards yet ⭐. Click the star icon on any card to star it.')
+                    : (isVi ? 'Không tìm thấy thẻ phù hợp với từ khóa.' : 'No cards match your search.')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredCards.map((c, index) => (
                     <div
                       key={c.id || index}
-                      className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all shadow-xs flex items-center justify-between gap-4 group"
+                      className={`p-4 rounded-2xl bg-white dark:bg-slate-800/90 border transition-all shadow-xs flex items-center justify-between gap-4 group ${
+                        isStarred(c.id)
+                          ? 'border-amber-300/80 dark:border-amber-500/40 ring-1 ring-amber-400/20 dark:ring-amber-500/10'
+                          : 'border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 hover:border-indigo-400 dark:hover:border-indigo-500'
+                      }`}
                     >
                       {c.type === 'flashcard' ? (
                         <>
@@ -552,6 +681,12 @@ export default function DeckDetailPage() {
                                   {c.phonetic}
                                 </span>
                               )}
+                              {isStarred(c.id) && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                                  <Star size={10} className="fill-amber-400 text-amber-500" />
+                                  <span>{isVi ? 'Đã gán sao' : 'Starred'}</span>
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
                               {c.back}
@@ -563,13 +698,27 @@ export default function DeckDetailPage() {
                             )}
                           </div>
 
-                          <button
-                            onClick={() => speakWord(c.front)}
-                            className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer shrink-0"
-                            title={isVi ? 'Nghe phát âm' : 'Listen pronunciation'}
-                          >
-                            <Volume2 size={18} />
-                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => toggleStar(c.id)}
+                              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                                isStarred(c.id)
+                                  ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-500 hover:bg-amber-200 dark:hover:bg-amber-900/80 shadow-2xs'
+                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-700'
+                              }`}
+                              title={isStarred(c.id) ? (isVi ? 'Bỏ gắn sao' : 'Unstar') : (isVi ? 'Gán sao từ này' : 'Star this card')}
+                            >
+                              <Star size={18} className={isStarred(c.id) ? 'fill-amber-400 text-amber-500' : ''} />
+                            </button>
+
+                            <button
+                              onClick={() => speakWord(c.front)}
+                              className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all cursor-pointer"
+                              title={isVi ? 'Nghe phát âm' : 'Listen pronunciation'}
+                            >
+                              <Volume2 size={18} />
+                            </button>
+                          </div>
                         </>
                       ) : (
                         <div className="flex-1 min-w-0">

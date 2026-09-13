@@ -49,11 +49,60 @@ html.dark {
   --danger: #ef4444;
 }
 
-* {
-  scrollbar-width: none;
+/* Custom Visible & Easily Draggable Scrollbars */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) rgba(0, 0, 0, 0.04);
 }
-*::-webkit-scrollbar {
-  display: none;
+
+html.dark {
+  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.55);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.85);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(79, 70, 229, 1);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.55);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  cursor: pointer;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(129, 140, 248, 0.85);
+}
+
+.dark ::-webkit-scrollbar-thumb:active {
+  background-color: rgba(99, 102, 241, 1);
 }
 
 body {

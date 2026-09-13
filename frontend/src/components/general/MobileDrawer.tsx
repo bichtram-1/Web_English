@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layers, PlusCircle, BarChart3, BookOpen, Sparkles, LogIn, LogOut, User as UserIcon, FolderOpen, Gamepad2, Languages } from 'lucide-react';
+import { X, Layers, PlusCircle, BarChart3, BookOpen, Sparkles, LogIn, LogOut, User as UserIcon, FolderOpen, Gamepad2, Languages, Image } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
+import { useWallpaper } from '../../contexts/WallpaperContext';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 import ThemeToggle from './ThemeToggle';
 import LanguageSelect from './LanguageSelect';
@@ -20,6 +21,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const isVi = i18n.language === 'vi';
   const { decks } = useDecks();
   const { user, isAuthenticated, logout } = useAuth();
+  const { setWallpaperModalOpen } = useWallpaper();
   const navigate = useNavigate();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [initialLogoutConfirm, setInitialLogoutConfirm] = useState(false);
@@ -246,6 +248,19 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{t('language_select_title')}</span>
                     <LanguageSelect />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{isVi ? 'Hình nền tùy chỉnh' : 'Custom Wallpaper'}</span>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        setWallpaperModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                    >
+                      <Image size={14} className="text-indigo-500" />
+                      <span>{isVi ? 'Đổi nền' : 'Change'}</span>
+                    </button>
                   </div>
                 </div>
               </div>

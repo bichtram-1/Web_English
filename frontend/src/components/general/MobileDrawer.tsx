@@ -7,6 +7,7 @@ import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallpaper } from '../../contexts/WallpaperContext';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
+import { canViewDeck } from '../../utils/permission';
 import ThemeToggle from './ThemeToggle';
 import LanguageSelect from './LanguageSelect';
 import UserProfileModal from './UserProfileModal';
@@ -23,6 +24,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const { setWallpaperModalOpen } = useWallpaper();
   const navigate = useNavigate();
+  const visibleDecks = decks.filter((deck) => canViewDeck(deck, user));
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [initialLogoutConfirm, setInitialLogoutConfirm] = useState(false);
 
@@ -225,7 +227,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                     {t('nav_popular_decks')}
                   </div>
                   <div className="space-y-1">
-                    {decks.slice(0, 4).map((deck) => (
+                    {visibleDecks.slice(0, 4).map((deck) => (
                       <button
                         key={deck.id}
                         onClick={() => handleNav(getDeckDetailRoute(deck.id))}

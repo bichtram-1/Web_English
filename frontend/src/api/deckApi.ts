@@ -58,6 +58,12 @@ const saveDecksToStorage = (decks: Deck[]) => {
   }
 };
 
+export const notifyDecksChanged = (deck?: Deck) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lingualeap_decks_changed', { detail: deck }));
+  }
+};
+
 export const deckApi = {
   getDecks: async (params?: { search?: string; category?: string }): Promise<Deck[]> => {
     let result: Deck[] = [];
@@ -206,6 +212,7 @@ export const deckApi = {
       if (res?.data) {
         const stored = getStoredDecks();
         saveDecksToStorage([res.data, ...stored.filter((d) => d.id !== res.data.id)]);
+        notifyDecksChanged(res.data);
         return res.data;
       }
     } catch (e: any) {
@@ -231,6 +238,7 @@ export const deckApi = {
     const decks = getStoredDecks();
     const updated = [fullDeck, ...decks.filter((d) => d.id !== fullDeck.id)];
     saveDecksToStorage(updated);
+    notifyDecksChanged(fullDeck);
     return fullDeck;
   },
 
@@ -251,6 +259,7 @@ export const deckApi = {
           decks.unshift(res.data);
         }
         saveDecksToStorage(decks);
+        notifyDecksChanged(res.data);
         return res.data;
       }
     } catch (e: any) {
@@ -272,6 +281,7 @@ export const deckApi = {
             creator: currentUser?.name || decks[index].creator,
           };
           saveDecksToStorage(decks);
+          notifyDecksChanged(decks[index]);
           return decks[index];
         }
       }
@@ -289,6 +299,7 @@ export const deckApi = {
         creatorId: currentUser?.id || decks[index].creatorId,
       };
       saveDecksToStorage(decks);
+      notifyDecksChanged(decks[index]);
       return decks[index];
     }
     throw new Error('Deck not found');
@@ -306,6 +317,7 @@ export const deckApi = {
     const decks = getStoredDecks();
     const filtered = decks.filter((d) => d.id !== id);
     saveDecksToStorage(filtered);
+    notifyDecksChanged();
     return true;
   },
 

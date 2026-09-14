@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, LoginDTO, RegisterDTO } from '../types/auth.types';
 import authApi from '../api/authApi';
+import { notifyDecksChanged } from '../api/deckApi';
 import { STORAGE_KEYS } from '../constants/storage';
 
 interface AuthContextType {
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data.user));
+      notifyDecksChanged();
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data.user));
+      notifyDecksChanged();
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    notifyDecksChanged();
   };
 
   return (

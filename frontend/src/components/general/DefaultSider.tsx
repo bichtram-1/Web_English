@@ -3,8 +3,10 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Layers, Sparkles, ChevronLeft, ChevronRight, BarChart3, PlusCircle, FolderOpen, Gamepad2, Languages, Image } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
+import { useAuth } from '../../hooks/useAuth';
 import { useWallpaper } from '../../contexts/WallpaperContext';
 import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
+import { canViewDeck } from '../../utils/permission';
 
 interface DefaultSiderProps {
   collapsed?: boolean;
@@ -14,12 +16,15 @@ interface DefaultSiderProps {
 export default function DefaultSider({ collapsed: externalCollapsed, onToggle }: DefaultSiderProps) {
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const { decks } = useDecks();
+  const { user } = useAuth();
   const { setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
 
   const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
   const toggle = onToggle || (() => setInternalCollapsed((prev) => !prev));
+
+  const visibleDecks = decks.filter((deck) => canViewDeck(deck, user));
 
   return (
     <aside
@@ -174,7 +179,7 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
             <Sparkles size={12} className="text-amber-400 shrink-0" />
           </div>
           <div className="space-y-1 overflow-y-auto flex-1 pr-1">
-            {decks.map((deck) => (
+            {visibleDecks.map((deck) => (
               <NavLink
                 key={deck.id}
                 to={getDeckDetailRoute(deck.id)}

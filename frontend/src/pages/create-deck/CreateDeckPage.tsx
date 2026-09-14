@@ -7,7 +7,7 @@ import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, Gri
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { recordCreatedDeck } from '../../utils/recentDecks';
-import { ROUTES, getDeckDetailRoute } from '../../constants/routers';
+import { ROUTES, getDeckDetailRoute, getCollectionDetailRoute } from '../../constants/routers';
 import ImportExportModal from '../../components/general/ImportExportModal';
 import VocabAutocompleteInput from '../../components/common/VocabAutocompleteInput';
 import { type VocabSuggestion } from '../../data/vocabDictionary';
@@ -292,6 +292,10 @@ export default function CreateDeckPage() {
     let isMounted = true;
 
     const loadDeckForEdit = async () => {
+      if (id.startsWith('col-')) {
+        navigate(getCollectionDetailRoute(id), { replace: true });
+        return;
+      }
       try {
         setIsLoadingDeck(true);
         const fetched = await deckApi.getDeckById(id);

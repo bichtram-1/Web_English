@@ -21,19 +21,21 @@ import {
   Users,
   Shield,
   PenTool,
+  Edit3,
 } from 'lucide-react';
 import { useCollections } from '../../hooks/useCollections';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { getRecentViewedDecks, getRecentCreatedDecks, sortDecks, type DeckSortOption } from '../../utils/recentDecks';
 import collectionApi from '../../api/collectionApi';
-import { getDeckDetailRoute, getStudyRoute, getWrittenRoute, ROUTES } from '../../constants/routers';
+import { getDeckDetailRoute, getEditDeckRoute, getStudyRoute, getWrittenRoute, ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
 import InviteCollaboratorModal from '../../components/shared/InviteCollaboratorModal';
+import EditCollectionModal from '../../components/shared/EditCollectionModal';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckSortDropdown from '../../components/shared/DeckSortDropdown';
-import { isCollectionCreator, canEditCollection, canViewCollection } from '../../utils/permission';
+import { isCollectionCreator, canEditCollection, canViewCollection, canEditDeck } from '../../utils/permission';
 import type { Deck, DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
 export default function CollectionDetailPage() {
@@ -53,7 +55,24 @@ export default function CollectionDetailPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+
+  const handleSaveCollection = async (
+    targetId: string,
+    updates: { title: string; description: string; isPublic: boolean; color: string }
+  ) => {
+    try {
+      const updated = await collectionApi.updateCollection(targetId, updates);
+      if (updated) {
+        setCollection(updated);
+        showToast(isVi ? 'Đã cập nhật danh sách bộ thẻ thành công!' : 'Collection updated successfully!');
+      }
+    } catch (err) {
+      console.error('Failed to update collection:', err);
+      alert(isVi ? 'Không thể cập nhật danh sách bộ thẻ. Vui lòng thử lại!' : 'Failed to update collection.');
+    }
+  };
 
   const fetchCollection = async () => {
     if (!id) return;
@@ -272,20 +291,29 @@ export default function CollectionDetailPage() {
             </span>
           ) : null}
 
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border ${
+          {/* Privacy Badge: Clickable to edit if canEdit */}
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => canEdit && setIsEditModalOpen(true)}
+            className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border transition-all ${
+              canEdit ? 'cursor-pointer hover:scale-105 active:scale-95 shadow-xs' : 'cursor-default'
+            } ${
               collection.isPublic
-                ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
-                : 'bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800'
+                ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:border-indigo-400'
+                : 'bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:border-amber-400'
             }`}
+            title={canEdit ? (isVi ? 'Bấm để đổi quyền riêng tư (Công khai / Riêng tư)' : 'Click to change privacy settings') : undefined}
           >
             {collection.isPublic ? <Globe size={13} /> : <Lock size={13} />}
             <span>{collection.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
-          </span>
+            {canEdit && <span className="text-[10px] opacity-75 underline ml-0.5">{isVi ? 'Đổi' : 'Change'}</span>}
+          </button>
 
           {/* 3-dots Menu with permission check */}
           <ItemOptionsMenu
             darkIcon
+            onEdit={() => setIsEditModalOpen(true)}
             onDelete={() => setIsDeleteModalOpen(true)}
             canEdit={canEditCollection(collection, user)}
             canDelete={isCollectionCreator(collection, user)}
@@ -379,6 +407,18 @@ export default function CollectionDetailPage() {
               <UserPlus size={15} className="text-amber-300" />
               <span>{t('invite_collaborator_btn')}</span>
             </button>
+
+            {/* Edit Collection & Privacy Settings Button */}
+            {canEdit && (
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="w-full sm:w-auto px-6 py-2 rounded-2xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs backdrop-blur-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-white/25"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <Edit3 size={14} />
+                <span>{isVi ? 'Chỉnh sửa & Quyền riêng tư' : 'Edit & Privacy'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -482,15 +522,29 @@ export default function CollectionDetailPage() {
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900">
                       {deck.category}
                     </span>
-                    {canEdit && (
-                      <button
-                        onClick={() => handleRemoveDeck(deck.id)}
-                        title={isVi ? 'Gỡ khỏi danh sách' : 'Remove from collection'}
-                        className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {canEditDeck(deck, user) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(getEditDeckRoute(deck.id));
+                          }}
+                          title={isVi ? 'Chỉnh sửa bộ thẻ này' : 'Edit this deck'}
+                          className="text-slate-400 hover:text-amber-500 dark:text-slate-500 dark:hover:text-amber-400 p-1 transition-colors cursor-pointer"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                      )}
+                      {canEdit && (
+                        <button
+                          onClick={() => handleRemoveDeck(deck.id)}
+                          title={isVi ? 'Gỡ khỏi danh sách' : 'Remove from collection'}
+                          className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 p-1 transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <h3
@@ -612,6 +666,14 @@ export default function CollectionDetailPage() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onUpdateCollection={(updated) => setCollection(updated)}
+      />
+
+      {/* Edit Collection Modal */}
+      <EditCollectionModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        collection={collection}
+        onSave={handleSaveCollection}
       />
 
       {/* Delete Collection Confirmation Modal */}

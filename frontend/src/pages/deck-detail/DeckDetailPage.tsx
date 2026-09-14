@@ -44,6 +44,7 @@ import { useStarredCards } from '../../utils/starredCards';
 import {
   ROUTES,
   getDeckDetailRoute,
+  getCollectionDetailRoute,
   getEditDeckRoute,
   getStudyRoute,
   getTestRoute,
@@ -70,7 +71,30 @@ export default function DeckDetailPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const [cardSearch, setCardSearch] = useState('');
+
+  const handleToggleDeckPrivacy = async () => {
+    if (!deck || isUpdatingPrivacy) return;
+    const targetPrivacy = !isPublic;
+    const confirmMsg = targetPrivacy
+      ? (isVi ? 'Bạn có muốn chuyển bộ thẻ này sang CÔNG KHAI (mọi người đều có thể học)?' : 'Switch this deck to PUBLIC?')
+      : (isVi ? 'Bạn có muốn chuyển bộ thẻ này sang RIÊNG TƯ (chỉ bạn và người được mời mới có thể xem)?' : 'Switch this deck to PRIVATE?');
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsUpdatingPrivacy(true);
+    try {
+      const updated = await deckApi.updateDeck(deck.id, { isPublic: targetPrivacy });
+      if (updated) {
+        setDeck({ ...deck, ...updated, isPublic: targetPrivacy });
+      }
+    } catch (e) {
+      console.error('Failed to update deck privacy:', e);
+      alert(isVi ? 'Không thể đổi quyền riêng tư bộ thẻ. Vui lòng thử lại!' : 'Failed to update deck privacy.');
+    } finally {
+      setIsUpdatingPrivacy(false);
+    }
+  };
 
   const targetDeckId = id || '';
   const { starredIds, starredCount, isStarred, toggleStar, starAll, unstarAll } = useStarredCards(targetDeckId);
@@ -138,6 +162,10 @@ export default function DeckDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    if (id.startsWith('col-')) {
+      navigate(getCollectionDetailRoute(id), { replace: true });
+      return;
+    }
     setLoading(true);
     deckApi.getDeckById(id).then((data) => {
       setDeck(data || null);
@@ -146,7 +174,7 @@ export default function DeckDetailPage() {
       }
       setLoading(false);
     });
-  }, [id]);
+  }, [id, navigate]);
 
   if (loading) return <Loading />;
 
@@ -347,10 +375,31 @@ export default function DeckDetailPage() {
                   <span className="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-xs font-bold text-white">
                     {getCategoryLabel(deck.category, t)}
                   </span>
-                  <span className="bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-xs font-bold text-white flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={!canEditDeck(deck, user) || isUpdatingPrivacy}
+                    onClick={handleToggleDeckPrivacy}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold text-white flex items-center gap-1.5 backdrop-blur-sm transition-all ${
+                      canEditDeck(deck, user)
+                        ? 'cursor-pointer hover:bg-white/30 hover:scale-105 active:scale-95 bg-white/20'
+                        : 'bg-white/20 cursor-default'
+                    }`}
+                    title={
+                      canEditDeck(deck, user)
+                        ? (isPublic
+                            ? (isVi ? 'Bấm để đổi sang Riêng tư (Private)' : 'Click to change to Private')
+                            : (isVi ? 'Bấm để đổi sang Công khai (Public)' : 'Click to change to Public'))
+                        : undefined
+                    }
+                  >
                     {isPublic ? <Globe size={11} /> : <Lock size={11} />}
-                    {isPublic ? t('deck_public_badge') : t('deck_private_badge')}
-                  </span>
+                    <span>{isPublic ? t('deck_public_badge') : t('deck_private_badge')}</span>
+                    {canEditDeck(deck, user) && (
+                      <span className="text-[10px] opacity-80 underline ml-0.5">
+                        {isUpdatingPrivacy ? '...' : (isVi ? 'Đổi' : 'Change')}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

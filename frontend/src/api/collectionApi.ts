@@ -55,6 +55,14 @@ export const saveCollectionsToStorage = (collections: DeckCollection[]) => {
   }
 };
 
+export const COLLECTIONS_CHANGED_EVENT = 'lingualeap_collections_changed';
+
+export function notifyCollectionsChanged(collection?: DeckCollection) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(COLLECTIONS_CHANGED_EVENT, { detail: collection }));
+  }
+}
+
 export const collectionApi = {
   getCollections: async (params?: { search?: string; userId?: string }): Promise<DeckCollection[]> => {
     let result: DeckCollection[] = [];
@@ -163,6 +171,7 @@ export const collectionApi = {
       if (res?.data) {
         const stored = getStoredCollections();
         saveCollectionsToStorage([res.data, ...stored.filter((c) => c.id !== res.data.id)]);
+        notifyCollectionsChanged(res.data);
         return res.data;
       }
     } catch (e: any) {
@@ -189,6 +198,7 @@ export const collectionApi = {
     const collections = getStoredCollections();
     const updated = [newCol, ...collections.filter((c) => c.id !== newCol.id)];
     saveCollectionsToStorage(updated);
+    notifyCollectionsChanged(newCol);
     return newCol;
   },
 
@@ -206,6 +216,7 @@ export const collectionApi = {
         const stored = getStoredCollections();
         const updated = stored.map((c) => (c.id === id ? res.data : c));
         saveCollectionsToStorage(updated);
+        notifyCollectionsChanged(res.data);
         return res.data;
       }
     } catch (e: any) {
@@ -223,6 +234,7 @@ export const collectionApi = {
       };
       collections[index] = updatedCol;
       saveCollectionsToStorage(collections);
+      notifyCollectionsChanged(updatedCol);
       return updatedCol;
     }
     return undefined;
@@ -239,6 +251,7 @@ export const collectionApi = {
     const collections = getStoredCollections();
     const updated = collections.filter((c) => c.id !== id);
     saveCollectionsToStorage(updated);
+    notifyCollectionsChanged({ id, _deleted: true } as any);
     return true;
   },
 

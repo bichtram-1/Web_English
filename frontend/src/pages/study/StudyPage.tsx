@@ -14,7 +14,7 @@ import { mockDecks } from '../../data/mockData';
 import { useAuth } from '../../hooks/useAuth';
 import { canViewDeck } from '../../utils/permission';
 import Loading from '../../components/shared/Loading';
-import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
+import { getDeckDetailRoute, getCollectionDetailRoute, ROUTES } from '../../constants/routers';
 import { useStarredCards } from '../../utils/starredCards';
 import {
   getCardSM2Record,
@@ -379,7 +379,11 @@ export default function StudyPage() {
   const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
 
   const handleExit = () => {
-    navigate(getDeckDetailRoute(currentDeck.id));
+    if (currentDeck.id.startsWith('col-')) {
+      navigate(getCollectionDetailRoute(currentDeck.id));
+    } else {
+      navigate(getDeckDetailRoute(currentDeck.id));
+    }
   };
 
   if (isFinished) {

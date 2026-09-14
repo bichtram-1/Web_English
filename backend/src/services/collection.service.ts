@@ -345,7 +345,11 @@ export class CollectionService {
       throw new AppError('Vui lòng đăng nhập để chỉnh sửa', 401);
     }
 
-    const isOwner = existing.creatorId === userId;
+    let isOwner = existing.creatorId === userId;
+    if (!isOwner && !existing.creatorId) {
+      // If collection has no creatorId yet, allow user to claim it upon first edit
+      isOwner = true;
+    }
     const isEditor = existing.collaborators?.some((c) => c.userId === userId && c.role === 'editor');
     if (userRole !== 'admin' && !isOwner && !isEditor) {
       throw new AppError('Bạn không có quyền chỉnh sửa danh sách bộ thẻ này', 403);
@@ -354,6 +358,8 @@ export class CollectionService {
     const updatedCol: DeckCollection = {
       ...existing,
       ...updates,
+      creatorId: existing.creatorId || userId,
+      isPublic: updates.isPublic !== undefined ? Boolean(updates.isPublic) : existing.isPublic,
       updatedAt: new Date().toISOString(),
     };
 
@@ -368,6 +374,7 @@ export class CollectionService {
           data: {
             title: updatedCol.title,
             description: updatedCol.description,
+            creatorId: updatedCol.creatorId,
             isPublic: updatedCol.isPublic,
             deckIdsJson,
             collaboratorsJson,
@@ -414,7 +421,7 @@ export class CollectionService {
       throw new AppError('Vui lòng đăng nhập để xóa danh sách bộ thẻ', 401);
     }
 
-    if (userRole !== 'admin' && existing.creatorId !== userId) {
+    if (userRole !== 'admin' && existing.creatorId && existing.creatorId !== userId) {
       throw new AppError('Chỉ tác giả sở hữu mới có quyền xóa danh sách này', 403);
     }
 

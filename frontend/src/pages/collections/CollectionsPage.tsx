@@ -21,6 +21,7 @@ import { getCollectionDetailRoute, getStudyRoute, ROUTES } from '../../constants
 import Loading from '../../components/shared/Loading';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
+import EditCollectionModal from '../../components/shared/EditCollectionModal';
 import { isCollectionCreator, canEditCollection } from '../../utils/permission';
 import type { DeckCollection } from '../../types/DeckType';
 
@@ -31,7 +32,7 @@ export default function CollectionsPage() {
   const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
   const { decks } = useDecks();
-  const { collections, loading, createCollection, deleteCollection } = useCollections();
+  const { collections, loading, createCollection, updateCollection, deleteCollection } = useCollections();
 
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'all' | 'my'>('all');
@@ -41,7 +42,21 @@ export default function CollectionsPage() {
   const [newIsPublic, setNewIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [colToDelete, setColToDelete] = useState<DeckCollection | null>(null);
+  const [colToEdit, setColToEdit] = useState<DeckCollection | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleSaveEditCollection = async (
+    targetId: string,
+    updates: { title: string; description: string; isPublic: boolean; color: string }
+  ) => {
+    try {
+      await updateCollection(targetId, updates);
+      setColToEdit(null);
+    } catch (err) {
+      console.error('Failed to update collection:', err);
+      alert(isVi ? 'Không thể cập nhật danh sách bộ thẻ. Vui lòng thử lại!' : 'Failed to update collection.');
+    }
+  };
 
   const handleConfirmDelete = async () => {
     if (!colToDelete) return;
@@ -213,18 +228,31 @@ export default function CollectionsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <span
-                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md flex items-center gap-1 ${
-                        col.isPublic ? 'bg-white/20 text-white' : 'bg-amber-400/30 text-amber-200 border border-amber-300/40'
+                    <button
+                      type="button"
+                      disabled={!canEditCollection(col, user)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (canEditCollection(col, user)) {
+                          setColToEdit(col);
+                        }
+                      }}
+                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md flex items-center gap-1 transition-all ${
+                        canEditCollection(col, user) ? 'cursor-pointer hover:scale-105 active:scale-95' : 'cursor-default'
+                      } ${
+                        col.isPublic ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-amber-400/30 text-amber-200 border border-amber-300/40 hover:bg-amber-400/40'
                       }`}
+                      title={canEditCollection(col, user) ? (isVi ? 'Bấm để đổi quyền riêng tư' : 'Click to edit privacy') : undefined}
                     >
                       {col.isPublic ? <Globe size={11} /> : <Lock size={11} />}
                       <span>{col.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
-                    </span>
+                      {canEditCollection(col, user) && <span className="opacity-75 text-[9px] underline">Đổi</span>}
+                    </button>
 
                     {/* 3-dots menu with permission check */}
                     <ItemOptionsMenu
                       onStudy={() => navigate(getStudyRoute(col.id))}
+                      onEdit={() => setColToEdit(col)}
                       onDelete={() => setColToDelete(col)}
                       canEdit={canEditCollection(col, user)}
                       canDelete={isCollectionCreator(col, user)}
@@ -444,6 +472,14 @@ export default function CollectionsPage() {
             : `Are you sure you want to delete the collection "${colToDelete?.title}"? (The included decks will remain safe).`
         }
         isDeleting={isDeleting}
+      />
+
+      {/* Edit Collection Modal */}
+      <EditCollectionModal
+        isOpen={!!colToEdit}
+        onClose={() => setColToEdit(null)}
+        collection={colToEdit}
+        onSave={handleSaveEditCollection}
       />
     </div>
   );

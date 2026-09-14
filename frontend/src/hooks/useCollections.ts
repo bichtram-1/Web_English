@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import collectionApi from '../api/collectionApi';
+import collectionApi, { COLLECTIONS_CHANGED_EVENT } from '../api/collectionApi';
 import type { DeckCollection } from '../types/DeckType';
 
 export function useCollections(searchQuery?: string) {
@@ -25,6 +25,32 @@ export function useCollections(searchQuery?: string) {
 
   useEffect(() => {
     fetchCollections();
+
+    const handleCollectionsChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<DeckCollection | undefined>;
+      const item = customEvent.detail;
+      if (item && item.id) {
+        if ((item as any)._deleted) {
+          setCollections((prev) => prev.filter((c) => c.id !== item.id));
+        } else {
+          setCollections((prev) => {
+            const index = prev.findIndex((c) => c.id === item.id);
+            if (index !== -1) {
+              return prev.map((c) => (c.id === item.id ? { ...c, ...item } : c));
+            } else {
+              return [item, ...prev.filter((c) => c.id !== item.id)];
+            }
+          });
+        }
+      } else {
+        fetchCollections();
+      }
+    };
+
+    window.addEventListener(COLLECTIONS_CHANGED_EVENT, handleCollectionsChanged);
+    return () => {
+      window.removeEventListener(COLLECTIONS_CHANGED_EVENT, handleCollectionsChanged);
+    };
   }, [fetchCollections]);
 
   const createCollection = async (data: {
@@ -38,8 +64,21 @@ export function useCollections(searchQuery?: string) {
       creator: user?.name || 'Người dùng',
       creatorId: user?.id,
     });
-    setCollections((prev) => [created, ...prev]);
+    setCollections((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
     return created;
+  };
+
+  const updateCollection = async (
+    id: string,
+    updates: Partial<DeckCollection>
+  ) => {
+    const updated = await collectionApi.updateCollection(id, updates);
+    if (updated) {
+      setCollections((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updated } : c))
+      );
+    }
+    return updated;
   };
 
   const addDeckToCollection = async (collectionId: string, deckId: string) => {
@@ -72,6 +111,7 @@ export function useCollections(searchQuery?: string) {
     loading,
     refetch: fetchCollections,
     createCollection,
+    updateCollection,
     addDeckToCollection,
     removeDeckFromCollection,
     deleteCollection,

@@ -31,7 +31,7 @@ export const ROUTES = {
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];
 
-export const getDeckDetailRoute = (id: string) => `/deck/${id}`;
+export const getDeckDetailRoute = (id: string) => (id?.startsWith('col-') ? `/collections/${id}` : `/deck/${id}`);
 export const getEditDeckRoute = (id: string) => `/deck/${id}/edit`;
 export const getCollectionDetailRoute = (id: string) => `/collections/${id}`;
 export const getCollectionStudyRoute = (id: string) => `/collections/${id}/study`;

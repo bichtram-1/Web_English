@@ -277,8 +277,16 @@ export class DeckService {
       throw new AppError('Vui lòng đăng nhập để chỉnh sửa bộ thẻ này', 401);
     }
 
-    if (userRole !== 'admin' && (!existing.creatorId || existing.creatorId !== userId)) {
-      throw new AppError('Bạn không có quyền chỉnh sửa bộ thẻ này', 403);
+    if (userRole !== 'admin') {
+      if (existing.creatorId && existing.creatorId !== userId) {
+        throw new AppError('Bạn không có quyền chỉnh sửa bộ thẻ này', 403);
+      }
+      if (!existing.creatorId) {
+        await prisma.deck.update({
+          where: { id },
+          data: { creatorId: userId },
+        });
+      }
     }
 
     // Update main fields

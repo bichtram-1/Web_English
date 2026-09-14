@@ -190,18 +190,26 @@ export const deckApi = {
   },
 
   createDeck: async (newDeckData: Deck | CreateDeckDTO): Promise<Deck> => {
+    const currentUser = getCurrentUserFromStorage();
+    const effectiveCreator = (newDeckData as Deck).creator || currentUser?.name || (currentUser?.email ? currentUser.email.split('@')[0] : 'User');
+    const effectiveCreatorId = (newDeckData as Deck).creatorId || currentUser?.id;
+
     try {
       const res = (await axiosInstance.post(
         ENDPOINTS.CREATE_DECK,
-        newDeckData
+        {
+          ...newDeckData,
+          creator: effectiveCreator,
+          creatorId: effectiveCreatorId,
+        }
       )) as unknown as ApiResponse<Deck>;
       if (res?.data) {
         const stored = getStoredDecks();
-        saveDecksToStorage([res.data, ...stored]);
+        saveDecksToStorage([res.data, ...stored.filter((d) => d.id !== res.data.id)]);
         return res.data;
       }
     } catch (e: any) {
-      if (e?.status === 401 || e?.status === 403) {
+      if (e?.status === 401) {
         throw e;
       }
       console.warn('Backend unavailable for createDeck, saving locally:', e);
@@ -211,8 +219,8 @@ export const deckApi = {
       id: (newDeckData as Deck).id || `deck-${Date.now()}`,
       title: newDeckData.title,
       description: newDeckData.description || '',
-      creator: (newDeckData as Deck).creator || 'User',
-      creatorId: (newDeckData as Deck).creatorId,
+      creator: effectiveCreator,
+      creatorId: effectiveCreatorId,
       itemCount: newDeckData.cards?.length || 0,
       category: newDeckData.category || 'Beginner',
       color: newDeckData.color || 'from-indigo-500 to-violet-600',
@@ -227,16 +235,47 @@ export const deckApi = {
   },
 
   updateDeck: async (id: string, updates: Partial<Deck>): Promise<Deck> => {
+    const currentUser = getCurrentUserFromStorage();
+
     try {
       const res = (await axiosInstance.put(
         ENDPOINTS.UPDATE_DECK(id),
         updates
       )) as unknown as ApiResponse<Deck>;
       if (res?.data) {
+        const decks = getStoredDecks();
+        const index = decks.findIndex((d) => d.id === id);
+        if (index !== -1) {
+          decks[index] = { ...decks[index], ...res.data };
+        } else {
+          decks.unshift(res.data);
+        }
+        saveDecksToStorage(decks);
         return res.data;
       }
     } catch (e: any) {
-      if (e?.status === 401 || e?.status === 403) {
+      if (e?.status === 401) {
+        throw e;
+      }
+      // If 403 or 404 or backend unavailable:
+      // Try local cache update if owned or claimed locally
+      const decks = getStoredDecks();
+      const index = decks.findIndex((d) => d.id === id);
+      if (index !== -1) {
+        const localDeck = decks[index];
+        const isOwner = !localDeck.creatorId || localDeck.creatorId === currentUser?.id || localDeck.creator === 'User';
+        if (isOwner) {
+          decks[index] = {
+            ...decks[index],
+            ...updates,
+            creatorId: currentUser?.id || decks[index].creatorId,
+            creator: currentUser?.name || decks[index].creator,
+          };
+          saveDecksToStorage(decks);
+          return decks[index];
+        }
+      }
+      if (e?.status === 403) {
         throw e;
       }
       console.warn('Backend unavailable for updateDeck, updating locally:', e);
@@ -244,7 +283,11 @@ export const deckApi = {
     const decks = getStoredDecks();
     const index = decks.findIndex((d) => d.id === id);
     if (index !== -1) {
-      decks[index] = { ...decks[index], ...updates };
+      decks[index] = {
+        ...decks[index],
+        ...updates,
+        creatorId: currentUser?.id || decks[index].creatorId,
+      };
       saveDecksToStorage(decks);
       return decks[index];
     }

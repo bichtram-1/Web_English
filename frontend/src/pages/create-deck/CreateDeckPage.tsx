@@ -505,14 +505,19 @@ export default function CreateDeckPage() {
     } catch (e: any) {
       console.error('Error saving deck:', e);
       setIsSubmitting(false);
-      const isAuthError = e?.status === 401 || e?.status === 403;
-      if (isAuthError) {
+      if (e?.status === 401) {
         alert(
           isVi
-            ? 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại để lưu bộ thẻ!'
-            : 'Session expired or invalid. Please log in again to save your deck!'
+            ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để lưu bộ thẻ!'
+            : 'Session expired. Please log in again to save your deck!'
         );
         navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+      } else if (e?.status === 403) {
+        alert(
+          isVi
+            ? 'Bạn không có quyền chỉnh sửa bộ thẻ này (chỉ tác giả sở hữu mới được chỉnh sửa).'
+            : 'You do not have permission to edit this deck.'
+        );
       } else {
         const errorMsg =
           e?.message ||

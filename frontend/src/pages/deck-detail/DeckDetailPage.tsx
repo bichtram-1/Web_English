@@ -100,6 +100,8 @@ export default function DeckDetailPage() {
         id: generateFriendlyId(clonedTitle),
         title: clonedTitle,
         description: deck.description || '',
+        creator: user.name || (user.email ? user.email.split('@')[0] : 'User'),
+        creatorId: user.id,
         category: deck.category || 'Beginner',
         color: deck.color || 'from-indigo-500 to-violet-600',
         isPublic: false,

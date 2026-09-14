@@ -25,7 +25,8 @@ import {
   Check,
 } from 'lucide-react';
 
-import deckApi from '../../api/deckApi';
+import deckApi, { getStoredDecks } from '../../api/deckApi';
+import { getClonedDeckTitle } from '../../utils/cloneTitle';
 import { recordViewedDeck } from '../../utils/recentDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { cleanTtsText } from '../../hooks/useSpeech';
@@ -95,7 +96,9 @@ export default function DeckDetailPage() {
 
     setIsCloning(true);
     try {
-      const clonedTitle = `${deck.title} (${isVi ? 'Bản sao' : 'Copy'})`;
+      const storedDecks = getStoredDecks();
+      const existingTitles = storedDecks.map((d) => d.title);
+      const clonedTitle = getClonedDeckTitle(deck.title, existingTitles, isVi);
       const clonedDeck = await deckApi.createDeck({
         id: generateFriendlyId(clonedTitle),
         title: clonedTitle,

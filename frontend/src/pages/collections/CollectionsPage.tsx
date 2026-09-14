@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,7 +35,7 @@ export default function CollectionsPage() {
   const { collections, loading, createCollection, updateCollection, deleteCollection } = useCollections();
 
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'all' | 'my'>('all');
+  const [tab, setTab] = useState<'public' | 'my' | 'private'>('public');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -52,6 +52,12 @@ export default function CollectionsPage() {
     try {
       await updateCollection(targetId, updates);
       setColToEdit(null);
+      if (updates.isPublic === false && tab === 'public') {
+        // Automatically switch to 'private' tab so the user can immediately see their private collection!
+        setTab('private');
+      } else if (updates.isPublic === true && tab === 'private') {
+        setTab('public');
+      }
     } catch (err) {
       console.error('Failed to update collection:', err);
       alert(isVi ? 'Không thể cập nhật danh sách bộ thẻ. Vui lòng thử lại!' : 'Failed to update collection.');
@@ -71,19 +77,39 @@ export default function CollectionsPage() {
     }
   };
 
-  if (loading) return <Loading />;
+  const publicCollections = useMemo(
+    () => collections.filter((c) => c.isPublic !== false),
+    [collections]
+  );
+  const myCollections = useMemo(
+    () => collections.filter((c) => isCollectionCreator(c, user)),
+    [collections, user]
+  );
+  const myPrivateCollections = useMemo(
+    () => collections.filter((c) => isCollectionCreator(c, user) && c.isPublic === false),
+    [collections, user]
+  );
 
-  const filtered = collections.filter((c) => {
-    const matchSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.creator.toLowerCase().includes(search.toLowerCase()) ||
-      (c.description && c.description.toLowerCase().includes(search.toLowerCase()));
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    let base = collections;
 
-    if (tab === 'my') {
-      return matchSearch && user?.id && c.creatorId === user.id;
+    if (tab === 'public') {
+      base = publicCollections;
+    } else if (tab === 'my') {
+      base = myCollections;
+    } else if (tab === 'private') {
+      base = myPrivateCollections;
     }
-    return matchSearch;
-  });
+
+    if (!q) return base;
+    return base.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.creator.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [collections, publicCollections, myCollections, myPrivateCollections, tab, search]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,27 +208,47 @@ export default function CollectionsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full sm:w-auto">
+        <div className="flex gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full sm:w-auto flex-wrap">
           <button
-            onClick={() => setTab('all')}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              tab === 'all'
+            onClick={() => setTab('public')}
+            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              tab === 'public'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            {t('collection_all_public')} ({collections.length})
+            <Globe size={13} />
+            <span>{t('collection_all_public')}</span>
+            <span className="text-[10px] opacity-75 font-semibold">({publicCollections.length})</span>
           </button>
+
           {isAuthenticated && (
             <button
               onClick={() => setTab('my')}
-              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 tab === 'my'
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {t('collection_my_collections')}
+              <FolderOpen size={13} />
+              <span>{t('collection_my_collections')}</span>
+              <span className="text-[10px] opacity-75 font-semibold">({myCollections.length})</span>
+            </button>
+          )}
+
+          {isAuthenticated && myPrivateCollections.length > 0 && (
+            <button
+              onClick={() => setTab('private')}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                tab === 'private'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Lock size={13} />
+              <span>{isVi ? 'Riêng tư của tôi' : 'My Private'}</span>
+              <span className="text-[10px] opacity-75 font-semibold">({myPrivateCollections.length})</span>
             </button>
           )}
         </div>

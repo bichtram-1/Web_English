@@ -23,6 +23,14 @@ export const ENDPOINTS = {
   STUDY_HISTORY: '/api/v1/study/history',
   STUDY_STATS: '/api/v1/study/stats',
 
+  // Collections
+  COLLECTIONS: '/api/v1/collections',
+  COLLECTION_BY_ID: (id: string) => `/api/v1/collections/${id}`,
+  COLLECTION_DECKS: (id: string) => `/api/v1/collections/${id}/decks`,
+  COLLECTION_DECK_ITEM: (id: string, deckId: string) => `/api/v1/collections/${id}/decks/${deckId}`,
+  COLLECTION_COLLABORATORS: (id: string) => `/api/v1/collections/${id}/collaborators`,
+  COLLECTION_COLLABORATOR_ITEM: (id: string, email: string) => `/api/v1/collections/${id}/collaborators/${encodeURIComponent(email)}`,
+
   // Stats
   STATS_SUMMARY: '/api/v1/stats/summary',
   STATS_LEADERBOARD: '/api/v1/stats/leaderboard',

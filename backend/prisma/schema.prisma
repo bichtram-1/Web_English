@@ -24,6 +24,7 @@ model User {
 
   // Relationships
   decks        Deck[]
+  collections  Collection[]
   sessions     StudySession[]
   stats        UserStats?
 
@@ -127,4 +128,25 @@ model UserStats {
   @@index([totalXp])
   @@index([streakDays])
   @@map("user_stats")
+}
+
+model Collection {
+  id                String    @id @default(uuid())
+  title             String
+  description       String?
+  creatorName       String    @default("Người dùng")
+  creatorId         String?
+  creator           User?     @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  isPublic          Boolean   @default(true)
+  deckIdsJson       String    @default("[]")
+  collaboratorsJson String?   @default("[]")
+  inviteCode        String?
+  color             String    @default("from-indigo-600 to-violet-600")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([creatorId])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("collections")
 }

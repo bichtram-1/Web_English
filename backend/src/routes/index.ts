@@ -4,6 +4,7 @@ import deckRoutes from './deck.routes';
 import cardRoutes from './card.routes';
 import studyRoutes from './study.routes';
 import statsRoutes from './stats.routes';
+import collectionRoutes from './collection.routes';
 
 const rootRouter = Router();
 
@@ -23,5 +24,6 @@ rootRouter.use('/decks', deckRoutes);
 rootRouter.use('/cards', cardRoutes);
 rootRouter.use('/study', studyRoutes);
 rootRouter.use('/stats', statsRoutes);
+rootRouter.use('/collections', collectionRoutes);
 
 export default rootRouter;

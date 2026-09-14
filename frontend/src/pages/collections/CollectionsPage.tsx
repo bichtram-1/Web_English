@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -26,6 +26,7 @@ import type { DeckCollection } from '../../types/DeckType';
 
 export default function CollectionsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
@@ -71,6 +72,11 @@ export default function CollectionsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated || !user) {
+      alert(isVi ? 'Vui lòng đăng nhập để tạo và lưu danh sách bộ thẻ của bạn!' : 'Please log in to create and save your collections!');
+      navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+      return;
+    }
     if (isCreating || !newTitle.trim()) return;
 
     setIsCreating(true);
@@ -131,7 +137,8 @@ export default function CollectionsPage() {
           <button
             onClick={() => {
               if (!isAuthenticated) {
-                navigate(ROUTES.LOGIN);
+                alert(isVi ? 'Vui lòng đăng nhập để tạo và lưu danh sách bộ thẻ của bạn!' : 'Please log in to create and save your collections!');
+                navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
                 return;
               }
               setIsCreateModalOpen(true);
@@ -292,7 +299,14 @@ export default function CollectionsPage() {
             <p className="font-bold text-base text-slate-700 dark:text-slate-300">{t('collection_empty')}</p>
             <p className="text-xs max-w-sm">{t('collection_empty_desc')}</p>
             <button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  alert(isVi ? 'Vui lòng đăng nhập để tạo và lưu danh sách bộ thẻ của bạn!' : 'Please log in to create and save your collections!');
+                  navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
+                  return;
+                }
+                setIsCreateModalOpen(true);
+              }}
               className="mt-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer"
             >
               {t('collection_create_btn')}

@@ -22,7 +22,6 @@ import {
   Layers,
   Search,
   Copy,
-  Check,
 } from 'lucide-react';
 
 import deckApi, { getStoredDecks } from '../../api/deckApi';
@@ -43,7 +42,6 @@ import { useStarredCards } from '../../utils/starredCards';
 
 import {
   ROUTES,
-  getDeckDetailRoute,
   getCollectionDetailRoute,
   getEditDeckRoute,
   getStudyRoute,

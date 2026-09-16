@@ -5,7 +5,6 @@ import {
   X,
   Volume2,
   VolumeX,
-  Leaf,
   ChevronRight,
   ChevronLeft,
   Sparkles,
@@ -20,19 +19,13 @@ import {
   Shield,
   Award,
   Eye,
-  Flower2,
-  Home,
   Info,
   Lock,
   Star,
   Brain,
   Compass,
-  MapPin,
   Keyboard,
   Move,
-  Package,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
@@ -317,7 +310,6 @@ export type GardenItemType =
   | 'flower_bed'
   | 'wooden_boat'
   | 'chinese_rose'
-  | 'tea_ceremony'
   | 'cherry_tree'
   | 'tall_bamboo'
   | 'wild_flower_bed'
@@ -329,7 +321,6 @@ export interface GardenCatalogInfo {
   labelEn: string;
   icon: string;
   image: string;
-  category: 'flora' | 'architecture' | 'fauna';
   descVi: string;
   descEn: string;
 }
@@ -341,7 +332,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Celestial Sakura Bonsai',
     icon: '🌸',
     image: '/images/zen/elements/sakura_bonsai_tree.png?v=20260908b',
-    category: 'flora',
     descVi: 'Cây hoa anh đào bồng lai cổ thụ ngàn năm nở rộ muôn vàn cánh hoa hồng phấn tỏa ánh linh quang, ngự trong chậu gốm rồng uy nghi.',
     descEn: 'A magnificent thousand-year celestial sakura bonsai blooming with radiant pink petals in an ornate imperial dragon pot.',
   },
@@ -351,7 +341,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Pink Water Lilies & Floating Pads',
     icon: '🪷',
     image: '/images/zen/elements/lotus.png?v=20260908b',
-    category: 'flora',
     descVi: 'Những đóa hoa súng hồng ngọc nở rộ trên phiến lá sen tròn xanh biếc, bồng bềnh êm ả trôi theo dòng nước trong vắt.',
     descEn: 'Radiant pink water lilies nestled on emerald floating pads drifting peacefully across the clear stream.',
   },
@@ -361,7 +350,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Golden Chrysanthemum',
     icon: '🌼',
     image: '/images/zen/elements/chrysanthemum.png?v=20260908b',
-    category: 'flora',
     descVi: 'Đóa cúc vàng nở rộ đón ánh ban mai, nhụy hoa tỏa phấn thơm thanh dịu đung đưa nhẹ nhàng.',
     descEn: 'Golden petals open to greet the dawn, swaying peacefully with soothing fragrance.',
   },
@@ -371,7 +359,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Sacred Jade Bamboo Grove',
     icon: '🌿',
     image: '/images/zen/elements/zen_bamboo.png?v=20260908b',
-    category: 'flora',
     descVi: 'Khóm trúc xanh biếc chạm hoa văn mây cổ điển vươn cao tràn đầy sinh khí, có lồng đèn nhỏ thắp sáng ban mai.',
     descEn: 'Graceful emerald bamboo stalks with traditional cloud motifs and a delicate hanging lantern.',
   },
@@ -381,7 +368,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Ancient Bonsai Pine',
     icon: '🌳',
     image: '/images/zen/elements/bonsai.png?v=20260908b',
-    category: 'flora',
     descVi: 'Thân gỗ cổ thụ uốn lượn phong trần, tán lá tầng tầng lớp lớp xanh mướt vững chãi ngàn năm.',
     descEn: 'Gnarled timber trunk shaped by centuries of mountain winds, crowned by tiered evergreen foliage.',
   },
@@ -391,7 +377,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Oriental Waterside Tea Pavilion',
     icon: '🏡',
     image: '/images/zen/elements/zen_teahouse.png?v=20260908b',
-    category: 'architecture',
     descVi: 'Vọng lâu thủy tạ ngói ngọc lam uốn lượn cổ kính, các dãy đèn lồng ấm áp soi bóng xuống mặt hồ nước biếc.',
     descEn: 'A grand waterside tea pavilion with turquoise glazed roofs and glowing lanterns reflecting over the tranquil river.',
   },
@@ -401,7 +386,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Ancient Kasuga Stone Lantern',
     icon: '🏮',
     image: '/images/zen/elements/zen_lantern.png?v=20260908b',
-    category: 'architecture',
     descVi: 'Trụ đèn đá Kasuga phong cách Thiền tông phủ rêu phong, ngọn đèn ấm áp dẫn lối bên bờ nước.',
     descEn: 'A moss-covered Japanese Kasuga stone lantern shedding a warm golden sanctuary light beside the water.',
   },
@@ -411,7 +395,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Swimming Five-Color Koi',
     icon: '🐟',
     image: '/images/zen/elements/koi.png?v=20260908b',
-    category: 'fauna',
     descVi: 'Đàn cá bơi lội thanh thoát trong hồ nước thiêng, quẫy đuôi tạo nên những gợn sóng an lành.',
     descEn: 'Graceful koi gliding across the clear pool, fanning diaphanous fins that create peaceful ripples.',
   },
@@ -421,7 +404,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Fluttering Fairy Butterflies',
     icon: '🦋',
     image: '/images/zen/elements/butterflies.png?v=20260908b',
-    category: 'fauna',
     descVi: 'Đôi bướm đa sắc chao liệng vờn quanh các khóm hoa, mang lại sự sinh động và tươi mới cho khu vườn.',
     descEn: 'A pair of iridescent butterflies dancing around garden blossoms, bringing playful joy to the sanctuary.',
   },
@@ -430,8 +412,7 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelVi: 'Đom Đóm Dạ Quang Phát Sáng',
     labelEn: 'Bioluminescent Fireflies',
     icon: '✨',
-    image: '/images/zen/elements/butterflies.png?v=20260908b',
-    category: 'fauna',
+    image: '/images/zen/elements/starfire_orb_lantern.png?v=20260916',
     descVi: 'Những đốm sáng dạ quang lập lòe bay lượn từ mặt hồ trong làn sương đêm tĩnh lặng.',
     descEn: 'Glowing orbs of gentle emerald light floating above misty twilight waters.',
   },
@@ -441,7 +422,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Zen Bamboo Water Fountain',
     icon: '🎋',
     image: '/images/zen/elements/zen_fountain.png?v=20260908b',
-    category: 'architecture',
     descVi: 'Máng trúc gõ đá róc rách tuần hoàn, dẫn dòng nước nguồn tinh khiết thanh lọc tâm hồn.',
     descEn: 'A traditional shishi-odoshi bamboo fountain with flowing crystal water purifying the garden.',
   },
@@ -451,7 +431,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Hydrangea Planter Box',
     icon: '💐',
     image: '/images/zen/elements/zen_flower_bed.png?v=20260908b',
-    category: 'flora',
     descVi: 'Bồn gỗ mộc chạm khắc tinh xảo đầy ắp những chùm cẩm tú cầu tím biếc và hồng thắm mọng sương sớm.',
     descEn: 'A rustic hand-carved wooden planter overflowing with morning-dew hydrangeas in rich violet and rose pink.',
   },
@@ -461,7 +440,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Classical Brown Wooden Sampan',
     icon: '🚣',
     image: '/images/zen/elements/boat.png?v=20260915_wood',
-    category: 'architecture',
     descVi: 'Chiếc thuyền gỗ nâu cổ điển mang tông màu đồng điệu với vọng lâu thủy tạ, nhẹ trôi êm đềm theo sóng nước thiền tĩnh lặng.',
     descEn: 'An authentic classical brown wooden sampan boat harmonizing with the waterside tea pavilion, gently drifting on the serene river.',
   },
@@ -471,17 +449,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Miniature Classical Chinese Rose',
     icon: '🌹',
     image: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
-    category: 'flora',
-    descVi: 'Bụi hoa hồng cổ trang dáng nhỏ xinh xắn nở rộ trên tảng đá phong rêu đượm nét thanh tao, sắc hoa đỏ thắm tôn thêm vẻ hoài cổ của cõi ngọc.',
-    descEn: 'A charming miniature antique Chinese rose bush blossoming gracefully atop mossy stones with classical elegance.',
-  },
-  tea_ceremony: {
-    type: 'tea_ceremony',
-    labelVi: 'Bụi Hồng Cổ Trang Nhỏ Xinh',
-    labelEn: 'Miniature Classical Chinese Rose',
-    icon: '🌹',
-    image: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
-    category: 'flora',
     descVi: 'Bụi hoa hồng cổ trang dáng nhỏ xinh xắn nở rộ trên tảng đá phong rêu đượm nét thanh tao, sắc hoa đỏ thắm tôn thêm vẻ hoài cổ của cõi ngọc.',
     descEn: 'A charming miniature antique Chinese rose bush blossoming gracefully atop mossy stones with classical elegance.',
   },
@@ -491,7 +458,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Grand Blooming Sakura Tree',
     icon: '🌸',
     image: '/images/zen/elements/cherry_tree.png?v=20260915_tree',
-    category: 'flora',
     descVi: 'Cây anh đào đại thụ mọc tự nhiên trên thảm cỏ, rễ bám sâu vào lòng đất rêu phong, tán hoa hồng rực rỡ kết thành dàn đào ngút ngàn.',
     descEn: 'An ancient sakura tree rooted deeply into mossy soil, blossoming with vibrant pink flowers to form a scenic grove.',
   },
@@ -501,7 +467,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Towering Emerald Bamboo Grove',
     icon: '🎍',
     image: '/images/zen/elements/bamboo.png?v=20260908b',
-    category: 'flora',
     descVi: 'Rừng trúc xanh cao vút đón gió ngàn, thân trúc dẻo dai kiên cường mang lại sinh khí dồi dào và thanh tịnh cho ốc đảo.',
     descEn: 'Towering jade bamboo stalks reaching skyward, swaying rhythmically with mountain winds.',
   },
@@ -511,7 +476,6 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelEn: 'Wildflower Riverbank Meadow',
     icon: '🌺',
     image: '/images/zen/elements/flower_bed.png?v=20260908b',
-    category: 'flora',
     descVi: 'Thảm hoa rừng đầy hương sắc bừng nở bên bờ cỏ Tây, điểm tô sắc màu rực rỡ cho khu vườn thiền bên dòng suối biếc.',
     descEn: 'A vibrant riverside wildflower meadow bursting with colorful blooms and refreshing fragrance.',
   },
@@ -520,8 +484,7 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     labelVi: 'Thủy Tạ Lầu Son Cung Đình',
     labelEn: 'Imperial Waterside Pavilion',
     icon: '🏯',
-    image: '/images/zen/elements/teahouse.png?v=20260908b',
-    category: 'architecture',
+    image: '/images/zen/elements/fallen_petals_pavilion.png?v=20260916',
     descVi: 'Tháp lầu son gác tía uy nghi tráng lệ soi bóng xuống mặt hồ nước biếc trong buổi hoàng hôn thanh bình.',
     descEn: 'A majestic imperial lakeside pavilion with tiered roofs and serene wooden architecture overlooking the river.',
   },
@@ -811,7 +774,7 @@ interface ItemRenderConfig {
 }
 
 export interface RealmAssetOverride {
-  img: string;
+  img?: string;
   width?: number;
   height?: number;
   xOffset?: number;
@@ -1309,7 +1272,7 @@ const ITEM_RENDER_CONFIG: Record<GardenItemType, ItemRenderConfig> = {
     animDuration: 4.5,
   },
   fireflies: {
-    img: '/images/zen/elements/butterflies.png?v=20260908b',
+    img: '/images/zen/elements/starfire_orb_lantern.png?v=20260916',
     width: 76,
     height: 76,
     xOffset: -38,
@@ -1371,19 +1334,6 @@ const ITEM_RENDER_CONFIG: Record<GardenItemType, ItemRenderConfig> = {
     animate: { rotate: [-0.6, 0.6, -0.6] },
     animDuration: 5.2,
   },
-  tea_ceremony: {
-    img: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
-    width: 112,
-    height: 112,
-    xOffset: -56,
-    yOffset: -96,
-    shadowRx: 45,
-    shadowRy: 14,
-    shadowY: 8,
-    dropShadow: 'drop-shadow(0 6px 16px rgba(0,0,0,0.32))',
-    animate: { rotate: [-0.6, 0.6, -0.6] },
-    animDuration: 5.2,
-  },
   cherry_tree: {
     img: '/images/zen/elements/cherry_tree.png?v=20260915_tree',
     width: 168,
@@ -1422,7 +1372,7 @@ const ITEM_RENDER_CONFIG: Record<GardenItemType, ItemRenderConfig> = {
     dropShadow: 'drop-shadow(0 6px 12px rgba(0,0,0,0.3))',
   },
   imperial_pagoda: {
-    img: '/images/zen/elements/teahouse.png?v=20260908b',
+    img: '/images/zen/elements/fallen_petals_pavilion.png?v=20260916',
     width: 160,
     height: 160,
     xOffset: -80,
@@ -1447,7 +1397,6 @@ export const HARMONIC_GARDEN_SLOTS: Record<GardenItemType, { x: number; y: numbe
   bamboo_fountain: { x: 485, y: 395, scale: 1.05 },   // 7. 🎋 Thác nước trúc Shishi-odoshi bên thềm đá bờ Đông
   wooden_boat: { x: 395, y: 450, scale: 1.05 },       // 8. 🚣 Thuyền gỗ nâu cổ điển bồng bềnh giữa dòng sông
   chinese_rose: { x: 215, y: 235, scale: 1 },         // 9. 🌹 Bụi hồng cổ trang nhỏ xinh bên thềm cỏ đồi Tây
-  tea_ceremony: { x: 215, y: 235, scale: 1 },         // Legacy alias
   bamboo_sprout: { x: 95, y: 395, scale: 1 },         // 10. 🌿 Khóm trúc ngọc vươn cao mép đá đồi Tây
   bonsai_tree: { x: 65, y: 310, scale: 1 },           // 11. 🌲 Tùng bonsai cổ thụ ngàn năm trên thảm cỏ Tây
   chrysanthemum: { x: 745, y: 420, scale: 1 },        // 12. 🌼 Hoa cúc vàng đón ban mai tiền cảnh bờ Đông
@@ -1682,7 +1631,6 @@ function renderGardenItem(
   _biome?: BiomeConfig,
   dragProps?: {
     isDragging: boolean;
-    isArrangeMode: boolean;
     onPointerDown: (e: React.PointerEvent, item: GardenEntity, posX: number, posY: number) => void;
   }
 ) {
@@ -1704,7 +1652,7 @@ function renderGardenItem(
   const isLotus = item.type === 'water_lotus';
   const isBoat = item.type === 'wooden_boat';
 
-  // 🎯 TỌA ĐỘ VẬT THỂ: Ưu tiên tọa độ người chơi tùy biến (kéo thả) hoặc tọa độ vàng mặc định
+  // 🎯 TỌA ĐỘ VẬT THỂ: Ưu tiên tọa độ người chơi tùy biến hoặc tọa độ vàng mặc định
   const isSecondary = item.id.includes('sec-');
   const defaultSlot = HARMONIC_GARDEN_SLOTS[item.type];
   let posX = typeof item.x === 'number' ? item.x : defaultSlot ? defaultSlot.x : 400;
@@ -1712,12 +1660,12 @@ function renderGardenItem(
   let effectiveScale = typeof item.scale === 'number' ? item.scale : defaultSlot ? defaultSlot.scale : 1;
 
   if (!item.customPos && !isSecondary && defaultSlot) {
-    // 18 phần tử cốt lõi lấy đúng tọa độ vàng nếu người chơi chưa kéo thả
+    // 18 phần tử cốt lõi lấy đúng tọa độ vàng
     posX = defaultSlot.x;
     posY = defaultSlot.y;
     effectiveScale = defaultSlot.scale;
   } else if (!item.customPos && (isKoi || isLotus || isBoat)) {
-    // Nếu chưa kéo thả mà tọa độ lệch ra bờ thì ép về lòng sông
+    // Nếu tọa độ lệch ra bờ thì ép về lòng sông
     if (posX < 320 || posX > 480 || posY < 320) {
       posX = defaultSlot ? defaultSlot.x : (isBoat ? 395 : isKoi ? 425 : 345);
       posY = defaultSlot ? defaultSlot.y : (isBoat ? 450 : isKoi ? 345 : 390);
@@ -1741,34 +1689,16 @@ function renderGardenItem(
   const filterStyle = `${cfg.dropShadow} ${hueRotate ? `hue-rotate(${hueRotate}deg)` : ''} ${brightness !== 1 ? `brightness(${brightness})` : ''} ${saturate !== 1 ? `saturate(${saturate})` : ''}`.trim();
 
   const isDragging = dragProps?.isDragging || false;
-  const isArrangeMode = dragProps?.isArrangeMode || false;
 
   return (
     <g
       key={item.id}
       transform={`translate(${posX}, ${posY})`}
-      className={`${isDragging ? 'cursor-grabbing' : isArrangeMode ? 'cursor-grab' : 'cursor-pointer hover:cursor-grab'} pointer-events-auto select-none group`}
+      className={`${isDragging ? 'cursor-grabbing' : 'cursor-grab'} pointer-events-auto select-none group`}
       onPointerDown={(e) => {
         dragProps?.onPointerDown(e, item, posX, posY);
       }}
     >
-      {/* 🧭 Vòng định vị phong thủy khi đang ở chế độ Bày Trí hoặc đang kéo thả */}
-      {(isArrangeMode || isDragging) && (
-        <g pointerEvents="none">
-          <ellipse
-            cx="0"
-            cy={cfg.shadowY + 4}
-            rx={(cfg.shadowRx * effectiveScale) + 12}
-            ry={(cfg.shadowRy * effectiveScale) + 7}
-            fill={isDragging ? 'rgba(251, 191, 36, 0.2)' : 'rgba(16, 185, 129, 0.08)'}
-            stroke={isDragging ? '#fbbf24' : '#34d399'}
-            strokeWidth={isDragging ? 2.5 : 1.4}
-            strokeDasharray={isDragging ? '4 3' : '3 3'}
-            opacity={isDragging ? 0.95 : 0.65}
-          />
-        </g>
-      )}
-
       {/* Soft Ground / Water Shadow in 3D perspective */}
       <ellipse
         cx="0"
@@ -2004,8 +1934,6 @@ function GrandZenCanvas({
   onResetGarden,
   onUpdateItemPosition,
   onResetLayout,
-  onPlaceCatalogItem,
-  onStoreCatalogItem,
 }: {
   biome: BiomeConfig;
   gardenEntities: GardenEntity[];
@@ -2024,17 +1952,12 @@ function GrandZenCanvas({
   onResetGarden?: () => void;
   onUpdateItemPosition?: (id: string, x: number, y: number) => void;
   onResetLayout?: () => void;
-  onPlaceCatalogItem?: (type: GardenItemType) => void;
-  onStoreCatalogItem?: (type: GardenItemType) => void;
 }) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
 
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [inventoryCategory, setInventoryCategory] = useState<'all' | 'architecture' | 'flora' | 'fauna'>('all');
 
   const dragSessionRef = useRef<{
     id: string;
@@ -2147,9 +2070,6 @@ function GrandZenCanvas({
   // Từ đúng 2: Hoa dại nở rộ ven đường, lá sen nổi trên nước, bướm/hạt khí quyển kéo đến.
   // Từ đúng 3+: Hoa tử đằng buông rủ trên lan can cầu, đàn cá koi bơi lội, tùng bonsai, nhà tranh...
   const hasBridge = completedCount >= 1 || gardenEntities.length >= 1;
-  const hasWildflowers = completedCount >= 2 || gardenEntities.length >= 2;
-  const hasLilyPads = completedCount >= 2 || gardenEntities.length >= 2;
-  const hasWisteria = completedCount >= 3 || gardenEntities.length >= 3;
   const hasParticles = completedCount >= 2 || gardenEntities.length >= 2;
 
   return (
@@ -2164,7 +2084,7 @@ function GrandZenCanvas({
       <div className={isExpanded ? 'relative w-full h-full max-w-[1360px] max-h-[850px] flex items-center justify-center' : 'w-full h-full relative'}>
         <svg
           ref={svgRef}
-          className={`w-full h-full block select-none ${draggingId ? 'cursor-grabbing' : isArrangeMode ? 'cursor-default' : ''}`}
+          className={`w-full h-full block select-none ${draggingId ? 'cursor-grabbing' : ''}`}
           viewBox="0 0 800 500"
           preserveAspectRatio="xMidYMid meet"
           onPointerMove={handlePointerMove}
@@ -3081,57 +3001,11 @@ function GrandZenCanvas({
           .map((el) =>
             renderGardenItem(el, onInspectGarden, isExpanded, biome, {
               isDragging: draggingId === el.id,
-              isArrangeMode,
               onPointerDown: handleItemPointerDown,
             })
           )}
       </svg>
     </div>
-
-      {/* 📐 FLOATING ARRANGE MODE GUIDE BANNER */}
-      <AnimatePresence>
-        {isArrangeMode && (
-          <motion.div
-            initial={{ opacity: 0, y: -12, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.94 }}
-            className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-950/92 text-amber-200 border border-amber-400/60 shadow-2xl text-[11px] font-bold backdrop-blur-md select-none pointer-events-auto"
-          >
-            <span className="flex items-center gap-1.5">
-              <Move size={12} className="text-amber-400 animate-pulse" />
-              <span>{isVi ? 'Kéo thả vật thể bất kỳ để tự do tạo bố cục vườn' : 'Drag & drop any object to customize layout'}</span>
-            </span>
-            <span className="opacity-35">|</span>
-            {onResetLayout && (
-              <button
-                type="button"
-                onClick={onResetLayout}
-                className="text-amber-400 hover:text-white underline font-extrabold transition-colors cursor-pointer"
-                title={isVi ? 'Khôi phục vị trí mặc định ban đầu' : 'Reset positions'}
-              >
-                {isVi ? 'Bố cục gốc' : 'Reset layout'}
-              </button>
-            )}
-            <span className="opacity-35">|</span>
-            <button
-              type="button"
-              onClick={() => setIsInventoryOpen((prev) => !prev)}
-              className="flex items-center gap-1 text-emerald-400 hover:text-white font-extrabold transition-colors cursor-pointer"
-              title={isVi ? 'Mở túi cảnh vật / kho đồ tự do bày trí' : 'Open garden storage bag'}
-            >
-              <Package size={11} />
-              <span>{isVi ? 'Túi Cảnh Vật' : 'Open Bag'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsArrangeMode(false)}
-              className="ml-1 text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5"
-            >
-              ✕
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Top Bar Badges & Controls */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-auto z-10">
@@ -3151,39 +3025,6 @@ function GrandZenCanvas({
                 • {t('zen_btn_fullscreen')}
               </span>
             )}
-          </button>
-
-          {/* Nút Bật/Tắt Chế Độ Kéo Thả Bày Trí Vườn */}
-          <button
-            type="button"
-            onClick={() => setIsArrangeMode((prev) => !prev)}
-            className={`px-3 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
-              isArrangeMode
-                ? 'bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400/60 shadow-amber-400/40 scale-105'
-                : 'bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 hover:bg-white border-white/60 hover:scale-105'
-            }`}
-            title={isVi ? 'Bật/tắt chế độ kéo thả sắp xếp các vật thể trong vườn' : 'Toggle garden arrange & drag mode'}
-          >
-            <Move size={13} className={isArrangeMode ? 'text-slate-950 animate-bounce' : 'text-emerald-600'} />
-            <span>{isVi ? (isArrangeMode ? 'Đang Bày Trí' : 'Bày Trí Vườn') : (isArrangeMode ? 'Arranging' : 'Arrange')}</span>
-          </button>
-
-          {/* Nút Bật/Tắt Túi Cảnh Vật (Kho Bày Trí) */}
-          <button
-            type="button"
-            onClick={() => setIsInventoryOpen((prev) => !prev)}
-            className={`px-3 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
-              isInventoryOpen
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400 ring-2 ring-emerald-400/60 shadow-emerald-500/40 scale-105'
-                : 'bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 hover:bg-white border-white/60 hover:scale-105'
-            }`}
-            title={isVi ? 'Mở túi cảnh vật / kho đồ tự do bày trí' : 'Open garden storage / inventory drawer'}
-          >
-            <Package size={13} className={isInventoryOpen ? 'text-slate-950 animate-bounce' : 'text-emerald-600'} />
-            <span>{isVi ? 'Túi Cảnh Vật' : 'Bag'}</span>
-            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
-              {gardenEntities.length}
-            </span>
           </button>
         </div>
 
@@ -3341,6 +3182,17 @@ function GrandZenCanvas({
                 <span>{isVi ? 'Gieo lại' : 'Replant'}</span>
               </button>
             )}
+            {gardenEntities.some((e) => e.customPos) && onResetLayout && (
+              <button
+                type="button"
+                onClick={onResetLayout}
+                className="text-[10px] text-slate-400 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors ml-1 px-1.5 py-0.5 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer flex items-center gap-1"
+                title={isVi ? 'Khôi phục vị trí mặc định ban đầu' : 'Reset positions'}
+              >
+                <Move size={10} />
+                <span>{isVi ? 'Bố cục gốc' : 'Reset layout'}</span>
+              </button>
+            )}
           </div>
           <div className="text-[11px] font-semibold italic text-slate-600 dark:text-slate-300 hidden sm:block">
             {gardenEntities.length === 0
@@ -3352,166 +3204,6 @@ function GrandZenCanvas({
         </div>
       )}
 
-      {/* 🎒 LIVING GARDEN INVENTORY DRAWER (TÚI CẢNH VẬT & KHO BÀY TRÍ) */}
-      <AnimatePresence>
-        {isInventoryOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.98 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute inset-x-3 bottom-3 sm:inset-x-6 sm:bottom-4 z-40 bg-slate-950/95 backdrop-blur-2xl border-2 border-emerald-500/50 shadow-2xl rounded-3xl flex flex-col text-white pointer-events-auto select-none overflow-hidden max-h-[82%]"
-          >
-            {/* Drawer Header */}
-            <div className="px-4 sm:px-5 py-3 border-b border-slate-800/90 flex items-center justify-between shrink-0 bg-slate-900/60">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
-                  <Package size={17} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs sm:text-sm font-black text-amber-300">
-                      {isVi ? 'Túi Cảnh Vật (Kho Bày Trí)' : 'Garden Storage (Inventory)'}
-                    </h3>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300">
-                      {isVi ? `Đang bày: ${gardenEntities.length} món` : `Placed: ${gardenEntities.length} items`}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 hidden sm:block">
-                    {isVi
-                      ? 'Tự do lấy ra cắm vào vườn hoặc cất vào túi theo gu thẩm mỹ cá nhân'
-                      : 'Freely place items into your garden or store them back into inventory'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 italic hidden md:inline">
-                  {isVi ? 'Gợi ý: 15 - 25 món để vườn thoáng đẹp 60fps' : 'Tip: 15-25 items recommended for 60fps'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsInventoryOpen(false)}
-                  className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs font-bold"
-                  title={isVi ? 'Đóng túi đồ' : 'Close inventory'}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Category Filter Tabs */}
-            <div className="px-4 py-2 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none bg-slate-900/30">
-              {[
-                { id: 'all', labelVi: 'Tất Cả Món', labelEn: 'All Items' },
-                { id: 'architecture', labelVi: '🏛️ Kiến Trúc & Cảnh', labelEn: '🏛️ Pavilions & Decor' },
-                { id: 'flora', labelVi: '🌸 Cây Cối & Hoa Cỏ', labelEn: '🌸 Trees & Flowers' },
-                { id: 'fauna', labelVi: '🦋 Sinh Vật & Thú', labelEn: '🦋 Fauna & Spirits' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setInventoryCategory(tab.id as any)}
-                  className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer shrink-0 border ${
-                    inventoryCategory === tab.id
-                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
-                      : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border-slate-800 hover:bg-slate-800'
-                  }`}
-                >
-                  {isVi ? tab.labelVi : tab.labelEn}
-                </button>
-              ))}
-            </div>
-
-            {/* Item Grid Catalog */}
-            <div className="p-3 sm:p-4 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 max-h-[320px] scrollbar-thin scrollbar-thumb-slate-700">
-              {Object.values(GARDEN_CATALOG)
-                .filter((item, idx, arr) => {
-                  if (item.type === 'tea_ceremony') return false;
-                  if (arr.findIndex((x) => x.type === item.type) !== idx) return false;
-                  if (inventoryCategory === 'all') return true;
-                  return item.category === inventoryCategory;
-                })
-                .map((item) => {
-                  const activeCount = gardenEntities.filter((e) => e.type === item.type).length;
-                  const realmOverride = (biome?.id && REALM_ITEM_OVERRIDES[biome.id]?.[item.type]) || null;
-                  const displayImg = realmOverride?.img || item.image;
-                  const displayLabel = isVi
-                    ? realmOverride?.labelVi || item.labelVi
-                    : realmOverride?.labelEn || item.labelEn;
-                  const displayIcon = realmOverride?.icon || item.icon;
-
-                  return (
-                    <div
-                      key={item.type}
-                      className={`p-2.5 rounded-2xl border transition-all flex flex-col justify-between group ${
-                        activeCount > 0
-                          ? 'bg-slate-900/90 border-emerald-500/50 shadow-sm'
-                          : 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700 opacity-80 hover:opacity-100'
-                      }`}
-                    >
-                      <div>
-                        <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800 mb-2 flex items-center justify-center">
-                          <img
-                            src={displayImg}
-                            alt={displayLabel}
-                            className="max-w-[85%] max-h-[85%] object-contain drop-shadow-md group-hover:scale-105 transition-transform"
-                            loading="lazy"
-                          />
-                          <span className="absolute top-1 left-1.5 text-xs">
-                            {displayIcon}
-                          </span>
-                          {activeCount > 0 ? (
-                            <span className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/90 text-slate-950 shadow-xs">
-                              x{activeCount}
-                            </span>
-                          ) : (
-                            <span className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-slate-800/80 text-slate-400">
-                              {isVi ? 'Túi' : 'Bag'}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <h5 className="text-[11px] font-bold text-slate-200 truncate" title={displayLabel}>
-                            {displayLabel}
-                          </h5>
-                          <p className="text-[9px] text-slate-400 mt-0.5">
-                            {activeCount > 0
-                              ? isVi ? `Đang bày ${activeCount} món` : `${activeCount} in garden`
-                              : isVi ? 'Trong túi kho' : 'In storage'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => onPlaceCatalogItem?.(item.type)}
-                          className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
-                          title={isVi ? 'Bày thêm món này ra vườn' : 'Place into garden'}
-                        >
-                          <Plus size={11} />
-                          <span>{isVi ? 'Bày ra' : 'Place'}</span>
-                        </button>
-                        {activeCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => onStoreCatalogItem?.(item.type)}
-                            className="py-1 px-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-500/40 font-black text-[10px] flex items-center justify-center transition-all cursor-pointer active:scale-95"
-                            title={isVi ? 'Thu hồi 1 món này cất vào túi' : 'Store back into bag'}
-                          >
-                            <Minus size={11} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -3757,75 +3449,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     }
   };
 
-  // 🎒 Túi Cảnh Vật: Bày thêm 1 món từ kho ra vườn theo gu cá nhân
-  const handlePlaceCatalogItem = (type: GardenItemType) => {
-    const catalog = GARDEN_CATALOG[type];
-    if (!catalog) return;
-    const defaultSlot = HARMONIC_GARDEN_SLOTS[type] || { x: 400, y: 300, scale: 1 };
-    const countOfType = gardenEntities.filter((e) => e.type === type).length;
-    const jitterX = countOfType > 0 ? ((countOfType * 37) % 110) - 55 : 0;
-    const jitterY = countOfType > 0 ? ((countOfType * 23) % 70) - 35 : 0;
 
-    const newEntity: GardenEntity = {
-      id: `garden-placed-${Date.now()}-${type}`,
-      type,
-      x: Math.max(65, Math.min(735, defaultSlot.x + jitterX)),
-      y: Math.max(120, Math.min(465, defaultSlot.y + jitterY)),
-      scale: defaultSlot.scale || 1,
-      labelVi: catalog.labelVi,
-      labelEn: catalog.labelEn,
-      descVi: catalog.descVi,
-      descEn: catalog.descEn,
-      createdAt: Date.now(),
-      customPos: countOfType > 0,
-    };
-
-    setGardenEntities((prev) => {
-      const next = [...prev, newEntity];
-      try {
-        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
-        localStorage.removeItem('zen_garden_cleared_v2');
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-
-    playZenTapSound();
-    setLastGardenSpawned(isVi ? catalog.labelVi : catalog.labelEn);
-    setTimeout(() => setLastGardenSpawned(null), 2500);
-  };
-
-  // 🎒 Túi Cảnh Vật: Cất 1 món cùng loại từ vườn vào kho túi
-  const handleStoreCatalogItem = (type: GardenItemType) => {
-    setGardenEntities((prev) => {
-      const idx = [...prev].reverse().findIndex((e) => e.type === type);
-      if (idx === -1) return prev;
-      const actualIdx = prev.length - 1 - idx;
-      const next = prev.filter((_, i) => i !== actualIdx);
-      try {
-        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-    playZenTapSound();
-  };
-
-  // 🎒 Cất 1 món cụ thể theo id (dùng cho modal inspect hoặc arrange mode)
-  const handleRemoveItemById = (id: string) => {
-    setGardenEntities((prev) => {
-      const next = prev.filter((e) => e.id !== id);
-      try {
-        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-    playZenTapSound();
-  };
 
   // 🗺️ Active Realm / Biome State (Cảnh Giới Cõi Gắn Liền Với 8 Thần Thú & Lưu Bền Vững)
   const [selectedBiomeId, setSelectedBiomeId] = useState<string>(() => {
@@ -3841,7 +3465,6 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   });
 
   const [showRealmModal, setShowRealmModal] = useState(false);
-  const [realmCelebration, setRealmCelebration] = useState<BiomeConfig | null>(null);
 
   // Set of unique normalized words learned across all decks (Chống tính trùng lặp từ vựng)
   const [uniqueLearnedWords, setUniqueLearnedWords] = useState<string[]>(() => {
@@ -4709,24 +4332,10 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 );
               })()}
 
-              <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (inspectingGardenItem) {
-                      handleRemoveItemById(inspectingGardenItem.id);
-                      setInspectingGardenItem(null);
-                    }
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                  title={isVi ? 'Thu hồi vật thể này cất vào túi cảnh vật' : 'Store this item into inventory'}
-                >
-                  <Package size={14} />
-                  <span>{isVi ? 'Cất Vào Túi' : 'Store to Bag'}</span>
-                </button>
+              <div className="pt-2 flex items-center">
                 <button
                   onClick={() => setInspectingGardenItem(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer"
                 >
                   {t('zen_item_modal_close')}
                 </button>
@@ -6060,8 +5669,6 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           onResetGarden={handleResetGarden}
           onUpdateItemPosition={handleUpdateItemPosition}
           onResetLayout={handleResetLayout}
-          onPlaceCatalogItem={handlePlaceCatalogItem}
-          onStoreCatalogItem={handleStoreCatalogItem}
         />
 
         {/* Flourished Celebration Banner */}

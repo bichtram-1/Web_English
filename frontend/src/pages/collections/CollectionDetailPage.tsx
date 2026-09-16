@@ -14,7 +14,6 @@ import {
   Lock,
   Search,
   CheckCircle2,
-  Clock,
   Layers,
   X,
   UserPlus,

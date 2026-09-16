@@ -5,13 +5,9 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   RotateCcw,
-  Sparkles,
   Trophy,
   Volume2,
-  VolumeX,
-  HelpCircle,
   Key,
-  Flame,
   Check,
   X,
   ChevronRight,
@@ -31,13 +27,11 @@ import GameAudioMenu from '../../../components/general/GameAudioMenu';
 import {
   playCorrectSound,
   playIncorrectSound,
-  playMatchSound,
   playMismatchSound,
   playWinFanfare,
   playLetterPlaceSound,
   playLetterRemoveSound,
   playTreasureChestSound,
-  isSoundEnabled,
 } from '../../../utils/soundEffects';
 import { stripParentheses } from '../../../utils/answerMatch';
 

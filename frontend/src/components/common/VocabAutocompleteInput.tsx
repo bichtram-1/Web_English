@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, BookOpen, Layers, Check, X, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { getVocabSuggestions, type VocabSuggestion } from '../../data/vocabDictionary';
 import { translateSingleWord } from '../../utils/textExtractor';
 

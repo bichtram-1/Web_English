@@ -18,7 +18,6 @@ import { useCollections } from '../../hooks/useCollections';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { getCollectionDetailRoute, getStudyRoute, ROUTES } from '../../constants/routers';
-import Loading from '../../components/shared/Loading';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import EditCollectionModal from '../../components/shared/EditCollectionModal';

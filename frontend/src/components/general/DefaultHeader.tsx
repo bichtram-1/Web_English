@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Plus, BookOpen, Layers, BarChart3, LogIn, LogOut, Menu, FolderOpen, Gamepad2, Languages } from 'lucide-react';
+import { Plus, Layers, BarChart3, LogIn, LogOut, Menu, FolderOpen, Gamepad2, Languages } from 'lucide-react';
 import { ROUTES } from '../../constants/routers';
 import { useAuth } from '../../hooks/useAuth';
 import ThemeToggle from './ThemeToggle';

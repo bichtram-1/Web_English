@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, BookOpen, Sparkles, Users, ChevronRight, Star, Plus, FolderOpen, Globe, Lock, Gamepad2, Crown, Target, Leaf, PenLine, Play, Languages } from 'lucide-react';
+import { Search, BookOpen, Sparkles, Users, ChevronRight, Plus, FolderOpen, Lock, Gamepad2, Play, Languages } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDecks } from '../../hooks/useDecks';
 import { mockDecks } from '../../data/mockData';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layers, PlusCircle, BarChart3, BookOpen, Sparkles, LogIn, LogOut, User as UserIcon, FolderOpen, Gamepad2, Languages, Image } from 'lucide-react';
+import { X, Layers, PlusCircle, BarChart3, BookOpen, LogIn, LogOut, FolderOpen, Gamepad2, Languages, Image } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallpaper } from '../../contexts/WallpaperContext';
@@ -22,7 +22,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const isVi = i18n.language === 'vi';
   const { decks } = useDecks();
   const { user, isAuthenticated, logout } = useAuth();
-  const { setWallpaperModalOpen } = useWallpaper();
+  const { setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
   const navigate = useNavigate();
   const visibleDecks = decks.filter((deck) => canViewDeck(deck, user));
   const [profileModalOpen, setProfileModalOpen] = useState(false);

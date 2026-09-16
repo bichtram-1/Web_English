@@ -1,7 +1,6 @@
 import axiosInstance from './axiosInstance';
 import { ENDPOINTS } from '../constants/endpoint';
 import { LoginDTO, RegisterDTO, AuthResponse, User } from '../types/auth.types';
-import { ApiResponse } from '../types/api.types';
 
 export const authApi = {
   login: async (credentials: LoginDTO): Promise<AuthResponse> => {

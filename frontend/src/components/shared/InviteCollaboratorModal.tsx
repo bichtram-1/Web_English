@@ -6,15 +6,11 @@ import {
   Users,
   UserPlus,
   Mail,
-  Shield,
   Copy,
   Check,
   Trash2,
-  Sparkles,
   Eye,
   PenTool,
-  Globe,
-  Lock,
 } from 'lucide-react';
 import collectionApi from '../../api/collectionApi';
 import { useAuth } from '../../hooks/useAuth';

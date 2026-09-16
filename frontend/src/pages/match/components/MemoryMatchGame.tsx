@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   RotateCcw,
   Volume2,
-  VolumeX,
   Sparkles,
   Trophy,
   Flame,
@@ -15,7 +14,6 @@ import {
   HelpCircle,
   Star,
   Layers,
-  Volume1,
 } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';

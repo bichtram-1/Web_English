@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,10 +10,7 @@ import {
   PenLine,
   Target,
   Play,
-  Layers,
-  CheckCircle2,
   ArrowRight,
-  Flame,
   X,
   BookOpen,
 } from 'lucide-react';
@@ -27,7 +24,6 @@ import {
   getZenRoute,
   getWrittenRoute,
   getTreasureRoute,
-  ROUTES,
 } from '../../constants/routers';
 import type { Deck } from '../../types/DeckType';
 

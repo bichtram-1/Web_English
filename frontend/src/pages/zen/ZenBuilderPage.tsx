@@ -42,11 +42,13 @@ export default function ZenBuilderPage() {
               ? 'Thế giới Zen học tập thư giãn tổng hợp từ toàn bộ kho từ vựng'
               : 'A tranquil Zen sanctuary aggregated from all vocabulary decks',
             cards: pool,
+            creator: 'system',
+            itemCount: pool.length,
+            category: 'Arcade',
+            color: 'emerald',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            tags: ['Zen', 'Relax', 'Arcade'],
             isPublic: true,
-            authorId: 'system',
           };
           setDeck(virtualDeck);
         } else {

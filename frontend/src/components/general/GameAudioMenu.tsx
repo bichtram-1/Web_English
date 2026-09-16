@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Volume1, Check, Settings2, Sliders } from 'lucide-react';
+import { Volume2, VolumeX, Volume1 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSoundEnabled, toggleSound } from '../../utils/soundEffects';
 

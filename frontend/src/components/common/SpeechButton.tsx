@@ -1,4 +1,4 @@
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import { useSpeech } from '../../hooks/useSpeech';
 
 interface SpeechButtonProps {

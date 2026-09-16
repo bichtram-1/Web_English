@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock, Star, Image as ImageIcon, Keyboard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import ThemeToggle from '../../components/general/ThemeToggle';
@@ -23,7 +23,6 @@ import {
   calculateSM2,
   saveSM2Record,
   getSM2RatingOptions,
-  getDeckSRSStats,
   type SM2Rating,
   type SM2Record,
 } from '../../utils/sm2';

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreVertical, Trash2, Edit3, BookOpen, Lock, ShieldAlert } from 'lucide-react';
+import { MoreVertical, Trash2, Edit3, BookOpen, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ItemOptionsMenuProps {

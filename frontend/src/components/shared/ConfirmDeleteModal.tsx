@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, AlertTriangle, X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ConfirmDeleteModalProps {

@@ -1,4 +1,4 @@
-import type { Deck, CardItem, FlashcardItem } from '../types/DeckType';
+import type { Deck } from '../types/DeckType';
 
 export interface ParsedCard {
   front: string;

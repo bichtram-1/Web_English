@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FolderPlus, Check, Plus, Lock, Globe, Sparkles } from 'lucide-react';
+import { X, FolderPlus, Check, Plus, Lock, Globe } from 'lucide-react';
 import { useCollections } from '../../hooks/useCollections';
 import { useAuth } from '../../hooks/useAuth';
 import type { Deck } from '../../types/DeckType';

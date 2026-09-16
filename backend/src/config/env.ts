@@ -9,5 +9,4 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'super_secret_jwt_key_datn_2026_lingualeap_english',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  dbPath: path.resolve(__dirname, '../../data/database.json'),
 };

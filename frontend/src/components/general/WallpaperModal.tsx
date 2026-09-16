@@ -10,7 +10,6 @@ import {
   X,
   Check,
   Sparkles,
-  Layers,
 } from 'lucide-react';
 import {
   useWallpaper,

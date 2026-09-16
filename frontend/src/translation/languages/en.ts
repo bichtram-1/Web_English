@@ -302,8 +302,8 @@ const EnTranslation: I18nKey = {
   match_badge_vi: 'Vietnamese',
   match_stars: 'Star Rating',
 
-  // SM-2 Spaced Repetition System
-  sm2_title: 'SM-2 Spaced Repetition Algorithm',
+  // Spaced Repetition System
+  sm2_title: 'Spaced Repetition System',
   sm2_desc: 'Review vocabulary at the optimal golden intervals before forgetting occurs.',
   sm2_rating_again: 'Again (< 10 mins)',
   sm2_rating_hard: 'Hard (1-2 days)',

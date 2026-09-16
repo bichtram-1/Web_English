@@ -49,8 +49,8 @@ const MASCOT_QUOTES_EN = [
     badge: 'Companion',
   },
   {
-    text: 'Pro-tip: Use the SM-2 Spaced Repetition System to review cards right before memory fades! 🧠',
-    badge: 'SM-2 Tip',
+    text: 'Pro-tip: Review your flashcards on schedule right before memory fades! 🧠',
+    badge: 'Study Tip',
   },
   {
     text: 'Try the Treasure Hunt & Memory Card Match games in the Arcade! 🎮',

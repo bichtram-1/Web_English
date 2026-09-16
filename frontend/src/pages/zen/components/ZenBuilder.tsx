@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,6 +28,11 @@ import {
   Brain,
   Compass,
   MapPin,
+  Keyboard,
+  Move,
+  Package,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
@@ -51,7 +56,7 @@ import {
   type SoundChannel,
   type ZenPresetId,
 } from '../../../utils/zenAudio';
-import { cleanTtsText } from '../../../hooks/useSpeech';
+import { cleanTtsText, stripParentheses } from '../../../hooks/useSpeech';
 
 // --- 🐉 LIÊN QUÂN MOBILE GUARDIANS & REALMS TYPE ---
 export type MythicType =
@@ -86,6 +91,10 @@ export interface BiomeConfig {
   cloudTint?: string;
   godRayColor?: string;
   particleType?: 'spore' | 'ember' | 'stardust' | 'sakura' | 'celestial' | 'aurora' | 'butterfly';
+  grassGradientLeft?: [string, string, string, string];
+  grassGradientRight?: [string, string, string, string];
+  grassStroke?: string;
+  waterGradientCustom?: [string, string, string, string];
 }
 
 export const BIOMES: BiomeConfig[] = [
@@ -109,6 +118,10 @@ export const BIOMES: BiomeConfig[] = [
     cloudTint: '#ecfdf5',
     godRayColor: '#a7f3d0',
     particleType: 'butterfly',
+    grassGradientLeft: ['#7bc67e', '#4caf50', '#2e7d32', '#1b5e20'],
+    grassGradientRight: ['#7bc67e', '#4caf50', '#2e7d32', '#1b5e20'],
+    grassStroke: '#15803d',
+    waterGradientCustom: ['#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'],
   },
   {
     id: 'bamboo_sunset',
@@ -130,6 +143,10 @@ export const BIOMES: BiomeConfig[] = [
     cloudTint: '#ffedd5',
     godRayColor: '#fed7aa',
     particleType: 'spore',
+    grassGradientLeft: ['#a3e635', '#65a30d', '#4d7c0f', '#365314'],
+    grassGradientRight: ['#a3e635', '#65a30d', '#4d7c0f', '#365314'],
+    grassStroke: '#4d7c0f',
+    waterGradientCustom: ['#fb923c', '#ea580c', '#c2410c', '#7c2d12'],
   },
   {
     id: 'dragon_koi_falls',
@@ -151,49 +168,61 @@ export const BIOMES: BiomeConfig[] = [
     cloudTint: '#fff7ed',
     godRayColor: '#fed7aa',
     particleType: 'ember',
+    grassGradientLeft: ['#84cc16', '#4d7c0f', '#3f6212', '#1a2e05'],
+    grassGradientRight: ['#84cc16', '#4d7c0f', '#3f6212', '#1a2e05'],
+    grassStroke: '#365314',
+    waterGradientCustom: ['#fdba74', '#f97316', '#c2410c', '#7c2d12'],
   },
   {
     id: 'midnight_stars',
     guardianType: 'stag',
     requiredWords: 350,
-    nameVi: 'Đầm Đom Đóm Đêm Sao',
-    nameEn: 'Midnight Firefly Lagoon',
-    realmTitleVi: 'Cõi 4: Đầm Đom Đóm Đêm Sao',
-    realmTitleEn: 'Realm 4: Midnight Firefly Lagoon',
+    nameVi: 'Rừng Nấm Dạ Quang Đêm Sao',
+    nameEn: 'Midnight Starlight Mushroom Forest',
+    realmTitleVi: 'Cõi 4: Rừng Nấm Dạ Quang Đêm Sao',
+    realmTitleEn: 'Realm 4: Midnight Starlight Mushroom Forest',
     skyGradient: 'linear-gradient(180deg, #020617 0%, #0f172a 35%, #1e1b4b 70%, #312e81 100%)',
     mountainColor: '#0f172a',
     nearHillColor: '#1e1b4b',
     waterGradient: 'linear-gradient(180deg, #1e1b4b 0%, #090d16 100%)',
-    ambientNoteVi: 'Giữa màn đêm tĩnh mịch, đom đóm thắp sáng ngàn hoa rực rỡ bên bóng hươu thần.',
-    ambientNoteEn: 'Amidst serene darkness, fireflies illuminate a thousand blossoms by the sacred stag.',
-    accentBadgeVi: '✨ Cõi Sao',
-    accentBadgeEn: '✨ Star Realm',
+    ambientNoteVi: 'Rừng nấm phát sáng kỳ ảo thắp lối đầm đêm, muôn loài thú nhỏ và côn trùng dạ quang quây quần bên hươu thần ánh sao.',
+    ambientNoteEn: 'A magical glowing mushroom forest illuminating the midnight lagoon, where small woodland creatures and fireflies gather around the starlight stag.',
+    accentBadgeVi: '🍄 Cõi Nấm Sao',
+    accentBadgeEn: '🍄 Star Mushroom Realm',
     isNight: true,
     sunCorona: '#818cf8',
     cloudTint: '#1e1b4b',
     godRayColor: '#a5b4fc',
     particleType: 'stardust',
+    grassGradientLeft: ['#4338ca', '#312e81', '#1e1b4b', '#0f172a'],
+    grassGradientRight: ['#4338ca', '#312e81', '#1e1b4b', '#0f172a'],
+    grassStroke: '#6366f1',
+    waterGradientCustom: ['#6366f1', '#4338ca', '#312e81', '#0f172a'],
   },
   {
     id: 'glacial_phoenix_crest',
     guardianType: 'phoenix',
     requiredWords: 750,
-    nameVi: 'Thiên Sơn Băng Tuyết',
-    nameEn: 'Glacial Phoenix Crest',
-    realmTitleVi: 'Cõi 5: Thiên Sơn Băng Tuyết',
-    realmTitleEn: 'Realm 5: Glacial Phoenix Crest',
+    nameVi: 'Xứ Sở Tuyết Trắng Mùa Đông',
+    nameEn: 'Glacial Winter Wonderland',
+    realmTitleVi: 'Cõi 5: Xứ Sở Tuyết Trắng Mùa Đông',
+    realmTitleEn: 'Realm 5: Glacial Winter Wonderland',
     skyGradient: 'linear-gradient(180deg, #082f49 0%, #0369a1 30%, #0284c7 60%, #38bdf8 85%, #bae6fd 100%)',
     mountainColor: '#0c4a6e',
     nearHillColor: '#0284c7',
     waterGradient: 'linear-gradient(180deg, #38bdf8 0%, #082f49 100%)',
-    ambientNoteVi: 'Đỉnh núi tuyết pha lê nguy nga, dải cực quang lam ngọc lượn sóng xua tan muộn phiền mỏi mệt.',
-    ambientNoteEn: 'Magnificent crystal mountain crest with azure auroras dancing in the polar sky, dissipating fatigue.',
-    accentBadgeVi: '❄️ Cõi Băng Vũ',
-    accentBadgeEn: '❄️ Glacial Crest',
+    ambientNoteVi: 'Tuyết trắng phủ kín ngôi nhà ấm cúng và chú người tuyết dễ thương, dải cực quang soi bóng hồ băng bên băng phượng hoàng.',
+    ambientNoteEn: 'Pure snow blankets the cozy cabin and cheerful snowman, while auroras dance over frozen waters beside the glacial phoenix.',
+    accentBadgeVi: '❄️ Xứ Sở Tuyết',
+    accentBadgeEn: '❄️ Winter Wonderland',
     sunCorona: '#67e8f9',
     cloudTint: '#f0f9ff',
     godRayColor: '#bae6fd',
     particleType: 'aurora',
+    grassGradientLeft: ['#ffffff', '#f1f5f9', '#e2e8f0', '#cbd5e1'],
+    grassGradientRight: ['#ffffff', '#f1f5f9', '#e2e8f0', '#cbd5e1'],
+    grassStroke: '#94a3b8',
+    waterGradientCustom: ['#e0f2fe', '#bae6fd', '#7dd3fc', '#0284c7'],
   },
   {
     id: 'sakura_valley',
@@ -215,27 +244,35 @@ export const BIOMES: BiomeConfig[] = [
     cloudTint: '#fff1f2',
     godRayColor: '#fce7f3',
     particleType: 'sakura',
+    grassGradientLeft: ['#fbcfe8', '#86efac', '#22c55e', '#15803d'],
+    grassGradientRight: ['#fbcfe8', '#86efac', '#22c55e', '#15803d'],
+    grassStroke: '#ec4899',
+    waterGradientCustom: ['#f472b6', '#fb7185', '#e11d48', '#831843'],
   },
   {
     id: 'celestial_peaks',
     guardianType: 'dragon',
     requiredWords: 2100,
-    nameVi: 'Đỉnh Mây Thiên Không',
-    nameEn: 'Celestial Cloud Peak',
-    realmTitleVi: 'Cõi 7: Đỉnh Mây Thiên Không',
-    realmTitleEn: 'Realm 7: Celestial Cloud Peak',
-    skyGradient: 'linear-gradient(180deg, #78350f 0%, #b45309 25%, #d97706 50%, #f59e0b 75%, #fef08a 100%)',
-    mountainColor: '#78350f',
-    nearHillColor: '#b45309',
-    waterGradient: 'linear-gradient(180deg, #f59e0b 0%, #451a03 100%)',
-    ambientNoteVi: 'Đứng trên đỉnh núi cao ngắm mây trôi dát ánh kim hoàng, lòng nhẹ tựa mây trời bên thần long.',
-    ambientNoteEn: 'Standing atop mountain heights watching golden clouds float, the mind becomes light as celestial skies.',
-    accentBadgeVi: '☁️ Cõi Tiên',
-    accentBadgeEn: '☁️ Celestial Peak',
-    sunCorona: '#fbbf24',
-    cloudTint: '#fefce8',
+    nameVi: 'Bãi Biển Thiên Đường & Đảo San Hô',
+    nameEn: 'Azure Coral Coast & Sandy Beach',
+    realmTitleVi: 'Cõi 7: Bãi Biển Thiên Đường & Đảo San Hô',
+    realmTitleEn: 'Realm 7: Azure Coral Coast & Sandy Beach',
+    skyGradient: 'linear-gradient(180deg, #0284c7 0%, #38bdf8 30%, #7dd3fc 60%, #fed7aa 85%, #ffedd5 100%)',
+    mountainColor: '#0369a1',
+    nearHillColor: '#0284c7',
+    waterGradient: 'linear-gradient(180deg, #06b6d4 0%, #0369a1 100%)',
+    ambientNoteVi: 'Hàng dừa nghiêng bóng trên bãi cát vàng óng ả, sóng biển vỗ về rạn san hô xanh biếc dưới bóng thần long hải vương.',
+    ambientNoteEn: 'Palm trees sway above sun-warmed golden sands, gentle waves caressing vibrant coral reefs beneath the celestial sea dragon.',
+    accentBadgeVi: '🌴 Cõi Biển Xanh',
+    accentBadgeEn: '🌴 Azure Coast',
+    sunCorona: '#f59e0b',
+    cloudTint: '#ffffff',
     godRayColor: '#fef08a',
     particleType: 'celestial',
+    grassGradientLeft: ['#fef08a', '#fde047', '#f59e0b', '#d97706'],
+    grassGradientRight: ['#fef08a', '#fde047', '#f59e0b', '#d97706'],
+    grassStroke: '#b45309',
+    waterGradientCustom: ['#67e8f9', '#22d3ee', '#06b6d4', '#0284c7'],
   },
   {
     id: 'cosmic_world_tree',
@@ -257,6 +294,10 @@ export const BIOMES: BiomeConfig[] = [
     cloudTint: '#f0fdfa',
     godRayColor: '#99f6e4',
     particleType: 'spore',
+    grassGradientLeft: ['#5eead4', '#14b8a6', '#0f766e', '#042f2e'],
+    grassGradientRight: ['#5eead4', '#14b8a6', '#0f766e', '#042f2e'],
+    grassStroke: '#2dd4bf',
+    waterGradientCustom: ['#2dd4bf', '#0d9488', '#115e59', '#042f2e'],
   },
 ];
 
@@ -273,7 +314,14 @@ export type GardenItemType =
   | 'butterflies'
   | 'fireflies'
   | 'bamboo_fountain'
-  | 'flower_bed';
+  | 'flower_bed'
+  | 'wooden_boat'
+  | 'chinese_rose'
+  | 'tea_ceremony'
+  | 'cherry_tree'
+  | 'tall_bamboo'
+  | 'wild_flower_bed'
+  | 'imperial_pagoda';
 
 export interface GardenCatalogInfo {
   type: GardenItemType;
@@ -379,7 +427,7 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
   },
   fireflies: {
     type: 'fireflies',
-    labelVi: 'Đom Đóm Phát Sáng',
+    labelVi: 'Đom Đóm Dạ Quang Phát Sáng',
     labelEn: 'Bioluminescent Fireflies',
     icon: '✨',
     image: '/images/zen/elements/butterflies.png?v=20260908b',
@@ -407,7 +455,88 @@ export const GARDEN_CATALOG: Record<GardenItemType, GardenCatalogInfo> = {
     descVi: 'Bồn gỗ mộc chạm khắc tinh xảo đầy ắp những chùm cẩm tú cầu tím biếc và hồng thắm mọng sương sớm.',
     descEn: 'A rustic hand-carved wooden planter overflowing with morning-dew hydrangeas in rich violet and rose pink.',
   },
+  wooden_boat: {
+    type: 'wooden_boat',
+    labelVi: 'Thuyền Gỗ Cổ Bồng Bềnh',
+    labelEn: 'Classical Brown Wooden Sampan',
+    icon: '🚣',
+    image: '/images/zen/elements/boat.png?v=20260915_wood',
+    category: 'architecture',
+    descVi: 'Chiếc thuyền gỗ nâu cổ điển mang tông màu đồng điệu với vọng lâu thủy tạ, nhẹ trôi êm đềm theo sóng nước thiền tĩnh lặng.',
+    descEn: 'An authentic classical brown wooden sampan boat harmonizing with the waterside tea pavilion, gently drifting on the serene river.',
+  },
+  chinese_rose: {
+    type: 'chinese_rose',
+    labelVi: 'Bụi Hồng Cổ Trang Nhỏ Xinh',
+    labelEn: 'Miniature Classical Chinese Rose',
+    icon: '🌹',
+    image: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
+    category: 'flora',
+    descVi: 'Bụi hoa hồng cổ trang dáng nhỏ xinh xắn nở rộ trên tảng đá phong rêu đượm nét thanh tao, sắc hoa đỏ thắm tôn thêm vẻ hoài cổ của cõi ngọc.',
+    descEn: 'A charming miniature antique Chinese rose bush blossoming gracefully atop mossy stones with classical elegance.',
+  },
+  tea_ceremony: {
+    type: 'tea_ceremony',
+    labelVi: 'Bụi Hồng Cổ Trang Nhỏ Xinh',
+    labelEn: 'Miniature Classical Chinese Rose',
+    icon: '🌹',
+    image: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
+    category: 'flora',
+    descVi: 'Bụi hoa hồng cổ trang dáng nhỏ xinh xắn nở rộ trên tảng đá phong rêu đượm nét thanh tao, sắc hoa đỏ thắm tôn thêm vẻ hoài cổ của cõi ngọc.',
+    descEn: 'A charming miniature antique Chinese rose bush blossoming gracefully atop mossy stones with classical elegance.',
+  },
+  cherry_tree: {
+    type: 'cherry_tree',
+    labelVi: 'Đại Thụ Anh Đào Mọc Tự Nhiên',
+    labelEn: 'Grand Blooming Sakura Tree',
+    icon: '🌸',
+    image: '/images/zen/elements/cherry_tree.png?v=20260915_tree',
+    category: 'flora',
+    descVi: 'Cây anh đào đại thụ mọc tự nhiên trên thảm cỏ, rễ bám sâu vào lòng đất rêu phong, tán hoa hồng rực rỡ kết thành dàn đào ngút ngàn.',
+    descEn: 'An ancient sakura tree rooted deeply into mossy soil, blossoming with vibrant pink flowers to form a scenic grove.',
+  },
+  tall_bamboo: {
+    type: 'tall_bamboo',
+    labelVi: 'Rừng Trúc Xanh Bạt Ngàn',
+    labelEn: 'Towering Emerald Bamboo Grove',
+    icon: '🎍',
+    image: '/images/zen/elements/bamboo.png?v=20260908b',
+    category: 'flora',
+    descVi: 'Rừng trúc xanh cao vút đón gió ngàn, thân trúc dẻo dai kiên cường mang lại sinh khí dồi dào và thanh tịnh cho ốc đảo.',
+    descEn: 'Towering jade bamboo stalks reaching skyward, swaying rhythmically with mountain winds.',
+  },
+  wild_flower_bed: {
+    type: 'wild_flower_bed',
+    labelVi: 'Thảm Hoa Rừng Bờ Nước',
+    labelEn: 'Wildflower Riverbank Meadow',
+    icon: '🌺',
+    image: '/images/zen/elements/flower_bed.png?v=20260908b',
+    category: 'flora',
+    descVi: 'Thảm hoa rừng đầy hương sắc bừng nở bên bờ cỏ Tây, điểm tô sắc màu rực rỡ cho khu vườn thiền bên dòng suối biếc.',
+    descEn: 'A vibrant riverside wildflower meadow bursting with colorful blooms and refreshing fragrance.',
+  },
+  imperial_pagoda: {
+    type: 'imperial_pagoda',
+    labelVi: 'Thủy Tạ Lầu Son Cung Đình',
+    labelEn: 'Imperial Waterside Pavilion',
+    icon: '🏯',
+    image: '/images/zen/elements/teahouse.png?v=20260908b',
+    category: 'architecture',
+    descVi: 'Tháp lầu son gác tía uy nghi tráng lệ soi bóng xuống mặt hồ nước biếc trong buổi hoàng hôn thanh bình.',
+    descEn: 'A majestic imperial lakeside pavilion with tiered roofs and serene wooden architecture overlooking the river.',
+  },
 };
+
+export interface GardenEntityVariant {
+  flipX?: boolean;
+  hueRotate?: number;
+  brightness?: number;
+  saturate?: number;
+  scaleMultiplier?: number;
+  rotationJitter?: number;
+  colorNameVi?: string;
+  colorNameEn?: string;
+}
 
 export interface GardenEntity {
   id: string;
@@ -420,6 +549,8 @@ export interface GardenEntity {
   descVi: string;
   descEn: string;
   createdAt: number;
+  variant?: GardenEntityVariant;
+  customPos?: boolean;
 }
 
 // --- 🐉 LIÊN QUÂN MOBILE GUARDIANS (COMPANION & CODEX) ---
@@ -679,6 +810,388 @@ interface ItemRenderConfig {
   animDuration?: number;
 }
 
+export interface RealmAssetOverride {
+  img: string;
+  width?: number;
+  height?: number;
+  xOffset?: number;
+  yOffset?: number;
+  shadowRx?: number;
+  shadowRy?: number;
+  labelVi?: string;
+  labelEn?: string;
+  descVi?: string;
+  descEn?: string;
+  icon?: string;
+}
+
+export const REALM_ITEM_OVERRIDES: Record<string, Partial<Record<GardenItemType, RealmAssetOverride>>> = {
+  bamboo_sunset: {
+    bamboo_fountain: {
+      img: '/images/zen/elements/bamboo_waterwheel.png?v=20260915_wheel',
+      width: 145,
+      height: 140,
+      xOffset: -72.5,
+      yOffset: -125,
+      shadowRx: 60,
+      shadowRy: 16,
+      labelVi: 'Guồng Nước Gỗ Trúc Cổ Ven Suối',
+      labelEn: 'Antique Bamboo Waterwheel',
+      descVi: 'Guồng nước gỗ trúc cổ kính tuần hoàn quay chậm rãi múc nước suối hoàng hôn, mang vẻ đẹp bình dị hoài cổ của sơn thôn ẩn dật.',
+      descEn: 'An authentic antique bamboo and timber waterwheel turning rhythmically by the sunset stream, exuding rustic mountain seclusion.',
+      icon: '🎡',
+    },
+    tea_house: {
+      img: '/images/zen/elements/bamboo_hut.png?v=20260915_hut',
+      width: 180,
+      height: 172,
+      xOffset: -90,
+      yOffset: -142,
+      shadowRx: 72,
+      shadowRy: 20,
+      labelVi: 'Chòi Trà Mái Tranh & Bàn Cờ Đàn Tranh',
+      labelEn: 'Hermit Thatched Tea Hut & Guqin',
+      descVi: 'Chòi gỗ mộc mái lá tranh thanh bần dưới bóng trúc, bên trong đặt bàn cờ vây bằng đá, đàn tranh cổ và ấm trà tử sa ngắm ráng chiều hoàng hôn.',
+      descEn: 'A rustic hermit thatched tea pavilion sheltered by bamboo, furnished with a stone Go chessboard, antique Guqin zither, and clay teapot.',
+      icon: '🛖',
+    },
+    stone_lantern: {
+      img: '/images/zen/elements/bamboo_red_lantern.png?v=20260915_lantern',
+      width: 82,
+      height: 110,
+      xOffset: -41,
+      yOffset: -98,
+      shadowRx: 26,
+      shadowRy: 9,
+      labelVi: 'Lồng Đèn Lụa Đỏ Treo Nhánh Trúc',
+      labelEn: 'Crimson Silk Bamboo Lantern',
+      descVi: 'Lồng đèn lụa đỏ thắm thêu chữ cát tường treo hờ hững trên cành trúc uốn lượn, tỏa ánh sáng vàng ấm áp soi rọi thềm cỏ hoàng hôn.',
+      descEn: 'A traditional crimson silk tassel lantern suspended gracefully from a bowed bamboo stalk, casting a warm amber glow upon the sunset grass.',
+      icon: '🏮',
+    },
+    wooden_boat: {
+      img: '/images/zen/elements/bamboo_raft.png?v=20260915_raft',
+      width: 148,
+      height: 106,
+      xOffset: -74,
+      yOffset: -53,
+      shadowRx: 68,
+      shadowRy: 18,
+      labelVi: 'Bè Trúc Nan Mộc Hoàng Hôn',
+      labelEn: 'Sunset Golden Bamboo Raft',
+      descVi: 'Bè trúc vàng óng ánh nắng chiều kết từ những thân tre già dẻo dai, có gác sào tre và đèn bão nhẹ trôi bồng bềnh giữa dòng nước hoàng hôn.',
+      descEn: 'A classic golden bamboo raft bound with hemp ropes, with a slender punting pole and vintage lantern drifting along the sunset river.',
+      icon: '🛶',
+    },
+  },
+  dragon_koi_falls: {
+    tea_house: {
+      img: '/images/zen/elements/dragon_gate.png?v=20260915_gate',
+      width: 195,
+      height: 186,
+      xOffset: -97.5,
+      yOffset: -155,
+      shadowRx: 75,
+      shadowRy: 22,
+      labelVi: 'Cổng Tam Quan Long Môn Vượt Thác',
+      labelEn: 'Dragon Gate Celestial Portal',
+      descVi: 'Cổng tam quan sơn son thếp vàng chạm lộng song long chầu nguyệt, uy nghi sừng sững bên dòng thác cuộn, nơi thần ngư vượt vũ môn hóa rồng.',
+      descEn: 'A majestic vermilion and gold dragon archway standing proud by the roaring falls, where carp leap the waterfall to transform into dragons.',
+      icon: '⛩️',
+    },
+    imperial_pagoda: {
+      img: '/images/zen/elements/dragon_gate.png?v=20260915_gate',
+      width: 195,
+      height: 186,
+      xOffset: -97.5,
+      yOffset: -155,
+      shadowRx: 75,
+      shadowRy: 22,
+      labelVi: 'Cổng Tam Quan Long Môn Vượt Thác',
+      labelEn: 'Dragon Gate Celestial Portal',
+      descVi: 'Cổng tam quan sơn son thếp vàng chạm lộng song long chầu nguyệt, uy nghi sừng sững bên dòng thác cuộn, nơi thần ngư vượt vũ môn hóa rồng.',
+      descEn: 'A majestic vermilion and gold dragon archway standing proud by the roaring falls, where carp leap the waterfall to transform into dragons.',
+      icon: '⛩️',
+    },
+    bamboo_fountain: {
+      img: '/images/zen/elements/dragon_koi_rock.png?v=20260915_koi_rock',
+      width: 140,
+      height: 173,
+      xOffset: -70,
+      yOffset: -150,
+      shadowRx: 56,
+      shadowRy: 18,
+      labelVi: 'Bàn Thạch Thần Ngư Vượt Sóng Ghềnh',
+      labelEn: 'Sacred Dragon Koi Cascading Monolith',
+      descVi: 'Tảng đá bàn thạch phong rêu sừng sững giữa ngọn thác gầm, kim ngư vảy vàng lấp lánh rẽ sóng cuộn trào vươn lên mây xanh.',
+      descEn: 'A moss-covered monolith amidst cascading rapids, where the golden koi surges with celestial power leaping toward the heavens.',
+      icon: '🐟',
+    },
+    stone_lantern: {
+      img: '/images/zen/elements/bamboo_red_lantern.png?v=20260915_dragon_lantern',
+      width: 85,
+      height: 114,
+      xOffset: -42.5,
+      yOffset: -100,
+      shadowRx: 28,
+      shadowRy: 10,
+      labelVi: 'Đèn Lồng Đỏ Treo Ghềnh Long Môn',
+      labelEn: 'Dragon Rapids Crimson Lantern',
+      descVi: 'Lồng đèn đỏ rực rỡ đung đưa giữa hơi sương ngọn thác, soi rọi ánh hoàng kim dẫn lối ngư vượt vũ môn.',
+      descEn: 'A radiant vermilion silk lantern swaying amidst waterfall mist, casting golden light to guide ascending koi.',
+      icon: '🏮',
+    },
+    wooden_boat: {
+      img: '/images/zen/elements/boat.png?v=20260915_dragon_boat',
+      width: 148,
+      height: 106,
+      xOffset: -74,
+      yOffset: -53,
+      shadowRx: 68,
+      shadowRy: 18,
+      labelVi: 'Thuyền Long Châu Vượt Sóng Ghềnh',
+      labelEn: 'Dragon Rapids Timber Vessel',
+      descVi: 'Chiếc thuyền mộc màu nâu trầm kiên cố neo đậu bên bến đá, sẵn sàng rẽ sóng lướt qua dòng nước xiết của Cõi Long Ngư.',
+      descEn: 'A sturdy seasoned timber boat anchored by the rock landing, built to navigate the surging waters of the Dragon Koi realm.',
+      icon: '⛵',
+    },
+  },
+  midnight_stars: {
+    tea_house: {
+      img: '/images/zen/elements/mushroom_cottage.png?v=20260916',
+      width: 175,
+      height: 180,
+      xOffset: -87.5,
+      yOffset: -150,
+      shadowRx: 70,
+      shadowRy: 20,
+      labelVi: 'Chòi Nấm Dạ Quang Cổ Tích',
+      labelEn: 'Bioluminescent Mushroom Cottage',
+      descVi: 'Cây nấm dạ quang khổng lồ được thiết kế thành chòi nghỉ cổ tích ấm cúng với cầu thang xoắn ốc gỗ mộc và khung cửa sổ tròn phát sáng lung linh giữa rừng đêm sao.',
+      descEn: 'A magical giant glowing mushroom transformed into a cozy fairy cottage with spiral wooden stairs and warm glowing round windows in the starlit forest.',
+      icon: '🍄',
+    },
+    bamboo_fountain: {
+      img: '/images/zen/elements/glowing_mushrooms_bunny.png?v=20260916',
+      width: 135,
+      height: 140,
+      xOffset: -67.5,
+      yOffset: -120,
+      shadowRx: 55,
+      shadowRy: 16,
+      labelVi: 'Khóm Nấm Phát Sáng & Thỏ Con Ánh Sao',
+      labelEn: 'Glowing Mushrooms & Star Bunny',
+      descVi: 'Cụm nấm linh chi đa sắc phát sáng dạ quang soi bóng bên chú thỏ ngọc hiền lành ôm quả hồ lô sao, mang lại vẻ sinh động ngộ nghĩnh cho khu rừng đầm đêm.',
+      descEn: 'A vibrant cluster of multicolored glowing mushrooms beside a gentle celestial bunny holding a starlight gourd, bringing enchanting life to the lagoon.',
+      icon: '🐰',
+    },
+    stone_lantern: {
+      img: '/images/zen/elements/starfire_orb_lantern.png?v=20260916',
+      width: 95,
+      height: 130,
+      xOffset: -47.5,
+      yOffset: -115,
+      shadowRx: 30,
+      shadowRy: 10,
+      labelVi: 'Đèn Cầu Tinh Tú & Đom Đóm Dạ Quang',
+      labelEn: 'Starfire Bioluminescent Orb',
+      descVi: 'Quả cầu pha lê tinh tú treo trên nhánh cây thu hút muôn ngàn đom đóm, bọ cánh cứng ngọc và bướm đêm dạ quang dập dìu thắp sáng cả một góc trời.',
+      descEn: 'A celestial crystal orb suspended from twisted boughs, attracting a swarm of gentle fireflies and iridescent night beetles.',
+      icon: '✨',
+    },
+    wooden_boat: {
+      img: '/images/zen/elements/firefly_river_raft.png?v=20260916',
+      width: 150,
+      height: 105,
+      xOffset: -75,
+      yOffset: -52,
+      shadowRx: 68,
+      shadowRy: 18,
+      labelVi: 'Bè Thả Đèn Đom Đóm Đêm Sao',
+      labelEn: 'Firefly Lantern River Raft',
+      descVi: 'Chiếc bè mộc điểm xuyết rêu phát sáng lững lờ trôi mang theo những ngọn hoa đăng lung linh, thắp sáng mặt đầm tĩnh mịch dưới vòm ngân hà.',
+      descEn: 'A peaceful timber raft lined with bioluminescent moss, carrying glowing river lanterns across the tranquil starry waters.',
+      icon: '🛶',
+    },
+    wild_flower_bed: {
+      img: '/images/zen/elements/stardust_moss_meadow.png?v=20260916',
+      width: 120,
+      height: 110,
+      xOffset: -60,
+      yOffset: -95,
+      shadowRx: 50,
+      shadowRy: 16,
+      labelVi: 'Thảm Rêu Phát Sáng & Hoa Sao Li Ti',
+      labelEn: 'Bioluminescent Stardust Meadow',
+      descVi: 'Thảm rêu phát sáng êm như nhung điểm xuyết muôn đóa hoa sao tím biếc và thảo mộc dạ quang hé nở trong làn sương đêm tĩnh lặng.',
+      descEn: 'A velvety glowing moss carpet dotted with tiny violet star-flowers and nocturnal herbs blooming peacefully in the mist.',
+      icon: '🌸',
+    },
+  },
+  glacial_phoenix_crest: {
+    tea_house: {
+      img: '/images/zen/elements/winter_snow_cabin.png?v=20260916',
+      width: 180,
+      height: 175,
+      xOffset: -90,
+      yOffset: -145,
+      shadowRx: 72,
+      shadowRy: 20,
+      labelVi: 'Ngôi Nhà Gỗ Ấm Cúng Phủ Tuyết Trắng',
+      labelEn: 'Cozy Winter Snow Cabin',
+      descVi: 'Ngôi nhà gỗ phong cách Bắc Âu với mái dốc phủ lớp tuyết dày xốp trắng muốt, ống khói bốc làn khói ấm áp, ánh đèn vàng cam hắt qua ô cửa sổ tuyết xua tan giá lạnh phương bắc.',
+      descEn: 'A charming Nordic timber cabin with thick powder snow on its gabled roof, chimney smoke curling into the crisp air, and warm amber light glowing from frosty windows.',
+      icon: '🏡',
+    },
+    bamboo_fountain: {
+      img: '/images/zen/elements/red_scarf_snowman.png?v=20260916',
+      width: 115,
+      height: 135,
+      xOffset: -57.5,
+      yOffset: -120,
+      shadowRx: 45,
+      shadowRy: 15,
+      labelVi: 'Chú Người Tuyết Xinh Xắn Khăn Len Đỏ',
+      labelEn: 'Joyful Red-Scarf Snowman',
+      descVi: 'Chú người tuyết tròn trĩnh quàng khăn len đỏ thắm ấm áp, đội nón len hạt dẻ, tay cành thông vẫy chào và nở nụ cười hiền hòa đón từng bông tuyết rơi bên băng phượng.',
+      descEn: 'A cheerful chubby snowman wearing a cozy red woolen scarf and pinecone hat, waving pine-twig arms with a warm smile amidst falling snowflakes.',
+      icon: '⛄',
+    },
+    stone_lantern: {
+      img: '/images/zen/elements/frosted_lantern_post.png?v=20260916',
+      width: 85,
+      height: 125,
+      xOffset: -42.5,
+      yOffset: -110,
+      shadowRx: 26,
+      shadowRy: 9,
+      labelVi: 'Trụ Đèn Bão Mùa Đông Phủ Tuyết',
+      labelEn: 'Frosted Winter Lantern Post',
+      descVi: 'Cột đèn gỗ cổ điển đội chiếc nón tuyết trắng tinh khôi, ngọn đèn bão tỏa ánh sáng vàng hổ phách ấm áp sưởi ấm cho thảm tuyết xung quanh.',
+      descEn: 'A classic timber lantern post crowned with pristine snow, its hurricane lamp radiating warm amber light to melt away the winter frost.',
+      icon: '🏮',
+    },
+    wooden_boat: {
+      img: '/images/zen/elements/timber_winter_sleigh.png?v=20260916',
+      width: 145,
+      height: 100,
+      xOffset: -72.5,
+      yOffset: -50,
+      shadowRx: 65,
+      shadowRy: 18,
+      labelVi: 'Xe Trượt Tuyết Gỗ Mộc Mùa Đông',
+      labelEn: 'Timber Winter Sleigh',
+      descVi: 'Chiếc xe trượt tuyết bằng gỗ thông mộc lướt êm trên mặt hồ đóng băng tráng gương, sẵn sàng cho những chuyến phiêu lưu kỳ thú giữa trời đông tuyết trắng.',
+      descEn: 'A handcrafted pine sleigh gliding effortlessly across the mirror-like frozen lake, ready for winter wonderland journeys.',
+      icon: '🛷',
+    },
+    wild_flower_bed: {
+      img: '/images/zen/elements/snow_rocks_blossoms.png?v=20260916',
+      width: 125,
+      height: 110,
+      xOffset: -62.5,
+      yOffset: -95,
+      shadowRx: 52,
+      shadowRy: 16,
+      labelVi: 'Tảng Đá Phủ Tuyết & Hoa Tuyết Li Ti',
+      labelEn: 'Snow-Dusted Rocks & Winter Blossoms',
+      descVi: 'Tảng đá cuội phủ lớp tuyết xốp trắng xóa, bên cạnh là khóm hoa tuyết li ti và bụi cỏ mùa đông kiên cường vươn lên trong giá rét.',
+      descEn: 'Frost-kissed river rocks dusted with soft snow, cradling delicate winter edelweiss and resilient frosted grasses.',
+      icon: '❄️',
+    },
+  },
+  sakura_valley: {
+    tea_house: {
+      img: '/images/zen/elements/fallen_petals_pavilion.png?v=20260916',
+      width: 185,
+      height: 180,
+      xOffset: -92.5,
+      yOffset: -150,
+      shadowRx: 75,
+      shadowRy: 20,
+      labelVi: 'Lạc Anh Đình Bên Suối Đào',
+      labelEn: 'Fallen Petals Pavilion',
+      descVi: 'Mái đình ngập tràn cánh hoa đào rơi rụng theo gió xuân, chén trà bích loa xuân ngát hương hoa ngọc.',
+      descEn: 'A secluded pavilion showered by spring sakura blossoms, fragrant with fresh mountain tea.',
+      icon: '🏯',
+    },
+    wooden_boat: {
+      img: '/images/zen/elements/sakura_blossom_boat.png?v=20260916',
+      width: 145,
+      height: 105,
+      xOffset: -72.5,
+      yOffset: -52,
+      shadowRx: 65,
+      shadowRy: 18,
+      labelVi: 'Thuyền Hoa Đào Du Xuân',
+      labelEn: 'Spring Sakura Blossom Boat',
+      descVi: 'Thuyền nan mộc lướt trên mặt suối phủ đầy cánh đào hồng phấn, lưu giữ trọn vẹn phong vị mùa xuân tao nhã.',
+      descEn: 'A wooden skiff gliding over river waters carpeted with sakura petals, capturing the pure essence of spring.',
+      icon: '🛶',
+    },
+  },
+  celestial_peaks: {
+    tea_house: {
+      labelVi: 'Chòi Nghỉ Mái Lá Cọ Ven Biển',
+      labelEn: 'Tropical Seaside Cabana',
+      descVi: 'Chòi gỗ mộc thoáng mát lợp mái lá cọ dừa đón gió biển trong lành, bên trong bày bộ bàn ghế gỗ ngắm sóng biển vỗ bờ cát vàng óng ả.',
+      descEn: 'A breezy wooden cabana with thatched palm leaves catching fresh sea breezes, furnished for watching golden waves lap the sandy shore.',
+      icon: '🏖️',
+    },
+    bamboo_fountain: {
+      labelVi: 'Rạn Đá San Hô & Vỏ Ốc Ngọc Trai',
+      labelEn: 'Coral Reefs & Pearl Seashells',
+      descVi: 'Cụm đá san hô tự nhiên bên bờ biển sóng vỗ, nơi đàn cua nhỏ và những chú sao biển sắc màu sưởi ấm dưới ánh nắng nhiệt đới rực rỡ.',
+      descEn: 'A natural coral rock formation by the tide, home to gentle sea crabs and colorful starfish sunbathing under tropical sunlight.',
+      icon: '🐚',
+    },
+    stone_lantern: {
+      labelVi: 'Hải Đăng Đá Cổ Kính Ven Bờ',
+      labelEn: 'Coastal Stone Beacon',
+      descVi: 'Ngọn hải đăng đá kiên cường sừng sững bên bãi đá ven biển, ngọn đèn dẫn đường soi rọi muôn dặm sóng biếc cho những con tàu viễn dương.',
+      descEn: 'A steadfast coastal stone beacon standing watch over ocean waves, casting bright guiding rays across azure waters.',
+      icon: '🗼',
+    },
+    wooden_boat: {
+      labelVi: 'Thuyền Buồm Mộc Lướt Sóng Biển Xanh',
+      labelEn: 'Tropical Wooden Sailboat',
+      descVi: 'Chiếc thuyền buồm gỗ mộc thanh thoát neo đậu bên bãi cát vàng, cánh buồm trắng đón gió lướt êm trên làn nước trong vắt màu ngọc lam.',
+      descEn: 'An elegant wooden sailboat resting on golden sands, its white sails ready to catch the breeze across crystalline turquoise waters.',
+      icon: '⛵',
+    },
+    cherry_tree: {
+      labelVi: 'Hàng Dừa Nhiệt Đới Nghiêng Bóng',
+      labelEn: 'Swaying Tropical Coconut Palms',
+      descVi: 'Hàng dừa nhiệt đới trĩu quả nghiêng mình che bóng mát bên bãi cát vàng óng ả, mang lại bầu không khí nghỉ dưỡng bình yên tuyệt đối.',
+      descEn: 'Graceful coconut palms swaying in the sea breeze, casting gentle shade over warm golden sands.',
+      icon: '🥥',
+    },
+  },
+  cosmic_world_tree: {
+    tea_house: {
+      labelVi: 'Đại Điện Kim Các Vô Cực',
+      labelEn: 'Infinite Golden Celestial Hall',
+      descVi: 'Điện thờ ngự trên tầng mây ngũ sắc của Khởi Nguyên Thần Mộc, nơi hội tụ chí tôn đạo pháp và năng lượng vũ trụ viên mãn.',
+      descEn: 'A celestial hall floating upon cosmic cloud tiers beneath the World Tree, sanctuary of infinite enlightenment.',
+      icon: '🏛️',
+    },
+    stone_lantern: {
+      labelVi: 'Pháp Đăng Hoàng Kim Vô Thượng',
+      labelEn: 'Supreme Golden Dharma Lantern',
+      descVi: 'Trụ đèn bằng vàng ròng đúc ấn thần thú, tỏa ánh hào quang thái dương chiếu rọi khắp cõi nhân gian.',
+      descEn: 'A pure gold dharma beacon bearing celestial beast insignias, radiating solar radiance across all realms.',
+      icon: '☀️',
+    },
+    wooden_boat: {
+      labelVi: 'Chiến Thuyền Long Vân Bát Nhã',
+      labelEn: 'Celestial Prajna Cloud Barge',
+      descVi: 'Long thuyền vân du chạm trổ rồng vàng lướt trên biển mây ngũ sắc, đưa hành giả cập bến bờ giác ngộ vô lượng.',
+      descEn: 'A dragon barge gliding across golden cloud seas, carrying the seeker to the shores of supreme wisdom.',
+      icon: '✨',
+    },
+  },
+};
+
 const ITEM_RENDER_CONFIG: Record<GardenItemType, ItemRenderConfig> = {
   sakura_flower: {
     img: '/images/zen/elements/sakura_bonsai_tree.png?v=20260908b',
@@ -832,38 +1345,270 @@ const ITEM_RENDER_CONFIG: Record<GardenItemType, ItemRenderConfig> = {
     shadowY: 6,
     dropShadow: 'drop-shadow(0 6px 12px rgba(0,0,0,0.3))',
   },
+  wooden_boat: {
+    img: '/images/zen/elements/boat.png?v=20260915_wood',
+    width: 142,
+    height: 102,
+    xOffset: -71,
+    yOffset: -51,
+    shadowRx: 66,
+    shadowRy: 18,
+    shadowY: 10,
+    dropShadow: 'drop-shadow(0 6px 14px rgba(3,78,123,0.45))',
+    animate: { y: [-3, 3, -3], rotate: [-1.2, 1.2, -1.2] },
+    animDuration: 5.5,
+  },
+  chinese_rose: {
+    img: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
+    width: 112,
+    height: 112,
+    xOffset: -56,
+    yOffset: -96,
+    shadowRx: 45,
+    shadowRy: 14,
+    shadowY: 8,
+    dropShadow: 'drop-shadow(0 6px 16px rgba(0,0,0,0.32))',
+    animate: { rotate: [-0.6, 0.6, -0.6] },
+    animDuration: 5.2,
+  },
+  tea_ceremony: {
+    img: '/images/zen/elements/chinese_rose.png?v=20260915_rose',
+    width: 112,
+    height: 112,
+    xOffset: -56,
+    yOffset: -96,
+    shadowRx: 45,
+    shadowRy: 14,
+    shadowY: 8,
+    dropShadow: 'drop-shadow(0 6px 16px rgba(0,0,0,0.32))',
+    animate: { rotate: [-0.6, 0.6, -0.6] },
+    animDuration: 5.2,
+  },
+  cherry_tree: {
+    img: '/images/zen/elements/cherry_tree.png?v=20260915_tree',
+    width: 168,
+    height: 175,
+    xOffset: -84,
+    yOffset: -148,
+    shadowRx: 65,
+    shadowRy: 18,
+    shadowY: 10,
+    dropShadow: 'drop-shadow(0 10px 22px rgba(0,0,0,0.32))',
+    animate: { rotate: [-0.8, 0.8, -0.8] },
+    animDuration: 5.2,
+  },
+  tall_bamboo: {
+    img: '/images/zen/elements/bamboo.png?v=20260908b',
+    width: 125,
+    height: 125,
+    xOffset: -62.5,
+    yOffset: -110,
+    shadowRx: 45,
+    shadowRy: 13,
+    shadowY: 8,
+    dropShadow: 'drop-shadow(0 6px 14px rgba(0,0,0,0.28))',
+    animate: { rotate: [-0.8, 0.8, -0.8] },
+    animDuration: 5.8,
+  },
+  wild_flower_bed: {
+    img: '/images/zen/elements/flower_bed.png?v=20260908b',
+    width: 105,
+    height: 105,
+    xOffset: -52.5,
+    yOffset: -92,
+    shadowRx: 42,
+    shadowRy: 13,
+    shadowY: 6,
+    dropShadow: 'drop-shadow(0 6px 12px rgba(0,0,0,0.3))',
+  },
+  imperial_pagoda: {
+    img: '/images/zen/elements/teahouse.png?v=20260908b',
+    width: 160,
+    height: 160,
+    xOffset: -80,
+    yOffset: -130,
+    shadowRx: 62,
+    shadowRy: 18,
+    shadowY: 10,
+    dropShadow: 'drop-shadow(0 10px 22px rgba(0,0,0,0.35))',
+  },
 };
 
-// 🌟 12 ĐIỂM NEO CẢNH QUAN HÀI HÒA (ZERO-COLLISION HARMONIC SLOTS)
+// 🌟 18 ĐIỂM NEO CẢNH QUAN HÀI HÒA ĐỘC BẢN (ZERO-COLLISION HARMONIC SLOTS)
 // Mỗi phần tử có tọa độ thiết kế riêng, phân tầng viễn cảnh (trên đồi, ven suối, trong nước, trên thảm cỏ)
-// ĐẶC BIỆT: Cá Koi & Hoa Sen & Thuyền gỗ 100% ĐƯỢC ĐẶT SÂU TRONG LÒNG SÔNG NƯỚC BIẾC
+// ĐẶC BIỆT: Cá Koi, Hoa Sen & Thuyền gỗ 100% ĐƯỢC ĐẶT SÂU TRONG LÒNG SÔNG NƯỚC BIẾC
 export const HARMONIC_GARDEN_SLOTS: Record<GardenItemType, { x: number; y: number; scale: number }> = {
-  water_lotus: { x: 350, y: 390, scale: 1.1 },        // 1. 🪷 Sen hồng & lá biếc bồng bềnh ngay giữa làn nước trong vắt của lòng sông
-  butterflies: { x: 130, y: 220, scale: 1 },          // 2. 🦋 Đôi bướm tiên đa sắc bay lượn tự nhiên trên thảm cỏ hoa bờ Tây
-  koi_fish: { x: 415, y: 350, scale: 1.15 },          // 3. 🐟 Đôi cá koi ngũ sắc tung tăng bơi lội giữa dòng nước biếc dưới chân cầu
-  sakura_flower: { x: 105, y: 175, scale: 1.05 },     // 4. 🌸 Cây đào nở rộ trên triền đồi cỏ Tây
+  water_lotus: { x: 345, y: 390, scale: 1.1 },        // 1. 🪷 Sen hồng & lá biếc trong lòng suối bờ Tây
+  butterflies: { x: 130, y: 220, scale: 1 },          // 2. 🦋 Đôi bướm tiên đa sắc bay lượn trên thảm cỏ đồi Tây
+  koi_fish: { x: 425, y: 345, scale: 1.15 },          // 3. 🐟 Đôi cá koi ngũ sắc tung tăng bơi lội dưới chân cầu
+  sakura_flower: { x: 105, y: 175, scale: 1.05 },     // 4. 🌸 Cây đào nở rộ trên đỉnh đồi cỏ Tây
   stone_lantern: { x: 535, y: 265, scale: 1 },        // 5. 🏮 Đèn trụ vườn thắp sáng đầu cầu bờ Đông
   tea_house: { x: 725, y: 240, scale: 1.1 },          // 6. 🍵 Chòi nghỉ thủy tạ ngự trên đồi cỏ cao phía Đông
-  bamboo_fountain: { x: 485, y: 395, scale: 1.05 },   // 7. 🎋 Thác nước trúc Shishi-odoshi róc rách bên thềm đá bờ Đông
-  bamboo_sprout: { x: 95, y: 395, scale: 1 },         // 8. 🌾 Khóm trúc ngọc vươn cao mép đá đồi Tây
-  flower_bed: { x: 55, y: 460, scale: 1 },            // 9. 🌺 Bồn hoa cẩm tú rực rỡ tiền cảnh bờ cỏ Tây
-  bonsai_tree: { x: 65, y: 310, scale: 1 },           // 10. 🌲 Tùng bonsai cổ thụ ngàn năm trên thảm cỏ Tây
-  chrysanthemum: { x: 745, y: 420, scale: 1 },        // 11. 🌼 Hoa cúc vàng đón ban mai tiền cảnh bờ Đông
-  fireflies: { x: 675, y: 175, scale: 1 },            // 12. ✨ Đom đóm dạ quang lấp lánh nhẹ nhàng trời chiều
+  bamboo_fountain: { x: 485, y: 395, scale: 1.05 },   // 7. 🎋 Thác nước trúc Shishi-odoshi bên thềm đá bờ Đông
+  wooden_boat: { x: 395, y: 450, scale: 1.05 },       // 8. 🚣 Thuyền gỗ nâu cổ điển bồng bềnh giữa dòng sông
+  chinese_rose: { x: 215, y: 235, scale: 1 },         // 9. 🌹 Bụi hồng cổ trang nhỏ xinh bên thềm cỏ đồi Tây
+  tea_ceremony: { x: 215, y: 235, scale: 1 },         // Legacy alias
+  bamboo_sprout: { x: 95, y: 395, scale: 1 },         // 10. 🌿 Khóm trúc ngọc vươn cao mép đá đồi Tây
+  bonsai_tree: { x: 65, y: 310, scale: 1 },           // 11. 🌲 Tùng bonsai cổ thụ ngàn năm trên thảm cỏ Tây
+  chrysanthemum: { x: 745, y: 420, scale: 1 },        // 12. 🌼 Hoa cúc vàng đón ban mai tiền cảnh bờ Đông
+  cherry_tree: { x: 285, y: 215, scale: 1.05 },       // 13. 🌸 Đại thụ anh đào tự nhiên nở rộ (dàn đào đồi Tây)
+  flower_bed: { x: 55, y: 460, scale: 1 },            // 14. 🌺 Bồn hoa cẩm tú rực rỡ tiền cảnh bờ cỏ Tây
+  fireflies: { x: 470, y: 175, scale: 1 },            // 15. ✨ Đom đóm dạ quang lấp lánh trên dòng sông
+  tall_bamboo: { x: 700, y: 340, scale: 0.95 },       // 16. 🎍 Rừng trúc xanh cao vút bạt ngàn bờ Đông
+  wild_flower_bed: { x: 175, y: 440, scale: 0.95 },   // 17. 🌺 Thảm hoa rừng đa sắc ven dòng sông Tây
+  imperial_pagoda: { x: 775, y: 180, scale: 0.92 },   // 18. 🏯 Thủy tạ lầu son cung đình uy nghi
 };
 
-// Vị trí mở rộng khi học vượt quá 12 từ (phân bố đều, không che lấp phần tử chính)
-export const SECONDARY_HARMONIC_SLOTS: { type: GardenItemType; x: number; y: number; scale: number }[] = [
-  { type: 'water_lotus', x: 440, y: 440, scale: 0.95 },
-  { type: 'chrysanthemum', x: 130, y: 340, scale: 0.85 },
-  { type: 'butterflies', x: 690, y: 330, scale: 0.9 },
-  { type: 'bamboo_sprout', x: 675, y: 370, scale: 0.85 },
-  { type: 'flower_bed', x: 745, y: 470, scale: 0.9 },
-  { type: 'fireflies', x: 200, y: 180, scale: 0.85 },
-  { type: 'koi_fish', x: 370, y: 435, scale: 0.95 },
+export interface SecondarySlotConfig {
+  type: GardenItemType;
+  x: number;
+  y: number;
+  scale: number;
+  variant?: GardenEntityVariant;
+  labelVi?: string;
+  labelEn?: string;
+}
+
+// Vị trí mở rộng khi học vượt quá 18 từ: Mỗi slot đều có biến thể màu sắc, lật đối xứng, và tên riêng độc đáo
+export const SECONDARY_HARMONIC_SLOTS: SecondarySlotConfig[] = [
+  {
+    type: 'koi_fish',
+    x: 360,
+    y: 430,
+    scale: 1.05,
+    variant: { flipX: true, hueRotate: 45, brightness: 1.15, scaleMultiplier: 0.95 },
+    labelVi: 'Cá Koi Hoàng Kim Quẫy Sóng',
+    labelEn: 'Golden Swimming Koi',
+  },
+  {
+    type: 'water_lotus',
+    x: 445,
+    y: 420,
+    scale: 0.95,
+    variant: { flipX: true, brightness: 1.3, saturate: 0.4 },
+    labelVi: 'Bạch Liên Hoa Thanh Khiết',
+    labelEn: 'Pure White Sacred Lotus',
+  },
+  {
+    type: 'chrysanthemum',
+    x: 135,
+    y: 345,
+    scale: 0.85,
+    variant: { brightness: 1.25, saturate: 0.4 },
+    labelVi: 'Cúc Họa Mi Trắng Sương Mai',
+    labelEn: 'White Dewdrop Chrysanthemum',
+  },
+  {
+    type: 'butterflies',
+    x: 690,
+    y: 325,
+    scale: 0.9,
+    variant: { flipX: true, hueRotate: 90 },
+    labelVi: 'Bướm Tiên Dạ Quang Tím',
+    labelEn: 'Luminescent Purple Fairy Butterflies',
+  },
+  {
+    type: 'wooden_boat',
+    x: 440,
+    y: 380,
+    scale: 0.95,
+    variant: { flipX: true, scaleMultiplier: 0.9 },
+    labelVi: 'Thuyền Gỗ Cổ Neo Bến Xưa',
+    labelEn: 'Moored Antique Wooden Boat',
+  },
+  {
+    type: 'wild_flower_bed',
+    x: 745,
+    y: 470,
+    scale: 0.9,
+    variant: { flipX: true, hueRotate: 45 },
+    labelVi: 'Thảm Hoa Rừng Hoàng Yến',
+    labelEn: 'Golden Wildflower Meadow',
+  },
+  {
+    type: 'fireflies',
+    x: 220,
+    y: 170,
+    scale: 0.85,
+    variant: { hueRotate: 180 },
+    labelVi: 'Đom Đóm Lam Tinh Thần Bí',
+    labelEn: 'Azure Mystic Fireflies',
+  },
+  {
+    type: 'bamboo_sprout',
+    x: 675,
+    y: 375,
+    scale: 0.85,
+    variant: { flipX: true, scaleMultiplier: 0.9 },
+    labelVi: 'Khóm Trúc Xanh Bờ Đông',
+    labelEn: 'East Bank Jade Bamboo',
+  },
+  {
+    type: 'koi_fish',
+    x: 410,
+    y: 475,
+    scale: 1.1,
+    variant: { hueRotate: 185, brightness: 1.1, flipX: false },
+    labelVi: 'Cá Koi Lam Tinh Linh',
+    labelEn: 'Celestial Sapphire Koi',
+  },
+  {
+    type: 'water_lotus',
+    x: 375,
+    y: 330,
+    scale: 1,
+    variant: { hueRotate: 260 },
+    labelVi: 'Tử Liên Hoa Thạch Anh',
+    labelEn: 'Amethyst Water Lily',
+  },
+  {
+    type: 'cherry_tree',
+    x: 165,
+    y: 155,
+    scale: 0.88,
+    variant: { flipX: true, scaleMultiplier: 0.9 },
+    labelVi: 'Anh Đào Tuyết Bồng Lai',
+    labelEn: 'Snow Blossom Sakura',
+  },
+  {
+    type: 'cherry_tree',
+    x: 340,
+    y: 185,
+    scale: 0.86,
+    variant: { flipX: true, brightness: 1.05 },
+    labelVi: 'Cây Anh Đào Bờ Đông Vọng Cảnh',
+    labelEn: 'East Bank Sakura Grove',
+  },
+  {
+    type: 'chinese_rose',
+    x: 165,
+    y: 360,
+    scale: 0.92,
+    variant: { flipX: true, hueRotate: 15 },
+    labelVi: 'Bụi Hồng Phấn Sương Mai',
+    labelEn: 'Pink Dewdrop Rose Bush',
+  },
+  {
+    type: 'bonsai_tree',
+    x: 770,
+    y: 290,
+    scale: 0.92,
+    variant: { flipX: true, hueRotate: -30 },
+    labelVi: 'Tùng Phong Đỏ Mùa Thu',
+    labelEn: 'Autumn Scarlet Bonsai',
+  },
+  {
+    type: 'stone_lantern',
+    x: 275,
+    y: 285,
+    scale: 0.9,
+    variant: { flipX: true, scaleMultiplier: 0.9 },
+    labelVi: 'Đèn Đá Dẫn Lối Bờ Tây',
+    labelEn: 'West Path Stone Lantern',
+  },
 ];
 
-// Thứ tự tuần tự mở khóa 12 phần tử khi trả lời đúng
+// Thứ tự tuần tự mở khóa 18 phần tử hoàn toàn độc bản khi trả lời đúng
 export const HARMONIC_UNLOCK_SEQUENCE: GardenItemType[] = [
   'water_lotus',
   'butterflies',
@@ -872,29 +1617,44 @@ export const HARMONIC_UNLOCK_SEQUENCE: GardenItemType[] = [
   'stone_lantern',
   'tea_house',
   'bamboo_fountain',
+  'wooden_boat',
+  'chinese_rose',
   'bamboo_sprout',
-  'flower_bed',
   'bonsai_tree',
   'chrysanthemum',
+  'cherry_tree',
+  'flower_bed',
   'fireflies',
+  'tall_bamboo',
+  'wild_flower_bed',
+  'imperial_pagoda',
 ];
 
 export const generateGardenEntityByIndex = (index: number): GardenEntity => {
   let chosenType: GardenItemType;
   let slotPos: { x: number; y: number; scale: number };
+  let variant: GardenEntityVariant | undefined;
+  let customLabelVi: string | undefined;
+  let customLabelEn: string | undefined;
+
   const isSec = index >= HARMONIC_UNLOCK_SEQUENCE.length;
 
   if (!isSec) {
     chosenType = HARMONIC_UNLOCK_SEQUENCE[index];
     slotPos = HARMONIC_GARDEN_SLOTS[chosenType];
+    const jitterRot = ((index * 7) % 9) - 4;
+    variant = { rotationJitter: jitterRot };
   } else {
     const secIdx = (index - HARMONIC_UNLOCK_SEQUENCE.length) % SECONDARY_HARMONIC_SLOTS.length;
     const sec = SECONDARY_HARMONIC_SLOTS[secIdx];
     const cycle = Math.floor((index - HARMONIC_UNLOCK_SEQUENCE.length) / SECONDARY_HARMONIC_SLOTS.length);
-    const jitterX = ((cycle * 19) % 37) - 18;
-    const jitterY = ((cycle * 13) % 25) - 12;
+    const jitterX = ((cycle * 19) % 31) - 15;
+    const jitterY = ((cycle * 13) % 21) - 10;
     chosenType = sec.type;
     slotPos = { x: sec.x + jitterX, y: sec.y + jitterY, scale: sec.scale };
+    variant = { ...sec.variant, rotationJitter: ((cycle * 5) % 9) - 4 };
+    customLabelVi = sec.labelVi;
+    customLabelEn = sec.labelEn;
   }
 
   const catalogInfo = GARDEN_CATALOG[chosenType];
@@ -905,11 +1665,12 @@ export const generateGardenEntityByIndex = (index: number): GardenEntity => {
     x: slotPos.x,
     y: slotPos.y,
     scale: slotPos.scale,
-    labelVi: catalogInfo.labelVi,
-    labelEn: catalogInfo.labelEn,
+    labelVi: customLabelVi || catalogInfo.labelVi,
+    labelEn: customLabelEn || catalogInfo.labelEn,
     descVi: catalogInfo.descVi,
     descEn: catalogInfo.descEn,
     createdAt: Date.now() + index,
+    variant,
   };
 };
 
@@ -918,64 +1679,119 @@ function renderGardenItem(
   item: GardenEntity,
   onInspect: (info: GardenEntity) => void,
   _isExpanded?: boolean,
-  _biome?: BiomeConfig
+  _biome?: BiomeConfig,
+  dragProps?: {
+    isDragging: boolean;
+    isArrangeMode: boolean;
+    onPointerDown: (e: React.PointerEvent, item: GardenEntity, posX: number, posY: number) => void;
+  }
 ) {
-  const cfg = ITEM_RENDER_CONFIG[item.type] || ITEM_RENDER_CONFIG.sakura_flower;
+  const baseCfg = ITEM_RENDER_CONFIG[item.type] || ITEM_RENDER_CONFIG.sakura_flower;
+  const realmOverrides = (_biome?.id && REALM_ITEM_OVERRIDES[_biome.id]?.[item.type]) || null;
+  const cfg = realmOverrides
+    ? {
+        ...baseCfg,
+        img: realmOverrides.img || baseCfg.img,
+        width: realmOverrides.width ?? baseCfg.width,
+        height: realmOverrides.height ?? baseCfg.height,
+        xOffset: realmOverrides.xOffset ?? baseCfg.xOffset,
+        yOffset: realmOverrides.yOffset ?? baseCfg.yOffset,
+        shadowRx: realmOverrides.shadowRx ?? baseCfg.shadowRx,
+        shadowRy: realmOverrides.shadowRy ?? baseCfg.shadowRy,
+      }
+    : baseCfg;
   const isKoi = item.type === 'koi_fish';
   const isLotus = item.type === 'water_lotus';
+  const isBoat = item.type === 'wooden_boat';
 
-  // 🎯 HIỆU CHỈNH TỌA ĐỘ VÀNG (CALIBRATED WATER & GARDEN SLOTS):
-  // Tuyệt đối bảo đảm cá koi, hoa sen và thuyền gỗ 100% LUÔN LUÔN nằm sâu trong lòng dòng sông nước biếc.
-  // Đồng bộ vị trí ngay cả khi session của user còn lưu tọa độ cũ từ các câu hỏi trước.
+  // 🎯 TỌA ĐỘ VẬT THỂ: Ưu tiên tọa độ người chơi tùy biến (kéo thả) hoặc tọa độ vàng mặc định
   const isSecondary = item.id.includes('sec-');
   const defaultSlot = HARMONIC_GARDEN_SLOTS[item.type];
-  let posX = item.x;
-  let posY = item.y;
-  let effectiveScale = item.scale;
+  let posX = typeof item.x === 'number' ? item.x : defaultSlot ? defaultSlot.x : 400;
+  let posY = typeof item.y === 'number' ? item.y : defaultSlot ? defaultSlot.y : 250;
+  let effectiveScale = typeof item.scale === 'number' ? item.scale : defaultSlot ? defaultSlot.scale : 1;
 
-  if (!isSecondary && defaultSlot) {
-    // 12 phần tử cốt lõi luôn lấy đúng tọa độ vàng đã định vị
+  if (!item.customPos && !isSecondary && defaultSlot) {
+    // 18 phần tử cốt lõi lấy đúng tọa độ vàng nếu người chơi chưa kéo thả
     posX = defaultSlot.x;
     posY = defaultSlot.y;
     effectiveScale = defaultSlot.scale;
-  } else if (isKoi || isLotus) {
-    // Kể cả phần tử phụ nếu tọa độ lệch ra bờ thì ép ngay về vùng nước sông
-    if (posX < 320 || posX > 480 || posY < 330) {
-      posX = defaultSlot ? defaultSlot.x : 400;
-      posY = defaultSlot ? defaultSlot.y : 370;
+  } else if (!item.customPos && (isKoi || isLotus || isBoat)) {
+    // Nếu chưa kéo thả mà tọa độ lệch ra bờ thì ép về lòng sông
+    if (posX < 320 || posX > 480 || posY < 320) {
+      posX = defaultSlot ? defaultSlot.x : (isBoat ? 395 : isKoi ? 425 : 345);
+      posY = defaultSlot ? defaultSlot.y : (isBoat ? 450 : isKoi ? 345 : 390);
     }
   }
+
+  // Giới hạn tuyệt đối trong khung cảnh quan khu vườn (0..800, 0..500)
+  posX = Math.max(35, Math.min(765, posX));
+  posY = Math.max(90, Math.min(475, posY));
+
+  // Variant styling: màu sắc, lật đối xứng, độ sáng & độ nghiêng tự nhiên
+  const v = item.variant;
+  const flipX = v?.flipX;
+  const hueRotate = v?.hueRotate || 0;
+  const brightness = v?.brightness || 1;
+  const saturate = v?.saturate || 1;
+  const rotationJitter = v?.rotationJitter || 0;
+  const scaleMult = v?.scaleMultiplier || 1;
+  effectiveScale = effectiveScale * scaleMult;
+
+  const filterStyle = `${cfg.dropShadow} ${hueRotate ? `hue-rotate(${hueRotate}deg)` : ''} ${brightness !== 1 ? `brightness(${brightness})` : ''} ${saturate !== 1 ? `saturate(${saturate})` : ''}`.trim();
+
+  const isDragging = dragProps?.isDragging || false;
+  const isArrangeMode = dragProps?.isArrangeMode || false;
 
   return (
     <g
       key={item.id}
       transform={`translate(${posX}, ${posY})`}
-      className="cursor-pointer pointer-events-auto group"
-      onClick={() => onInspect(item)}
+      className={`${isDragging ? 'cursor-grabbing' : isArrangeMode ? 'cursor-grab' : 'cursor-pointer hover:cursor-grab'} pointer-events-auto select-none group`}
+      onPointerDown={(e) => {
+        dragProps?.onPointerDown(e, item, posX, posY);
+      }}
     >
+      {/* 🧭 Vòng định vị phong thủy khi đang ở chế độ Bày Trí hoặc đang kéo thả */}
+      {(isArrangeMode || isDragging) && (
+        <g pointerEvents="none">
+          <ellipse
+            cx="0"
+            cy={cfg.shadowY + 4}
+            rx={(cfg.shadowRx * effectiveScale) + 12}
+            ry={(cfg.shadowRy * effectiveScale) + 7}
+            fill={isDragging ? 'rgba(251, 191, 36, 0.2)' : 'rgba(16, 185, 129, 0.08)'}
+            stroke={isDragging ? '#fbbf24' : '#34d399'}
+            strokeWidth={isDragging ? 2.5 : 1.4}
+            strokeDasharray={isDragging ? '4 3' : '3 3'}
+            opacity={isDragging ? 0.95 : 0.65}
+          />
+        </g>
+      )}
+
       {/* Soft Ground / Water Shadow in 3D perspective */}
       <ellipse
         cx="0"
-        cy={cfg.shadowY}
-        rx={cfg.shadowRx * effectiveScale}
-        ry={cfg.shadowRy * effectiveScale}
-        fill={isKoi || isLotus ? '#034e7b' : '#062e1d'}
-        opacity={isKoi ? 0.6 : isLotus ? 0.45 : 0.34}
-        filter="blur(3px)"
+        cy={isDragging ? cfg.shadowY + 12 : cfg.shadowY}
+        rx={isDragging ? (cfg.shadowRx * effectiveScale * 0.85) : (cfg.shadowRx * effectiveScale)}
+        ry={isDragging ? (cfg.shadowRy * effectiveScale * 0.85) : (cfg.shadowRy * effectiveScale)}
+        fill={isKoi || isLotus || isBoat ? '#034e7b' : '#062e1d'}
+        opacity={isDragging ? 0.2 : (isKoi ? 0.6 : isLotus ? 0.45 : isBoat ? 0.55 : 0.34)}
+        filter={isDragging ? 'blur(6px)' : 'blur(3px)'}
       />
 
       {/* 🌊 UNDERWATER SWIMMING RIPPLES & GLOW FOR KOI FISH */}
       {isKoi && (
         <g pointerEvents="none">
           {/* Làn nước xoáy xanh ngọc dưới thân cá */}
-          <ellipse cx="0" cy="0" rx="46" ry="28" fill="#0284c7" opacity="0.28" filter="blur(6px)" />
+          <ellipse cx="0" cy="0" rx="46" ry="28" fill={hueRotate ? '#0ea5e9' : '#0284c7'} opacity="0.28" filter="blur(6px)" />
           {/* Vòng sóng lăn tăn đồng tâm mở rộng */}
           <motion.ellipse
             cx="0"
             cy="0"
             rx="48"
             ry="30"
-            stroke="#bae6fd"
+            stroke={hueRotate === 45 ? '#fde047' : '#bae6fd'}
             strokeWidth="1.5"
             fill="none"
             opacity="0.5"
@@ -1015,14 +1831,36 @@ function renderGardenItem(
         </g>
       )}
 
+      {/* 🚣 GỢN NƯỚC BỒNG BỀNH CHO THUYỀN NAN TRÊN DÒNG NƯỚC */}
+      {isBoat && (
+        <g pointerEvents="none">
+          <motion.ellipse
+            cx="0"
+            cy="10"
+            rx="54"
+            ry="18"
+            stroke="#7dd3fc"
+            strokeWidth="1.2"
+            fill="none"
+            opacity="0.45"
+            animate={{ scale: [0.92, 1.14, 0.92], opacity: [0.5, 0.15, 0.5] }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </g>
+      )}
+
       {/* 🦋 ĐÔI BƯỚM TIÊN TỰ NHIÊN / ✨ ĐOM ĐÓM / 🎨 CÁC SPRITE ĐỒ HỌA THỰC THỂ KHÁC */}
       {item.type === 'butterflies' ? (
         <motion.g
           animate={{
-            x: [-6, 8, -4, 6, -6],
+            x: flipX ? [6, -8, 4, -6, 6] : [-6, 8, -4, 6, -6],
             y: [-8, 4, -10, 2, -8],
           }}
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            filter: hueRotate ? `hue-rotate(${hueRotate}deg)` : undefined,
+            transform: flipX ? 'scaleX(-1)' : undefined,
+          }}
         >
           {/* Con bướm 1: Bướm vàng hoàng yến (Golden Swallowtail) vỗ cánh dập dờn */}
           <motion.g transform="translate(-16, -8) scale(1.15)">
@@ -1072,7 +1910,7 @@ function renderGardenItem(
         </motion.g>
       ) : item.type === 'fireflies' ? (
         /* ✨ ĐOM ĐÓM PHÁT SÁNG DỊU DÀNG (GENTLE PULSING FIREFLIES) */
-        <g pointerEvents="none">
+        <g pointerEvents="none" style={{ filter: hueRotate ? `hue-rotate(${hueRotate}deg)` : undefined }}>
           {[
             { x: -16, y: -12, s: 2.5, d: 0 },
             { x: 14, y: -6, s: 3.2, d: 0.8 },
@@ -1099,13 +1937,21 @@ function renderGardenItem(
       ) : (
         <motion.g
           initial={{ scale: 0, opacity: 0, y: 20 }}
-          animate={{ scale: effectiveScale, opacity: 1, y: 0 }}
+          animate={{
+            scale: isDragging ? effectiveScale * 1.15 : effectiveScale,
+            opacity: 1,
+            y: isDragging ? -12 : 0,
+          }}
           transition={{ type: 'spring', stiffness: 220, damping: 16 }}
-          whileHover={{ scale: effectiveScale * 1.12, y: -4 }}
+          whileHover={{ scale: isDragging ? effectiveScale * 1.15 : effectiveScale * 1.08, y: isDragging ? -12 : -3 }}
         >
           <motion.g
             animate={cfg.animate || {}}
             transition={{ duration: cfg.animDuration || 4, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              transform: `${flipX ? 'scaleX(-1)' : ''} ${rotationJitter ? `rotate(${rotationJitter}deg)` : ''}`.trim() || undefined,
+              transformOrigin: '0 0',
+            }}
           >
             <image
               href={cfg.img}
@@ -1114,7 +1960,7 @@ function renderGardenItem(
               width={cfg.width}
               height={cfg.height}
               preserveAspectRatio="xMidYMid meet"
-              style={{ filter: cfg.dropShadow }}
+              style={{ filter: filterStyle }}
             />
           </motion.g>
         </motion.g>
@@ -1156,6 +2002,10 @@ function GrandZenCanvas({
   onNextCard,
   onSpeakWord,
   onResetGarden,
+  onUpdateItemPosition,
+  onResetLayout,
+  onPlaceCatalogItem,
+  onStoreCatalogItem,
 }: {
   biome: BiomeConfig;
   gardenEntities: GardenEntity[];
@@ -1172,9 +2022,124 @@ function GrandZenCanvas({
   onNextCard?: () => void;
   onSpeakWord?: (text: string) => void;
   onResetGarden?: () => void;
+  onUpdateItemPosition?: (id: string, x: number, y: number) => void;
+  onResetLayout?: () => void;
+  onPlaceCatalogItem?: (type: GardenItemType) => void;
+  onStoreCatalogItem?: (type: GardenItemType) => void;
 }) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [isArrangeMode, setIsArrangeMode] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const [inventoryCategory, setInventoryCategory] = useState<'all' | 'architecture' | 'flora' | 'fauna'>('all');
+
+  const dragSessionRef = useRef<{
+    id: string;
+    itemStartX: number;
+    itemStartY: number;
+    pointerStartX: number;
+    pointerStartY: number;
+    svgStartX: number;
+    svgStartY: number;
+    isMoved: boolean;
+  } | null>(null);
+
+  const getSvgCoords = (clientX: number, clientY: number) => {
+    if (svgRef.current) {
+      const pt = svgRef.current.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svgRef.current.getScreenCTM();
+      if (ctm) {
+        const transformed = pt.matrixTransform(ctm.inverse());
+        return {
+          x: Math.max(35, Math.min(765, Math.round(transformed.x))),
+          y: Math.max(90, Math.min(475, Math.round(transformed.y))),
+        };
+      }
+      const rect = svgRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        return {
+          x: Math.max(35, Math.min(765, Math.round(((clientX - rect.left) / rect.width) * 800))),
+          y: Math.max(90, Math.min(475, Math.round(((clientY - rect.top) / rect.height) * 500))),
+        };
+      }
+    }
+    return { x: 400, y: 250 };
+  };
+
+  const handleItemPointerDown = (
+    e: React.PointerEvent,
+    item: GardenEntity,
+    currentX: number,
+    currentY: number
+  ) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const svgPt = getSvgCoords(e.clientX, e.clientY);
+    dragSessionRef.current = {
+      id: item.id,
+      itemStartX: currentX,
+      itemStartY: currentY,
+      pointerStartX: e.clientX,
+      pointerStartY: e.clientY,
+      svgStartX: svgPt.x,
+      svgStartY: svgPt.y,
+      isMoved: false,
+    };
+
+    try {
+      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      // fallback
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragSessionRef.current) return;
+    const session = dragSessionRef.current;
+    const dist = Math.hypot(e.clientX - session.pointerStartX, e.clientY - session.pointerStartY);
+    if (!session.isMoved && dist < 5) {
+      return;
+    }
+
+    if (!session.isMoved) {
+      session.isMoved = true;
+      setDraggingId(session.id);
+    }
+
+    const svgPt = getSvgCoords(e.clientX, e.clientY);
+    const deltaX = svgPt.x - session.svgStartX;
+    const deltaY = svgPt.y - session.svgStartY;
+
+    const newX = Math.max(35, Math.min(765, Math.round(session.itemStartX + deltaX)));
+    const newY = Math.max(90, Math.min(475, Math.round(session.itemStartY + deltaY)));
+
+    onUpdateItemPosition?.(session.id, newX, newY);
+  };
+
+  const handlePointerUp = (_e: React.PointerEvent) => {
+    if (!dragSessionRef.current) return;
+    const session = dragSessionRef.current;
+    const { id, isMoved } = session;
+    dragSessionRef.current = null;
+    setDraggingId(null);
+
+    if (!isMoved) {
+      // Tap/click without dragging -> inspect
+      const clicked = gardenEntities.find((el) => el.id === id);
+      if (clicked) {
+        onInspectGarden(clicked);
+      }
+    } else {
+      playZenTapSound();
+    }
+  };
 
   // 🌿 TIẾN TRÌNH VƯỜN HOANG SƠ TỪ SỐ 0 (Pristine Garden Progression)
   // Ban đầu: chỉ có trời, núi, sông, cỏ xanh (chưa có cầu, hoa, bướm, lá sen).
@@ -1198,9 +2163,13 @@ function GrandZenCanvas({
     >
       <div className={isExpanded ? 'relative w-full h-full max-w-[1360px] max-h-[850px] flex items-center justify-center' : 'w-full h-full relative'}>
         <svg
-          className="w-full h-full block select-none"
+          ref={svgRef}
+          className={`w-full h-full block select-none ${draggingId ? 'cursor-grabbing' : isArrangeMode ? 'cursor-default' : ''}`}
           viewBox="0 0 800 500"
           preserveAspectRatio="xMidYMid meet"
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
           <defs>
           {/* --- SHADERS & GRADIENTS FOR HIGH-AESTHETIC LIVING SANCTUARY --- */}
@@ -1529,16 +2498,16 @@ function GrandZenCanvas({
 
           {/* ═══════════ 🎨 PERSPECTIVE GARDEN GRADIENTS ═══════════ */}
           <linearGradient id="pgGrassLeft" x1="0.1" y1="0" x2="0.8" y2="1">
-            <stop offset="0%" stopColor="#7bc67e" />
-            <stop offset="40%" stopColor="#4caf50" />
-            <stop offset="75%" stopColor="#2e7d32" />
-            <stop offset="100%" stopColor="#1b5e20" />
+            <stop offset="0%" stopColor={biome.grassGradientLeft ? biome.grassGradientLeft[0] : '#7bc67e'} />
+            <stop offset="40%" stopColor={biome.grassGradientLeft ? biome.grassGradientLeft[1] : '#4caf50'} />
+            <stop offset="75%" stopColor={biome.grassGradientLeft ? biome.grassGradientLeft[2] : '#2e7d32'} />
+            <stop offset="100%" stopColor={biome.grassGradientLeft ? biome.grassGradientLeft[3] : '#1b5e20'} />
           </linearGradient>
           <linearGradient id="pgGrassRight" x1="0.9" y1="0" x2="0.2" y2="1">
-            <stop offset="0%" stopColor="#7bc67e" />
-            <stop offset="40%" stopColor="#4caf50" />
-            <stop offset="75%" stopColor="#2e7d32" />
-            <stop offset="100%" stopColor="#1b5e20" />
+            <stop offset="0%" stopColor={biome.grassGradientRight ? biome.grassGradientRight[0] : '#7bc67e'} />
+            <stop offset="40%" stopColor={biome.grassGradientRight ? biome.grassGradientRight[1] : '#4caf50'} />
+            <stop offset="75%" stopColor={biome.grassGradientRight ? biome.grassGradientRight[2] : '#2e7d32'} />
+            <stop offset="100%" stopColor={biome.grassGradientRight ? biome.grassGradientRight[3] : '#1b5e20'} />
           </linearGradient>
           <linearGradient id="pgPathSurface" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#c8c8c8" />
@@ -1638,10 +2607,10 @@ function GrandZenCanvas({
             <stop offset="100%" stopColor="#0369a1" stopOpacity="1" />
           </linearGradient>
           <linearGradient id="crystalWaterGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.88" />
-            <stop offset="35%" stopColor="#0ea5e9" stopOpacity="0.92" />
-            <stop offset="70%" stopColor="#0284c7" stopOpacity="0.96" />
-            <stop offset="100%" stopColor="#0369a1" stopOpacity="1" />
+            <stop offset="0%" stopColor={biome.waterGradientCustom ? biome.waterGradientCustom[0] : '#38bdf8'} stopOpacity="0.88" />
+            <stop offset="35%" stopColor={biome.waterGradientCustom ? biome.waterGradientCustom[1] : '#0ea5e9'} stopOpacity="0.92" />
+            <stop offset="70%" stopColor={biome.waterGradientCustom ? biome.waterGradientCustom[2] : '#0284c7'} stopOpacity="0.96" />
+            <stop offset="100%" stopColor={biome.waterGradientCustom ? biome.waterGradientCustom[3] : '#0369a1'} stopOpacity="1" />
           </linearGradient>
         </defs>
 
@@ -1736,7 +2705,7 @@ function GrandZenCanvas({
         />
         <path
           d="M 340 115 C 330 170 280 220 280 260 C 270 310 100 365 80 505"
-          stroke="#15803d"
+          stroke={biome.grassStroke || '#15803d'}
           strokeWidth="3.5"
           fill="none"
           opacity="0.75"
@@ -1749,7 +2718,7 @@ function GrandZenCanvas({
         />
         <path
           d="M 440 115 C 450 170 510 220 510 260 C 520 310 690 365 720 505"
-          stroke="#15803d"
+          stroke={biome.grassStroke || '#15803d'}
           strokeWidth="3.5"
           fill="none"
           opacity="0.75"
@@ -2108,10 +3077,61 @@ function GrandZenCanvas({
         {/* 🔢 Y-SORT ALGORITHM: objects with higher y (closer to viewer) drawn LAST = on top */}
         {gardenEntities
           .slice()
-          .sort((a, b) => a.y - b.y)
-          .map((el) => renderGardenItem(el, onInspectGarden, isExpanded, biome))}
+          .sort((a, b) => (draggingId === a.id ? 1 : draggingId === b.id ? -1 : a.y - b.y))
+          .map((el) =>
+            renderGardenItem(el, onInspectGarden, isExpanded, biome, {
+              isDragging: draggingId === el.id,
+              isArrangeMode,
+              onPointerDown: handleItemPointerDown,
+            })
+          )}
       </svg>
     </div>
+
+      {/* 📐 FLOATING ARRANGE MODE GUIDE BANNER */}
+      <AnimatePresence>
+        {isArrangeMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.94 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-950/92 text-amber-200 border border-amber-400/60 shadow-2xl text-[11px] font-bold backdrop-blur-md select-none pointer-events-auto"
+          >
+            <span className="flex items-center gap-1.5">
+              <Move size={12} className="text-amber-400 animate-pulse" />
+              <span>{isVi ? 'Kéo thả vật thể bất kỳ để tự do tạo bố cục vườn' : 'Drag & drop any object to customize layout'}</span>
+            </span>
+            <span className="opacity-35">|</span>
+            {onResetLayout && (
+              <button
+                type="button"
+                onClick={onResetLayout}
+                className="text-amber-400 hover:text-white underline font-extrabold transition-colors cursor-pointer"
+                title={isVi ? 'Khôi phục vị trí mặc định ban đầu' : 'Reset positions'}
+              >
+                {isVi ? 'Bố cục gốc' : 'Reset layout'}
+              </button>
+            )}
+            <span className="opacity-35">|</span>
+            <button
+              type="button"
+              onClick={() => setIsInventoryOpen((prev) => !prev)}
+              className="flex items-center gap-1 text-emerald-400 hover:text-white font-extrabold transition-colors cursor-pointer"
+              title={isVi ? 'Mở túi cảnh vật / kho đồ tự do bày trí' : 'Open garden storage bag'}
+            >
+              <Package size={11} />
+              <span>{isVi ? 'Túi Cảnh Vật' : 'Open Bag'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsArrangeMode(false)}
+              className="ml-1 text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top Bar Badges & Controls */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-auto z-10">
@@ -2131,6 +3151,39 @@ function GrandZenCanvas({
                 • {t('zen_btn_fullscreen')}
               </span>
             )}
+          </button>
+
+          {/* Nút Bật/Tắt Chế Độ Kéo Thả Bày Trí Vườn */}
+          <button
+            type="button"
+            onClick={() => setIsArrangeMode((prev) => !prev)}
+            className={`px-3 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
+              isArrangeMode
+                ? 'bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400/60 shadow-amber-400/40 scale-105'
+                : 'bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 hover:bg-white border-white/60 hover:scale-105'
+            }`}
+            title={isVi ? 'Bật/tắt chế độ kéo thả sắp xếp các vật thể trong vườn' : 'Toggle garden arrange & drag mode'}
+          >
+            <Move size={13} className={isArrangeMode ? 'text-slate-950 animate-bounce' : 'text-emerald-600'} />
+            <span>{isVi ? (isArrangeMode ? 'Đang Bày Trí' : 'Bày Trí Vườn') : (isArrangeMode ? 'Arranging' : 'Arrange')}</span>
+          </button>
+
+          {/* Nút Bật/Tắt Túi Cảnh Vật (Kho Bày Trí) */}
+          <button
+            type="button"
+            onClick={() => setIsInventoryOpen((prev) => !prev)}
+            className={`px-3 py-1.5 rounded-full text-xs font-black backdrop-blur-md border shadow-md flex items-center gap-1.5 transition-all cursor-pointer ${
+              isInventoryOpen
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 ring-2 ring-emerald-400/60 shadow-emerald-500/40 scale-105'
+                : 'bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 hover:bg-white border-white/60 hover:scale-105'
+            }`}
+            title={isVi ? 'Mở túi cảnh vật / kho đồ tự do bày trí' : 'Open garden storage / inventory drawer'}
+          >
+            <Package size={13} className={isInventoryOpen ? 'text-slate-950 animate-bounce' : 'text-emerald-600'} />
+            <span>{isVi ? 'Túi Cảnh Vật' : 'Bag'}</span>
+            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+              {gardenEntities.length}
+            </span>
           </button>
         </div>
 
@@ -2298,6 +3351,167 @@ function GrandZenCanvas({
           </div>
         </div>
       )}
+
+      {/* 🎒 LIVING GARDEN INVENTORY DRAWER (TÚI CẢNH VẬT & KHO BÀY TRÍ) */}
+      <AnimatePresence>
+        {isInventoryOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.98 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute inset-x-3 bottom-3 sm:inset-x-6 sm:bottom-4 z-40 bg-slate-950/95 backdrop-blur-2xl border-2 border-emerald-500/50 shadow-2xl rounded-3xl flex flex-col text-white pointer-events-auto select-none overflow-hidden max-h-[82%]"
+          >
+            {/* Drawer Header */}
+            <div className="px-4 sm:px-5 py-3 border-b border-slate-800/90 flex items-center justify-between shrink-0 bg-slate-900/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Package size={17} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs sm:text-sm font-black text-amber-300">
+                      {isVi ? 'Túi Cảnh Vật (Kho Bày Trí)' : 'Garden Storage (Inventory)'}
+                    </h3>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300">
+                      {isVi ? `Đang bày: ${gardenEntities.length} món` : `Placed: ${gardenEntities.length} items`}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 hidden sm:block">
+                    {isVi
+                      ? 'Tự do lấy ra cắm vào vườn hoặc cất vào túi theo gu thẩm mỹ cá nhân'
+                      : 'Freely place items into your garden or store them back into inventory'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 italic hidden md:inline">
+                  {isVi ? 'Gợi ý: 15 - 25 món để vườn thoáng đẹp 60fps' : 'Tip: 15-25 items recommended for 60fps'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsInventoryOpen(false)}
+                  className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs font-bold"
+                  title={isVi ? 'Đóng túi đồ' : 'Close inventory'}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div className="px-4 py-2 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none bg-slate-900/30">
+              {[
+                { id: 'all', labelVi: 'Tất Cả Món', labelEn: 'All Items' },
+                { id: 'architecture', labelVi: '🏛️ Kiến Trúc & Cảnh', labelEn: '🏛️ Pavilions & Decor' },
+                { id: 'flora', labelVi: '🌸 Cây Cối & Hoa Cỏ', labelEn: '🌸 Trees & Flowers' },
+                { id: 'fauna', labelVi: '🦋 Sinh Vật & Thú', labelEn: '🦋 Fauna & Spirits' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setInventoryCategory(tab.id as any)}
+                  className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer shrink-0 border ${
+                    inventoryCategory === tab.id
+                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                      : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  {isVi ? tab.labelVi : tab.labelEn}
+                </button>
+              ))}
+            </div>
+
+            {/* Item Grid Catalog */}
+            <div className="p-3 sm:p-4 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 max-h-[320px] scrollbar-thin scrollbar-thumb-slate-700">
+              {Object.values(GARDEN_CATALOG)
+                .filter((item, idx, arr) => {
+                  if (item.type === 'tea_ceremony') return false;
+                  if (arr.findIndex((x) => x.type === item.type) !== idx) return false;
+                  if (inventoryCategory === 'all') return true;
+                  return item.category === inventoryCategory;
+                })
+                .map((item) => {
+                  const activeCount = gardenEntities.filter((e) => e.type === item.type).length;
+                  const realmOverride = (biome?.id && REALM_ITEM_OVERRIDES[biome.id]?.[item.type]) || null;
+                  const displayImg = realmOverride?.img || item.image;
+                  const displayLabel = isVi
+                    ? realmOverride?.labelVi || item.labelVi
+                    : realmOverride?.labelEn || item.labelEn;
+                  const displayIcon = realmOverride?.icon || item.icon;
+
+                  return (
+                    <div
+                      key={item.type}
+                      className={`p-2.5 rounded-2xl border transition-all flex flex-col justify-between group ${
+                        activeCount > 0
+                          ? 'bg-slate-900/90 border-emerald-500/50 shadow-sm'
+                          : 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700 opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      <div>
+                        <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800 mb-2 flex items-center justify-center">
+                          <img
+                            src={displayImg}
+                            alt={displayLabel}
+                            className="max-w-[85%] max-h-[85%] object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                          <span className="absolute top-1 left-1.5 text-xs">
+                            {displayIcon}
+                          </span>
+                          {activeCount > 0 ? (
+                            <span className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/90 text-slate-950 shadow-xs">
+                              x{activeCount}
+                            </span>
+                          ) : (
+                            <span className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-slate-800/80 text-slate-400">
+                              {isVi ? 'Túi' : 'Bag'}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <h5 className="text-[11px] font-bold text-slate-200 truncate" title={displayLabel}>
+                            {displayLabel}
+                          </h5>
+                          <p className="text-[9px] text-slate-400 mt-0.5">
+                            {activeCount > 0
+                              ? isVi ? `Đang bày ${activeCount} món` : `${activeCount} in garden`
+                              : isVi ? 'Trong túi kho' : 'In storage'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onPlaceCatalogItem?.(item.type)}
+                          className="flex-1 py-1 px-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                          title={isVi ? 'Bày thêm món này ra vườn' : 'Place into garden'}
+                        >
+                          <Plus size={11} />
+                          <span>{isVi ? 'Bày ra' : 'Place'}</span>
+                        </button>
+                        {activeCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => onStoreCatalogItem?.(item.type)}
+                            className="py-1 px-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-500/40 font-black text-[10px] flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                            title={isVi ? 'Thu hồi 1 món này cất vào túi' : 'Store back into bag'}
+                          >
+                            <Minus size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2335,8 +3549,74 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     return dueList.length > 0 ? dueList : rawCards;
   }, [rawCards, onlyDueSM2, deck.id]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
+  // Persistent Deck Progress (Đồng bộ tiến độ học của bộ thẻ trong Zen)
+  const deckProgressKey = `zen_deck_progress_${deck.id}`;
+
+  const [completedCardIds, setCompletedCardIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem(deckProgressKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.completedCardIds)) {
+          return parsed.completedCardIds;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem(deckProgressKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          typeof parsed?.currentIndex === 'number' &&
+          parsed.currentIndex >= 0 &&
+          parsed.currentIndex < rawCards.length
+        ) {
+          return parsed.currentIndex;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 0;
+  });
+
+  const [completedCount, setCompletedCount] = useState(() => completedCardIds.length);
+
+  const saveDeckProgress = (newIndex: number, newCompletedIds: number[]) => {
+    try {
+      localStorage.setItem(
+        deckProgressKey,
+        JSON.stringify({
+          currentIndex: newIndex,
+          completedCardIds: newCompletedIds,
+          lastUpdated: Date.now(),
+        })
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleGoPrev = () => {
+    const nextIdx = Math.max(0, currentIndex - 1);
+    setCurrentIndex(nextIdx);
+    saveDeckProgress(nextIdx, completedCardIds);
+  };
+
+  const handleGoNext = () => {
+    const nextIdx = currentIndex < cards.length - 1 ? currentIndex + 1 : 0;
+    setCurrentIndex(nextIdx);
+    saveDeckProgress(nextIdx, completedCardIds);
+  };
+
+  // Keyboard Shortcuts Modal State
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   // 3-STEP LINEAR MASTERY FLOW:
   // 1 = 'contemplate' (Lật chiêm nghiệm)
@@ -2350,18 +3630,59 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   const [gardenEntities, setGardenEntities] = useState<GardenEntity[]>(() => {
     try {
       const saved = localStorage.getItem('zen_garden_entities_v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+      if (saved !== null) {
+        let parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // BẢO TOÀN TRẠNG THÁI RESET: Nếu người dùng đã bấm gieo lại/reset về [], giữ nguyên [] qua mọi lần F5/reload!
+          if (parsed.length === 0) return [];
+
+          // 🌹 MIGRATION TỰ ĐỘNG: Chuyển đổi dứt điểm tàn tích thảm ăn / tea_ceremony cũ sang Bụi Hồng Cổ Trang Nhỏ Xinh
+          let hasMigration = false;
+          parsed = parsed.map((item: any) => {
+            if (
+              item.type === 'tea_ceremony' ||
+              (item.labelVi && (item.labelVi.includes('Chiếu') || item.labelVi.includes('thảm') || item.labelVi.includes('Thưởng Trà')))
+            ) {
+              hasMigration = true;
+              const roseCatalog = GARDEN_CATALOG.chinese_rose;
+              const roseSlot = HARMONIC_GARDEN_SLOTS.chinese_rose;
+              return {
+                ...item,
+                type: 'chinese_rose',
+                labelVi: roseCatalog.labelVi,
+                labelEn: roseCatalog.labelEn,
+                descVi: roseCatalog.descVi,
+                descEn: roseCatalog.descEn,
+                x: roseSlot.x,
+                y: roseSlot.y,
+                scale: roseSlot.scale,
+              };
+            }
+            return item;
+          });
+
+          if (hasMigration) {
+            try {
+              localStorage.setItem('zen_garden_entities_v2', JSON.stringify(parsed));
+            } catch {
+              // ignore
+            }
+          }
           return parsed;
         }
       }
 
-      // Khởi tạo tự động nếu người dùng đã có sẵn vốn từ vựng đã học trước đó (Seed initial garden)
+      // Nếu đã từng xác nhận reset vườn, tuyệt đối không tự động gieo lại
+      const cleared = localStorage.getItem('zen_garden_cleared_v2');
+      if (cleared === 'true') {
+        return [];
+      }
+
+      // Khởi tạo tự động 1 lần duy nhất cho người dùng mới nâng cấp nếu đã có sẵn vốn từ vựng đã học trước đó
       const savedTotal = localStorage.getItem('zen_total_words_learned_v2');
       const count = savedTotal ? parseInt(savedTotal, 10) || 0 : 0;
       if (count > 0) {
-        const initialCount = Math.min(count, 19);
+        const initialCount = Math.min(count, 18);
         const seeded: GardenEntity[] = [];
         for (let i = 0; i < initialCount; i++) {
           seeded.push(generateGardenEntityByIndex(i));
@@ -2381,17 +3702,129 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
 
   const handleResetGarden = () => {
     const msg = isVi
-      ? 'Bạn có muốn làm mới và gieo lại cảnh vật khu vườn từ đầu không?\n(Tổng số từ vựng đã học và linh thú vẫn được giữ nguyên vẹn!)'
-      : 'Do you want to replant the garden landscape from scratch?\n(Total learned vocabulary words and guardians will remain intact!)';
+      ? 'Bạn có muốn làm mới và gieo lại cảnh vật khu vườn từ đầu không?\n(Khu vườn sẽ được làm sạch để đơm hoa kết trái từ các từ bạn tiếp tục học, số từ tích lũy và linh thú vẫn được bảo lưu!)'
+      : 'Do you want to replant the garden landscape from scratch?\n(The garden will be cleared to bloom anew from your upcoming studies, while guardians and total stats remain intact!)';
     if (window.confirm(msg)) {
       setGardenEntities([]);
       try {
-        localStorage.removeItem('zen_garden_entities_v2');
+        localStorage.setItem('zen_garden_entities_v2', JSON.stringify([]));
+        localStorage.setItem('zen_garden_cleared_v2', 'true');
       } catch {
         // ignore
       }
       playZenChime();
     }
+  };
+
+  const handleUpdateItemPosition = (id: string, x: number, y: number) => {
+    setGardenEntities((prev) => {
+      const updated = prev.map((el) => {
+        if (el.id === id) {
+          return { ...el, x, y, customPos: true };
+        }
+        return el;
+      });
+      try {
+        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const handleResetLayout = () => {
+    const msg = isVi
+      ? 'Bạn có muốn đặt lại toàn bộ vị trí các vật thể về bố cục phong thủy mặc định ban đầu không?'
+      : 'Reset all objects back to their default harmonic positions?';
+    if (window.confirm(msg)) {
+      setGardenEntities((prev) => {
+        const updated = prev.map((el, idx) => {
+          const defaultSlot = HARMONIC_GARDEN_SLOTS[el.type];
+          if (defaultSlot && idx < HARMONIC_UNLOCK_SEQUENCE.length) {
+            return { ...el, x: defaultSlot.x, y: defaultSlot.y, customPos: false };
+          }
+          return { ...el, customPos: false };
+        });
+        try {
+          localStorage.setItem('zen_garden_entities_v2', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+      playZenChime();
+    }
+  };
+
+  // 🎒 Túi Cảnh Vật: Bày thêm 1 món từ kho ra vườn theo gu cá nhân
+  const handlePlaceCatalogItem = (type: GardenItemType) => {
+    const catalog = GARDEN_CATALOG[type];
+    if (!catalog) return;
+    const defaultSlot = HARMONIC_GARDEN_SLOTS[type] || { x: 400, y: 300, scale: 1 };
+    const countOfType = gardenEntities.filter((e) => e.type === type).length;
+    const jitterX = countOfType > 0 ? ((countOfType * 37) % 110) - 55 : 0;
+    const jitterY = countOfType > 0 ? ((countOfType * 23) % 70) - 35 : 0;
+
+    const newEntity: GardenEntity = {
+      id: `garden-placed-${Date.now()}-${type}`,
+      type,
+      x: Math.max(65, Math.min(735, defaultSlot.x + jitterX)),
+      y: Math.max(120, Math.min(465, defaultSlot.y + jitterY)),
+      scale: defaultSlot.scale || 1,
+      labelVi: catalog.labelVi,
+      labelEn: catalog.labelEn,
+      descVi: catalog.descVi,
+      descEn: catalog.descEn,
+      createdAt: Date.now(),
+      customPos: countOfType > 0,
+    };
+
+    setGardenEntities((prev) => {
+      const next = [...prev, newEntity];
+      try {
+        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
+        localStorage.removeItem('zen_garden_cleared_v2');
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+
+    playZenTapSound();
+    setLastGardenSpawned(isVi ? catalog.labelVi : catalog.labelEn);
+    setTimeout(() => setLastGardenSpawned(null), 2500);
+  };
+
+  // 🎒 Túi Cảnh Vật: Cất 1 món cùng loại từ vườn vào kho túi
+  const handleStoreCatalogItem = (type: GardenItemType) => {
+    setGardenEntities((prev) => {
+      const idx = [...prev].reverse().findIndex((e) => e.type === type);
+      if (idx === -1) return prev;
+      const actualIdx = prev.length - 1 - idx;
+      const next = prev.filter((_, i) => i !== actualIdx);
+      try {
+        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    playZenTapSound();
+  };
+
+  // 🎒 Cất 1 món cụ thể theo id (dùng cho modal inspect hoặc arrange mode)
+  const handleRemoveItemById = (id: string) => {
+    setGardenEntities((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      try {
+        localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    playZenTapSound();
   };
 
   // 🗺️ Active Realm / Biome State (Cảnh Giới Cõi Gắn Liền Với 8 Thần Thú & Lưu Bền Vững)
@@ -2591,7 +4024,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   // Initialize word state whenever index changes
   useEffect(() => {
     if (!card) return;
-    const cleanWord = card.front.trim().toUpperCase();
+    const targetTerm = stripParentheses(card.front) || card.front;
+    const cleanWord = targetTerm.replace(/\s+/g, '').toUpperCase();
     const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
     setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
     setPlacedLetters([]);
@@ -2784,13 +4218,14 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
       const next = [...prev, newEntity];
       try {
         localStorage.setItem('zen_garden_entities_v2', JSON.stringify(next));
+        localStorage.removeItem('zen_garden_cleared_v2');
       } catch {
         // ignore
       }
       return next;
     });
 
-    setLastGardenSpawned(isVi ? catalogInfo.labelVi : catalogInfo.labelEn);
+    setLastGardenSpawned(isVi ? (newEntity.labelVi || catalogInfo.labelVi) : (newEntity.labelEn || catalogInfo.labelEn));
     setTimeout(() => setLastGardenSpawned(null), 3500);
   };
 
@@ -2826,7 +4261,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     setPlacedLetters(nextPlaced);
     setAvailableLetters((prev) => prev.filter((it) => it.id !== item.id));
 
-    const targetWord = card.front.trim().toUpperCase();
+    const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     if (nextPlaced.length === targetWord.length) {
       if (nextPlaced.join('') === targetWord) {
         // GRAND VICTORY: Manifest living element & move to next card!
@@ -2924,17 +4359,20 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
             .catch(console.error);
         }
 
-        // Advance to next card smoothly
+        // Advance to next card smoothly & persist deck progress
         setTimeout(() => {
-          if (currentIndex < cards.length - 1) {
-            setCurrentIndex((i) => i + 1);
-          } else {
-            setCurrentIndex(0);
-          }
+          const nextIndex = currentIndex < cards.length - 1 ? currentIndex + 1 : 0;
+          setCurrentIndex(nextIndex);
+          const updatedCompleted = completedCardIds.includes(card.id)
+            ? completedCardIds
+            : [...completedCardIds, card.id];
+          setCompletedCardIds(updatedCompleted);
+          saveDeckProgress(nextIndex, updatedCompleted);
         }, 1400);
       } else {
         setTimeout(() => {
-          const cleanWord = card.front.trim().toUpperCase();
+          const targetTerm = stripParentheses(card.front) || card.front;
+          const cleanWord = targetTerm.replace(/\s+/g, '').toUpperCase();
           const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
           setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
           setPlacedLetters([]);
@@ -2944,6 +4382,9 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   };
 
   const handleUndoStone = (index: number) => {
+    if (!card) return;
+    const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
+    if (placedLetters.length === targetWord.length && placedLetters.join('') === targetWord) return;
     const char = placedLetters[index];
     if (!char) return;
     playZenTapSound();
@@ -2952,13 +4393,176 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   };
 
   const handleHintStone = () => {
-    const targetWord = card.front.trim().toUpperCase();
+    if (!card) return;
+    const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     const nextIdx = placedLetters.length;
     if (nextIdx >= targetWord.length) return;
     const needed = targetWord[nextIdx];
     const match = availableLetters.find((it) => it.char === needed);
     if (match) handleStoneTap(match);
   };
+
+  // UNIFIED ZEN FLOW KEYBOARD SHORTCUTS (Hybrid Chuột + Bàn phím cho Bước 1, 2, 3)
+  useEffect(() => {
+    const handleZenKeyDown = (e: KeyboardEvent) => {
+      // Không can thiệp nếu đang nhập trong ô input, textarea hoặc select
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      // Check overlay / modal chiêm ngưỡng đang mở (ngoại trừ shortcuts modal)
+      if (
+        showMixerModal ||
+        showCodexModal ||
+        inspectingAsset ||
+        ascendedCelebration ||
+        newlyUnlockedGuardian ||
+        showFullscreenGuardian ||
+        showRealmModal ||
+        inspectingGardenItem
+      ) {
+        return;
+      }
+
+      // 0. Bật / tắt Bảng Phím tắt bằng phím '?' (Shift + /)
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+        return;
+      }
+
+      // Đóng bảng phím tắt bằng Escape
+      if (showShortcutsModal) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowShortcutsModal(false);
+        }
+        return;
+      }
+
+      // Bỏ qua phím hệ thống cho hành động game
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      // ==========================================
+      // BƯỚC 1: LẬT CHIÊM NGHIỆM (CONTEMPLATE)
+      // ==========================================
+      if (step === 1) {
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          setIsFlipped((prev) => !prev);
+          playZenTapSound();
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          setStep(2);
+          playZenTapSound();
+          return;
+        }
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          handleGoPrev();
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          handleGoNext();
+          return;
+        }
+      }
+
+      // ==========================================
+      // BƯỚC 2: TƯỚI HOA NGỘ ĐẠO (BLOOM QUIZ)
+      // ==========================================
+      if (step === 2 && bloomStatus === 'idle') {
+        let num: number | null = null;
+        if (e.code.startsWith('Digit')) {
+          num = parseInt(e.code.replace('Digit', ''), 10);
+        } else if (e.code.startsWith('Numpad')) {
+          num = parseInt(e.code.replace('Numpad', ''), 10);
+        } else if (['1', '2', '3', '4'].includes(e.key)) {
+          num = parseInt(e.key, 10);
+        }
+
+        if (num !== null && num >= 1 && num <= 4) {
+          const choice = choices[num - 1];
+          if (choice) {
+            e.preventDefault();
+            handleBloomSelect(choice);
+            return;
+          }
+        }
+
+        if (e.key === 'Backspace' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setStep(1);
+          playZenTapSound();
+          return;
+        }
+      }
+
+      // ==========================================
+      // BƯỚC 3: XẾP SỎI CHỮ (STONE SPELL)
+      // ==========================================
+      if (step === 3 && card) {
+        const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
+
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (placedLetters.length > 0 && placedLetters.join('') !== targetWord) {
+            e.preventDefault();
+            handleUndoStone(placedLetters.length - 1);
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowLeft' && placedLetters.length === 0) {
+          e.preventDefault();
+          setStep(2);
+          playZenTapSound();
+          return;
+        }
+
+        if (e.key.length === 1) {
+          if (placedLetters.length >= targetWord.length) return;
+
+          const pressedChar = e.key.toUpperCase();
+          const match = availableLetters.find((it) => it.char.toUpperCase() === pressedChar);
+          if (match) {
+            e.preventDefault();
+            handleStoneTap(match);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleZenKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleZenKeyDown);
+    };
+  }, [
+    step,
+    card,
+    choices,
+    bloomStatus,
+    placedLetters,
+    availableLetters,
+    showShortcutsModal,
+    showMixerModal,
+    showCodexModal,
+    inspectingAsset,
+    ascendedCelebration,
+    newlyUnlockedGuardian,
+    showFullscreenGuardian,
+    showRealmModal,
+    inspectingGardenItem,
+    completedCardIds,
+    currentIndex,
+    cards.length,
+  ]);
 
   if (!card) {
     return (
@@ -3037,6 +4641,16 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
               {isSoundActive ? <Volume2 size={14} className="animate-pulse" /> : <VolumeX size={14} />}
               <span className="hidden sm:inline">{t('zen_btn_sound_mixer')}</span>
             </button>
+
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/60 dark:border-slate-700"
+              title={isVi ? 'Phím tắt bàn phím (?)' : 'Keyboard shortcuts (?)'}
+            >
+              <Keyboard size={14} />
+              <span className="hidden md:inline">{isVi ? 'Phím tắt' : 'Shortcuts'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -3058,35 +4672,61 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 <X size={16} />
               </button>
 
-              <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mx-auto shadow-inner border border-emerald-300/40 p-2 overflow-hidden">
-                {GARDEN_CATALOG[inspectingGardenItem.type]?.image ? (
-                  <img
-                    src={GARDEN_CATALOG[inspectingGardenItem.type].image}
-                    alt={isVi ? inspectingGardenItem.labelVi : inspectingGardenItem.labelEn}
-                    className="w-full h-full object-contain filter drop-shadow-md"
-                  />
-                ) : (
-                  <span className="text-3xl">{GARDEN_CATALOG[inspectingGardenItem.type]?.icon || '🌸'}</span>
-                )}
-              </div>
+              {(() => {
+                const activeOverride = selectedBiomeId ? REALM_ITEM_OVERRIDES[selectedBiomeId]?.[inspectingGardenItem.type] : undefined;
+                const displayLabel = (isVi ? activeOverride?.labelVi : activeOverride?.labelEn) || (isVi ? inspectingGardenItem.labelVi : inspectingGardenItem.labelEn);
+                const displayDesc = (isVi ? activeOverride?.descVi : activeOverride?.descEn) || (isVi ? inspectingGardenItem.descVi : inspectingGardenItem.descEn);
+                const displayImg = activeOverride?.img || GARDEN_CATALOG[inspectingGardenItem.type]?.image;
+                const displayIcon = activeOverride?.icon || GARDEN_CATALOG[inspectingGardenItem.type]?.icon || '🌸';
 
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 block mb-1">
-                  {t('zen_item_modal_title')}
-                </span>
-                <h3 className="font-black text-lg text-slate-900 dark:text-white">
-                  {isVi ? inspectingGardenItem.labelVi : inspectingGardenItem.labelEn}
-                </h3>
-              </div>
+                return (
+                  <>
+                    <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mx-auto shadow-inner border border-emerald-300/40 p-2 overflow-hidden">
+                      {displayImg ? (
+                        <img
+                          src={displayImg}
+                          alt={displayLabel}
+                          className="w-full h-full object-contain filter drop-shadow-md"
+                        />
+                      ) : (
+                        <span className="text-3xl">{displayIcon}</span>
+                      )}
+                    </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                {isVi ? inspectingGardenItem.descVi : inspectingGardenItem.descEn}
-              </p>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 block mb-1">
+                        {t('zen_item_modal_title')}
+                      </span>
+                      <h3 className="font-black text-lg text-slate-900 dark:text-white">
+                        {displayLabel}
+                      </h3>
+                    </div>
 
-              <div className="pt-2">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                      {displayDesc}
+                    </p>
+                  </>
+                );
+              })()}
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (inspectingGardenItem) {
+                      handleRemoveItemById(inspectingGardenItem.id);
+                      setInspectingGardenItem(null);
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  title={isVi ? 'Thu hồi vật thể này cất vào túi cảnh vật' : 'Store this item into inventory'}
+                >
+                  <Package size={14} />
+                  <span>{isVi ? 'Cất Vào Túi' : 'Store to Bag'}</span>
+                </button>
                 <button
                   onClick={() => setInspectingGardenItem(null)}
-                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-colors cursor-pointer"
                 >
                   {t('zen_item_modal_close')}
                 </button>
@@ -3325,6 +4965,118 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 >
                   {isVi ? 'Để Sau' : 'Later'}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      <AnimatePresence>
+        {showShortcutsModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 text-slate-800 dark:text-slate-100"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <Keyboard size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-slate-800 dark:text-white">
+                      {isVi ? 'Phím tắt bàn phím Zen' : 'Zen Keyboard Shortcuts'}
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      {isVi ? 'Học tập liền mạch 100% bằng bàn phím' : 'Seamless full-keyboard study flow'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* Step 1 */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1.5">
+                    1. {t('zen_step_1_title')}
+                  </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Lật thẻ chiêm nghiệm' : 'Flip flashcard'}</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">Space</kbd>
+                        <span className="text-slate-400">/</span>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">↑</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">↓</kbd>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Bắt đầu tưới hoa' : 'Begin watering'}</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] font-mono shadow-2xs">Enter</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Chuyển từ trước / sau' : 'Prev / Next card'}</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">←</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">→</kbd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-teal-600 dark:text-teal-400 block mb-1.5">
+                    2. {t('zen_step_2_title')}
+                  </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Chọn 1 trong 4 đáp án' : 'Choose 1 of 4 choices'}</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">1</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">2</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">3</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] shadow-2xs">4</kbd>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Quay lại xem thẻ' : 'Back to card review'}</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] font-mono shadow-2xs">Backspace</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1.5">
+                    3. {t('zen_step_3_title')}
+                  </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Gõ sỏi chữ cái trực tiếp' : 'Type letter pebbles'}</span>
+                      <kbd className="px-2 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] font-mono shadow-2xs">A - Z</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Thu hồi sỏi vừa đặt' : 'Undo last placed pebble'}</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-[10px] font-mono shadow-2xs">Backspace</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                {/* General */}
+                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <span>{isVi ? 'Bật / tắt nhanh bảng phím tắt này' : 'Toggle shortcuts cheat sheet'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 font-mono text-[10px] shadow-2xs">?</kbd>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -4302,10 +6054,14 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           onToggleExpand={handleToggleExpand}
           onInspectGarden={(item) => setInspectingGardenItem(item)}
           currentCard={card}
-          onPrevCard={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-          onNextCard={() => setCurrentIndex((i) => (i < cards.length - 1 ? i + 1 : 0))}
+          onPrevCard={handleGoPrev}
+          onNextCard={handleGoNext}
           onSpeakWord={speakWord}
           onResetGarden={handleResetGarden}
+          onUpdateItemPosition={handleUpdateItemPosition}
+          onResetLayout={handleResetLayout}
+          onPlaceCatalogItem={handlePlaceCatalogItem}
+          onStoreCatalogItem={handleStoreCatalogItem}
         />
 
         {/* Flourished Celebration Banner */}
@@ -4479,10 +6235,33 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
             <span className="text-xs font-extrabold text-slate-600 dark:text-slate-200">
               {isVi ? `Từ ${currentIndex + 1}/${cards.length}` : `Word ${currentIndex + 1}/${cards.length}`}
             </span>
+            {completedCardIds.length > 0 && (
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                <CheckCircle2 size={10} className="text-emerald-500" />
+                <span>{isVi ? `Đã đúc: ${completedCardIds.length}` : `Mastered: ${completedCardIds.length}`}</span>
+              </span>
+            )}
+            {completedCardIds.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm(isVi ? 'Bạn có muốn đặt lại tiến độ để học lại bộ thẻ này từ đầu?' : 'Restart deck progress from beginning?')) {
+                    setCurrentIndex(0);
+                    setCompletedCardIds([]);
+                    saveDeckProgress(0, []);
+                  }
+                }}
+                className="text-[10px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-0.5 font-medium ml-1"
+                title={isVi ? 'Học lại từ đầu' : 'Restart deck'}
+              >
+                <RotateCcw size={10} />
+                <span>{isVi ? 'Học lại' : 'Restart'}</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 setOnlyDueSM2((prev) => !prev);
                 setCurrentIndex(0);
+                saveDeckProgress(0, completedCardIds);
               }}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer border ${
                 onlyDueSM2
@@ -4691,7 +6470,12 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                         onClick={() => handleBloomSelect(choice)}
                         className={`p-4 rounded-2xl border-2 text-left font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-between cursor-pointer shadow-sm ${styleClass}`}
                       >
-                        <span>{choice}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-5 h-5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-black flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
+                            {i + 1}
+                          </span>
+                          <span className="truncate">{choice}</span>
+                        </div>
                         {bloomStatus === 'correct' && isRight && <Sparkles size={16} className="text-amber-200 shrink-0" />}
                       </motion.button>
                     );
@@ -4735,7 +6519,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                     {card.back}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
-                    {t('zen_stone_prompt')}
+                    {isVi ? 'Ghép các viên sỏi chữ cái thành từ đúng' : 'Assemble the letter stones to complete the word'}
                   </p>
                 </div>
 
@@ -4782,7 +6566,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                     </button>
                     <button
                       onClick={() => {
-                        const cleanWord = card.front.trim().toUpperCase();
+                        const targetTerm = stripParentheses(card.front) || card.front;
+                        const cleanWord = targetTerm.replace(/\s+/g, '').toUpperCase();
                         const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
                         setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
                         setPlacedLetters([]);
@@ -4807,18 +6592,14 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           {/* Navigation Controls */}
           <div className="flex items-center gap-4 mt-6">
             <button
-              onClick={() => {
-                setCurrentIndex((i) => Math.max(0, i - 1));
-              }}
+              onClick={handleGoPrev}
               disabled={currentIndex === 0}
               className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold text-emerald-800 dark:text-emerald-200 bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer border border-transparent dark:border-slate-700"
             >
               <ChevronLeft size={14} /> {t('zen_hud_prev')}
             </button>
             <button
-              onClick={() => {
-                setCurrentIndex((i) => (i < cards.length - 1 ? i + 1 : 0));
-              }}
+              onClick={handleGoNext}
               className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-200 dark:shadow-emerald-950 cursor-pointer"
             >
               {t('zen_hud_next')} <ChevronRight size={14} />

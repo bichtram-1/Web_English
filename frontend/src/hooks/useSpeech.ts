@@ -3,26 +3,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 // Regex to detect Vietnamese characters
 const VIETNAMESE_REGEX = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i;
 
-/**
- * Strips parenthesized content from text for cleaner pronunciation.
- * E.g. "access (n)" -> "access"
- * E.g. "(to) take for granted" -> "take for granted"
- */
-export function stripParentheses(text: string): string {
-  if (!text) return '';
-  // Remove content inside standard (), full-width （）, and square brackets []
-  const stripped = text
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/（[^）]*）/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .trim();
+import { stripParentheses } from '../utils/answerMatch';
 
-  // If stripping left nothing (e.g. text was literally only "(n)"), fallback to removing only the bracket chars
-  if (!stripped) {
-    return text.replace(/[()（）[\]]/g, ' ').trim();
-  }
-  return stripped;
-}
+export { stripParentheses };
 
 // Function to clean text for speech synthesis (remove emojis, special symbols, parenthesized notes)
 export function cleanTtsText(text: string): string {

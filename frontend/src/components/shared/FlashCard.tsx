@@ -6,9 +6,9 @@ import { cleanTtsText } from '../../hooks/useSpeech';
 import type { FlashcardItem } from '../../types/DeckType';
 
 export interface FlashCardRef {
-  flip: () => void;
-  flipTo: (showBack: boolean) => void;
-  toggleFlip: () => void;
+  flip: (direction?: 'up' | 'down') => void;
+  flipTo: (showBack: boolean, direction?: 'up' | 'down') => void;
+  toggleFlip: (direction?: 'up' | 'down') => void;
   speak: () => void;
   isFlipped: () => boolean;
 }
@@ -26,9 +26,11 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
 ) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const [flipped, setFlipped] = useState(false);
+  const [rotationX, setRotationX] = useState(0);
   const [hasFlipped, setHasFlipped] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+
+  const isBack = Math.abs(rotationX % 360) === 180;
 
   const speakWord = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;
@@ -45,56 +47,75 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
   }, []);
 
   useEffect(() => {
-    setFlipped(false);
+    setRotationX(0);
     setHasFlipped(false);
   }, [card.id]);
 
   const triggerFlip = useCallback(
-    (targetFlipped?: boolean) => {
-      const next = targetFlipped !== undefined ? targetFlipped : !flipped;
-      setFlipped(next);
-      if (next && !hasFlipped) {
-        setHasFlipped(true);
-      }
-      onFlipped?.(next);
+    (direction: 'up' | 'down' = 'down') => {
+      setRotationX((prev) => {
+        const delta = direction === 'up' ? -180 : 180;
+        const next = prev + delta;
+        const nextFlipped = Math.abs(next % 360) === 180;
+        if (nextFlipped && !hasFlipped) {
+          setHasFlipped(true);
+        }
+        onFlipped?.(nextFlipped);
+        return next;
+      });
     },
-    [flipped, hasFlipped, onFlipped]
+    [hasFlipped, onFlipped]
+  );
+
+  const flipTo = useCallback(
+    (showBack: boolean, direction?: 'up' | 'down') => {
+      setRotationX((prev) => {
+        const currentFlipped = Math.abs(prev % 360) === 180;
+        if (currentFlipped === showBack) return prev;
+        const dir = direction || (showBack ? 'down' : 'up');
+        const delta = dir === 'up' ? -180 : 180;
+        const next = prev + delta;
+        onFlipped?.(showBack);
+        return next;
+      });
+    },
+    [onFlipped]
   );
 
   useImperativeHandle(
     ref,
     () => ({
-      flip: () => triggerFlip(),
-      flipTo: (showBack: boolean) => triggerFlip(showBack),
-      toggleFlip: () => triggerFlip(),
+      flip: (dir?: 'up' | 'down') => triggerFlip(dir),
+      flipTo: (showBack: boolean, dir?: 'up' | 'down') => flipTo(showBack, dir),
+      toggleFlip: (dir?: 'up' | 'down') => triggerFlip(dir),
       speak: () => speakWord(card.front),
-      isFlipped: () => flipped,
+      isFlipped: () => isBack,
     }),
-    [triggerFlip, speakWord, card.front, flipped]
+    [triggerFlip, flipTo, speakWord, card.front, isBack]
   );
 
   return (
     <div
-      className="relative cursor-pointer select-none group w-full max-w-lg h-[270px] sm:h-[300px]"
+      className="relative cursor-pointer select-none group w-full max-w-lg md:max-w-2xl lg:max-w-3xl h-[280px] sm:h-[320px] md:h-[360px] lg:h-[390px]"
       style={{ perspective: '1200px' }}
-      onClick={() => triggerFlip()}
+      onClick={() => triggerFlip('down')}
     >
       <motion.div
         className="relative w-full h-full"
         style={{ transformStyle: 'preserve-3d' }}
-        animate={{ rotateY: flipped ? 180 : 0 }}
-        transition={{ duration: 0.55, ease: [0.23, 1, 0.32, 1] }}
+        animate={{ rotateX: rotationX }}
+        transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
       >
         {/* Front (English) */}
         <div
-          className="absolute inset-0 rounded-3xl flex flex-col items-center justify-between p-5 sm:p-7 text-white"
+          className="absolute inset-0 rounded-3xl flex flex-col items-center justify-between p-5 sm:p-7 md:p-9 text-white"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
             background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-            boxShadow: '0 20px 60px rgba(79,70,229,0.35)',
-            zIndex: flipped ? 1 : 2,
-            pointerEvents: flipped ? 'none' : 'auto',
+            boxShadow: '0 25px 65px rgba(79,70,229,0.38)',
+            zIndex: isBack ? 1 : 2,
+            pointerEvents: isBack ? 'none' : 'auto',
           }}
         >
           <div className="w-full flex items-center justify-between">
@@ -125,20 +146,20 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             </div>
           </div>
 
-          <div className="flex flex-col items-center my-auto">
+          <div className="flex flex-col items-center my-auto px-2">
             <h2
               className="text-white text-center leading-tight mb-2"
-              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 5.5vw, 3.2rem)', fontWeight: 800 }}
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 4.2vw, 3.6rem)', fontWeight: 800 }}
             >
               {card.front}
             </h2>
             {card.phonetic && (
-              <p className="text-indigo-200 text-sm font-medium tracking-wide font-mono">
+              <p className="text-indigo-200 text-sm sm:text-base font-medium tracking-wide font-mono">
                 {card.phonetic}
               </p>
             )}
             {card.exampleEn && (
-              <p className="text-indigo-100/80 text-xs text-center italic mt-2 max-w-sm">
+              <p className="text-indigo-100/80 text-xs sm:text-sm text-center italic mt-2.5 max-w-md lg:max-w-xl">
                 "{card.exampleEn}"
               </p>
             )}
@@ -189,20 +210,24 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             </button>
 
             <span className="text-indigo-200 text-xs flex items-center gap-1.5 font-medium">
-              <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">↓</kbd> {t('study_flip_to_vi')}
+              <span className="flex items-center gap-0.5">
+                <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">↑</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono">↓</kbd>
+              </span>
+              {t('study_flip_to_vi')}
             </span>
           </div>
         </div>
 
         {/* Back (Vietnamese) */}
         <div
-          className="absolute inset-0 rounded-3xl flex flex-col items-center justify-between p-5 sm:p-7 bg-white dark:bg-slate-900 border-2 border-indigo-100 dark:border-slate-800 shadow-xl dark:shadow-black/40 text-slate-900 dark:text-white"
+          className="absolute inset-0 rounded-3xl flex flex-col items-center justify-between p-5 sm:p-7 md:p-9 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-2 border-indigo-100 dark:border-slate-800 shadow-2xl dark:shadow-black/50 text-slate-900 dark:text-white"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
-            zIndex: flipped ? 2 : 1,
-            pointerEvents: flipped ? 'auto' : 'none',
+            transform: 'rotateX(180deg)',
+            zIndex: isBack ? 2 : 1,
+            pointerEvents: isBack ? 'auto' : 'none',
           }}
         >
           <div className="w-full flex items-center justify-between">
@@ -231,15 +256,15 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             </div>
           </div>
 
-          <div className="flex flex-col items-center my-auto">
+          <div className="flex flex-col items-center my-auto px-2">
             <h2
               className="text-slate-900 dark:text-white text-center leading-tight mb-2"
-              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', fontWeight: 800 }}
+              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.8vw, 3.2rem)', fontWeight: 800 }}
             >
               {card.back}
             </h2>
             {card.exampleVi && (
-              <p className="text-slate-500 dark:text-slate-400 text-xs text-center italic mt-2 max-w-sm">
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center italic mt-2.5 max-w-md lg:max-w-xl">
                 "{card.exampleVi}"
               </p>
             )}
@@ -258,7 +283,11 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             </button>
 
             <span className="text-indigo-600 dark:text-indigo-400 text-xs flex items-center gap-1.5 font-medium">
-              <kbd className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 text-[10px] font-mono">↑</kbd> {t('study_flip_to_en')}
+              <span className="flex items-center gap-0.5">
+                <kbd className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 text-[10px] font-mono">↑</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 text-[10px] font-mono">↓</kbd>
+              </span>
+              {t('study_flip_to_en')}
             </span>
           </div>
         </div>

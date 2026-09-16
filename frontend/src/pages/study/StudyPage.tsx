@@ -2,11 +2,13 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Sparkles, Brain, Clock, Calendar, CheckCircle2, Lock, Star, Image as ImageIcon, Keyboard } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import ThemeToggle from '../../components/general/ThemeToggle';
 import LanguageSelect from '../../components/general/LanguageSelect';
+import WallpaperModal from '../../components/general/WallpaperModal';
+import { useWallpaper } from '../../contexts/WallpaperContext';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
 import type { Deck } from '../../types/DeckType';
@@ -53,6 +55,7 @@ export default function StudyPage() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
 
   const targetId = id || 'basic-comm';
 
@@ -84,6 +87,7 @@ export default function StudyPage() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [sm2Enabled, setSm2Enabled] = useState(true);
   const [currentSM2Record, setCurrentSM2Record] = useState<SM2Record | null>(null);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   const flashCardRef = useRef<FlashCardRef>(null);
   const dragDropRef = useRef<DragDropCardRef>(null);
@@ -208,9 +212,10 @@ export default function StudyPage() {
   // Handle SM-2 Quality Rating
   const handleRateSM2 = useCallback(
     (rating: SM2Rating) => {
-      if (!currentDeck || !card || !currentSM2Record) return;
+      const record = currentSM2Record || (card && currentDeck ? getCardSM2Record(card.id, currentDeck.id) : null);
+      if (!currentDeck || !card || !record) return;
 
-      const updated = calculateSM2(currentSM2Record, rating);
+      const updated = calculateSM2(record, rating);
       saveSM2Record(updated);
       setCurrentSM2Record(updated);
       markProgress(card.id);
@@ -223,9 +228,21 @@ export default function StudyPage() {
 
       const days = updated.interval;
       const intervalMsg =
-        days === 1
-          ? isVi ? 'Ôn lại vào ngày mai' : 'Next review tomorrow'
-          : isVi ? `Lên lịch ôn tập sau ${days} ngày (Thuật toán SM-2)` : `Scheduled review in ${days} days (SM-2 SRS)`;
+        rating === 1
+          ? isVi
+            ? 'Đã ghi nhận: Cần học lại thẻ này (< 10 phút)'
+            : 'Marked: Need to review this card (< 10 mins)'
+          : rating === 2
+          ? isVi
+            ? 'Đã ghi nhận: Khó nhớ (ôn lại vào ngày mai)'
+            : 'Marked: Hard recall (review tomorrow)'
+          : days === 1
+          ? isVi
+            ? 'Đã nhớ tốt · Ôn lại vào ngày mai'
+            : 'Good recall · Next review tomorrow'
+          : isVi
+          ? `Lên lịch ôn tập sau ${days} ngày`
+          : `Scheduled review in ${days} days`;
       showToast(intervalMsg);
 
       setTimeout(() => {
@@ -265,6 +282,20 @@ export default function StudyPage() {
         return;
       }
 
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+        return;
+      }
+
+      if (showShortcutsModal) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowShortcutsModal(false);
+        }
+        return;
+      }
+
       // Toggle star shortcut
       if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
@@ -277,21 +308,21 @@ export default function StudyPage() {
         return;
       }
 
-      // SM-2 shortcuts
-      if (sm2Enabled && isCardFlipped) {
-        if (e.key === '1') {
+      // SM-2 shortcuts (1, 2, 3, 4) - enabled from both front and back
+      if (sm2Enabled) {
+        if (e.key === '1' || e.code === 'Digit1' || e.code === 'Numpad1') {
           e.preventDefault();
           handleRateSM2(1);
           return;
-        } else if (e.key === '2') {
+        } else if (e.key === '2' || e.code === 'Digit2' || e.code === 'Numpad2') {
           e.preventDefault();
           handleRateSM2(2);
           return;
-        } else if (e.key === '3') {
+        } else if (e.key === '3' || e.code === 'Digit3' || e.code === 'Numpad3') {
           e.preventDefault();
           handleRateSM2(3);
           return;
-        } else if (e.key === '4') {
+        } else if (e.key === '4' || e.code === 'Digit4' || e.code === 'Numpad4') {
           e.preventDefault();
           handleRateSM2(5);
           return;
@@ -307,14 +338,17 @@ export default function StudyPage() {
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (card.type === 'flashcard') {
-          flashCardRef.current?.flipTo(true);
-          setIsCardFlipped(true);
+          flashCardRef.current?.flip('down');
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (card.type === 'flashcard') {
-          flashCardRef.current?.flipTo(false);
-          setIsCardFlipped(false);
+          flashCardRef.current?.flip('up');
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (card.type === 'flashcard') {
+          flashCardRef.current?.flip('down');
         }
       } else if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
@@ -328,7 +362,7 @@ export default function StudyPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, isCardFlipped, handleRateSM2, toggleStar, isVi, showToast]);
+  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, handleRateSM2, toggleStar, isVi, showToast]);
 
   if (loading && (!currentDeck || cards.length === 0)) return <Loading />;
 
@@ -440,84 +474,136 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
-        <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button
-            onClick={handleExit}
-            className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-semibold cursor-pointer"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <X size={16} />
-            <span className="hidden sm:inline">{t('exit')}</span>
-          </button>
+    <div
+      className={`min-h-screen flex flex-col relative overflow-x-clip text-slate-900 dark:text-slate-100 transition-colors duration-200 ${
+        wallpaperConfig.enabled && wallpaperConfig.url ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-950'
+      }`}
+    >
+      {/* Dynamic Background Wallpaper Container (GPU accelerated) */}
+      {wallpaperConfig.enabled && wallpaperConfig.url && (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none transition-all duration-500 ease-out"
+          style={{
+            backgroundImage: `url(${wallpaperConfig.url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            filter: `blur(${wallpaperConfig.blur}px) brightness(${wallpaperConfig.brightness})`,
+            transform: 'translate3d(0, 0, 0) scale(1.08)',
+            willChange: 'filter, opacity, transform',
+            backfaceVisibility: 'hidden',
+          }}
+        />
+      )}
 
-          {/* Progress bar */}
-          <div className="flex-1 flex flex-col gap-1">
-            <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-              />
+      {/* Dynamic Dark / Tint Overlay */}
+      {wallpaperConfig.enabled && wallpaperConfig.url && (
+        <div
+          className="fixed inset-0 z-0 pointer-events-none transition-colors duration-300"
+          style={{
+            backgroundColor: `rgba(11, 15, 25, ${wallpaperConfig.overlayOpacity})`,
+            transform: 'translate3d(0, 0, 0)',
+            willChange: 'background-color',
+          }}
+        />
+      )}
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
+          <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-semibold cursor-pointer"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <X size={16} />
+              <span className="hidden sm:inline">{t('exit')}</span>
+            </button>
+
+            {/* Progress bar */}
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                />
+              </div>
+            </div>
+
+            <span
+              className="text-sm font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {currentIndex + 1} / {cards.length}
+            </span>
+
+            {/* Quizlet-style Starred Filter Pill Selector */}
+            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
+              <button
+                onClick={() => handleToggleStarredMode(false)}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  !starredOnly
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
+              </button>
+              <button
+                onClick={() => handleToggleStarredMode(true)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  starredOnly
+                    ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+                }`}
+              >
+                <Star size={12} className={starredOnly || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+                <span>{starredCount}</span>
+              </button>
+            </div>
+
+            {/* Wallpaper, Language & Theme toggles in study mode */}
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setWallpaperModalOpen(true)}
+                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title={isVi ? 'Đổi hình nền không gian học' : 'Customize study wallpaper'}
+                aria-label="Customize wallpaper"
+              >
+                <ImageIcon size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowShortcutsModal(true)}
+                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title={isVi ? 'Bảng phím tắt (?)' : 'Keyboard shortcuts (?)'}
+                aria-label="Keyboard shortcuts"
+              >
+                <Keyboard size={16} />
+              </button>
+              <LanguageSelect mini />
+              <ThemeToggle />
             </div>
           </div>
+        </header>
 
-          <span
-            className="text-sm font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap shrink-0"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {currentIndex + 1} / {cards.length}
-          </span>
-
-          {/* Quizlet-style Starred Filter Pill Selector */}
-          <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
-            <button
-              onClick={() => handleToggleStarredMode(false)}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                !starredOnly
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
+        {/* Deck info strip */}
+        <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-5 pb-1 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm px-3 py-1 rounded-full border border-slate-200/50 dark:border-slate-800/50 shadow-2xs">
+            <span
+              className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest"
+              style={{ fontFamily: 'var(--font-display)' }}
             >
-              {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
-            </button>
-            <button
-              onClick={() => handleToggleStarredMode(true)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                starredOnly
-                  ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
-              }`}
-            >
-              <Star size={12} className={starredOnly || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
-              <span>{starredCount}</span>
-            </button>
+              {currentDeck.title}
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">·</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+              {card.type === 'flashcard' ? t('study_card_flashcard') : t('study_card_grammar')}
+            </span>
           </div>
-
-          {/* Language & Theme toggles in study mode */}
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
-            <LanguageSelect mini />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      {/* Deck info strip */}
-      <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 pt-5 pb-1 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            {currentDeck.title}
-          </span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            {card.type === 'flashcard' ? t('study_card_flashcard') : t('study_card_grammar')}
-          </span>
-        </div>
 
         {starredOnly && (
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold shadow-2xs">
@@ -562,11 +648,11 @@ export default function StudyPage() {
                 />
 
                 {/* SM-2 Spaced Repetition Rating Panel */}
-                <div className="mt-5 w-full max-w-lg">
-                  <div className="flex items-center justify-between px-1 mb-2">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <div className="mt-5 w-full max-w-lg md:max-w-2xl lg:max-w-3xl">
+                  <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-xs">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Brain size={14} className="text-indigo-500" />
-                      {isVi ? 'Đánh giá độ nhớ (Thuật toán SM-2)' : 'SM-2 SRS Recall Rating'}
+                      {isVi ? 'Đánh giá mức độ nhớ' : 'Memory Recall Rating'}
                     </span>
                     {activeSM2Record && activeSM2Record.interval > 0 && (
                       <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
@@ -587,7 +673,7 @@ export default function StudyPage() {
                           <kbd className="px-1 py-0.2 rounded bg-black/20 text-[10px] font-mono text-white/90">
                             {idx + 1}
                           </kbd>
-                          <span className="text-xs font-extrabold">{isVi ? opt.labelVi.split(' ')[0] : opt.labelEn}</span>
+                          <span className="text-xs font-extrabold">{isVi ? opt.labelVi.replace(/\s*\(.*?\)/, '') : opt.labelEn}</span>
                         </div>
                         <span className="text-[10px] font-semibold text-white/80 mt-0.5">
                           {isVi ? opt.intervalLabelVi : opt.intervalLabelEn}
@@ -607,30 +693,16 @@ export default function StudyPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Keyboard shortcuts helper pills */}
-        <div className="mt-5 hidden sm:flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-slate-500 dark:text-slate-400 text-xs font-semibold select-none">
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">S</kbd>
-            <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Gán sao ⭐' : 'Star term'}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
-            <span className="font-mono text-indigo-500 font-bold">1 2 3 4</span>
-            <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Đánh giá SM-2' : 'Rate SM-2'}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
-            <div className="flex items-center gap-0.5">
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">↑</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">↓</kbd>
-            </div>
-            <span className="text-slate-600 dark:text-slate-300">{t('shortcut_flip')}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 px-2.5 py-1.5 rounded-xl shadow-xs">
-            <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">Space</kbd>
-            <span className="text-slate-600 dark:text-slate-300">{t('shortcut_audio')}</span>
-          </div>
+        {/* Keyboard shortcut quick trigger */}
+        <div className="mt-4 hidden sm:flex items-center justify-center">
+          <button
+            onClick={() => setShowShortcutsModal(true)}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 text-xs font-semibold shadow-xs transition-all cursor-pointer hover:border-indigo-300"
+          >
+            <Keyboard size={13} />
+            <span>{isVi ? 'Phím tắt học tập' : 'Keyboard shortcuts'}</span>
+            <kbd className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono border border-slate-300 dark:border-slate-700">?</kbd>
+          </button>
         </div>
       </main>
 
@@ -686,6 +758,92 @@ export default function StudyPage() {
       </footer>
 
       <Toast message={toast.message} visible={toast.visible} />
+      <WallpaperModal />
+
+      {/* Study Shortcuts Cheat Sheet Modal */}
+      <AnimatePresence>
+        {showShortcutsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 text-slate-800 dark:text-slate-100"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+                    <Keyboard size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base">{isVi ? 'Phím tắt Flashcard' : 'Flashcard Shortcuts'}</h3>
+                    <p className="text-xs text-slate-400">{isVi ? 'Tăng tốc độ ôn luyện cùng bàn phím' : 'Speed up review with keyboard'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="py-4 space-y-3">
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Lật thẻ mặt trước / sau' : 'Flip card front/back'}</span>
+                  <div className="flex items-center gap-1">
+                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">↑</kbd>
+                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">↓</kbd>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Thẻ trước / Thẻ tiếp theo' : 'Previous / Next card'}</span>
+                  <div className="flex items-center gap-1">
+                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">←</kbd>
+                    <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">→</kbd>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Phát âm thanh từ vựng' : 'Play audio pronunciation'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">Space</kbd>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Đánh dấu sao ⭐' : 'Toggle starred ⭐'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">S</kbd>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Đánh giá mức độ nhớ (1: Quên, 2: Khó, 3: Nhớ, 4: Dễ)' : 'Recall rating (1: Again, 2: Hard, 3: Good, 4: Easy)'}</span>
+                  <div className="flex items-center gap-1 font-mono text-xs">
+                    <kbd className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 shadow-2xs">1</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-2xs">2</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shadow-2xs">3</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-2xs">4</kbd>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Mở / Đóng bảng phím tắt này' : 'Open / close this cheat sheet'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">?</kbd>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-all shadow-md shadow-indigo-200 dark:shadow-none cursor-pointer"
+                >
+                  {isVi ? 'Đã hiểu' : 'Got it'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
-  );
+  </div>
+);
 }

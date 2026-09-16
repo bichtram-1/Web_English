@@ -21,6 +21,7 @@ import {
   Crown,
   Lock,
   Unlock,
+  Keyboard,
 } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
@@ -38,6 +39,7 @@ import {
   playTreasureChestSound,
   isSoundEnabled,
 } from '../../../utils/soundEffects';
+import { stripParentheses } from '../../../utils/answerMatch';
 
 export interface TreasureHuntGameProps {
   deck?: Deck;
@@ -122,6 +124,7 @@ export default function TreasureHuntGame({
   const [seconds, setSeconds] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [autoPronounce, setAutoPronounce] = useState(true);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionRecordedRef = useRef(false);
@@ -142,10 +145,11 @@ export default function TreasureHuntGame({
         ...wrongPool.map((w, idx) => ({ id: `wrong-${idx}`, text: w, isCorrect: false })),
       ]);
 
-      const scrambled = scrambleWord(card.front);
-      const cleanWord = card.front.replace(/\s+/g, '').toUpperCase();
+      const targetWord = stripParentheses(card.front) || card.front;
+      const scrambled = scrambleWord(targetWord);
+      const cleanWord = targetWord.replace(/\s+/g, '').toUpperCase();
       const hint = card.exampleEn
-        ? `Ví dụ: "${card.exampleEn.replace(new RegExp(card.front, 'gi'), '_____')}"`
+        ? `Ví dụ: "${card.exampleEn.replace(new RegExp(targetWord, 'gi'), '_____')}"`
         : `Từ có ${cleanWord.length} chữ cái, bắt đầu bằng '${cleanWord[0]}'`;
 
       return {
@@ -179,13 +183,14 @@ export default function TreasureHuntGame({
   }, [rawCards]);
 
   const setupSpellingStage = (stage: StageQuestion) => {
+    const targetWord = stripParentheses(stage.card.front) || stage.card.front;
     const tiles: LetterTile[] = stage.scrambledChars.map((char, idx) => ({
       id: `tile-${idx}-${char}-${Math.random().toString(36).substring(2, 6)}`,
       char,
       originalIndex: idx,
     }));
     setLetterPool(tiles);
-    setPlacedLetters(new Array(stage.card.front.replace(/\s+/g, '').length).fill(null));
+    setPlacedLetters(new Array(targetWord.replace(/\s+/g, '').length).fill(null));
     setSpellingIsWrong(false);
   };
 
@@ -278,7 +283,7 @@ export default function TreasureHuntGame({
     if (!isFull) return;
 
     const assembledWord = currentSlots.map((s) => s?.char || '').join('');
-    const targetWord = currentStage.card.front.replace(/\s+/g, '').toUpperCase();
+    const targetWord = (stripParentheses(currentStage.card.front) || currentStage.card.front).replace(/\s+/g, '').toUpperCase();
 
     if (assembledWord === targetWord) {
       // SUCCESS! UNLOCK TREASURE CHEST!
@@ -336,6 +341,109 @@ export default function TreasureHuntGame({
     const s = sec % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+
+  // HYBRID KEYBOARD SHORTCUTS FOR TREASURE HUNT
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      // Toggle shortcuts modal with '?'
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+        return;
+      }
+
+      if (showShortcutsModal) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowShortcutsModal(false);
+        }
+        return;
+      }
+
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      // PHASE 1: Chọn rương nghĩa (1, 2, 3, 4)
+      if (phase === 'meaning' && currentStage && !meaningIsWrong) {
+        let num: number | null = null;
+        if (e.code.startsWith('Digit')) {
+          num = parseInt(e.code.replace('Digit', ''), 10);
+        } else if (e.code.startsWith('Numpad')) {
+          num = parseInt(e.code.replace('Numpad', ''), 10);
+        } else if (['1', '2', '3', '4'].includes(e.key)) {
+          num = parseInt(e.key, 10);
+        }
+
+        if (num !== null && num >= 1 && num <= currentStage.options.length) {
+          const opt = currentStage.options[num - 1];
+          if (opt && !selectedOptionId) {
+            e.preventDefault();
+            handleSelectMeaning(opt.id);
+            return;
+          }
+        }
+      }
+
+      // PHASE 2: Xếp ngọc chữ (A - Z, Backspace)
+      if (phase === 'spelling' && currentStage) {
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          e.preventDefault();
+          let lastIdx = -1;
+          for (let i = placedLetters.length - 1; i >= 0; i--) {
+            if (placedLetters[i] !== null) {
+              lastIdx = i;
+              break;
+            }
+          }
+          if (lastIdx !== -1) {
+            handleRemoveLetter(lastIdx);
+          }
+          return;
+        }
+
+        if (e.key.length === 1) {
+          const pressedChar = e.key.toUpperCase();
+          const matchTile = letterPool.find((t) => t.char.toUpperCase() === pressedChar);
+          if (matchTile) {
+            e.preventDefault();
+            handlePlaceLetter(matchTile);
+          }
+        }
+      }
+
+      // PHASE 3: Rương mở thành công (Space / Enter)
+      if (phase === 'chest_opened') {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleNextChest();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    phase,
+    currentStage,
+    meaningIsWrong,
+    selectedOptionId,
+    placedLetters,
+    letterPool,
+    showShortcutsModal,
+    handleSelectMeaning,
+    handlePlaceLetter,
+    handleRemoveLetter,
+    handleNextChest,
+  ]);
 
   // Not enough cards guard
   if (rawCards.length < 2) {
@@ -406,6 +514,15 @@ export default function TreasureHuntGame({
               className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
             >
               <RotateCcw size={16} />
+            </button>
+
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              title={isVi ? 'Phím tắt bàn phím (?)' : 'Keyboard shortcuts (?)'}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+            >
+              <Keyboard size={16} />
             </button>
           </div>
         </div>
@@ -786,6 +903,94 @@ export default function TreasureHuntGame({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      <AnimatePresence>
+        {showShortcutsModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-slate-900 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-amber-500/40 space-y-4 text-slate-100"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Keyboard size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-white">
+                      {isVi ? 'Phím tắt Săn Kho Báu' : 'Treasure Hunt Shortcuts'}
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      {isVi ? 'Chơi thám hiểm đảo ngọc hoàn toàn bằng phím' : 'Play the expedition using keyboard'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 block mb-1.5">
+                    {isVi ? 'Vòng 1: Chọn Rương Nghĩa' : 'Round 1: Meaning Chest'}
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">{isVi ? 'Chọn 1 trong 4 rương' : 'Pick 1 of 4 chests'}</span>
+                    <div className="flex items-center gap-1 font-mono">
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">1</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">2</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">3</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">4</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 block mb-1.5">
+                    {isVi ? 'Vòng 2: Xếp Ngọc Chữ' : 'Round 2: Gem Spelling'}
+                  </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">{isVi ? 'Gõ phím chữ cái' : 'Type letter tile'}</span>
+                      <kbd className="px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] font-mono shadow-2xs">A - Z</kbd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">{isVi ? 'Thu hồi ngọc vừa xếp' : 'Undo last gem'}</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] font-mono shadow-2xs">Backspace</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-yellow-400 block mb-1.5">
+                    {isVi ? 'Vòng 3: Mở Rương Tiếp Theo' : 'Round 3: Advance Chest'}
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">{isVi ? 'Mở rương kế tiếp' : 'Open next chest'}</span>
+                    <div className="flex items-center gap-1 font-mono">
+                      <kbd className="px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">Space</kbd>
+                      <span className="text-slate-400">/</span>
+                      <kbd className="px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] shadow-2xs">Enter</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                  <span>{isVi ? 'Bật / tắt bảng phím tắt' : 'Toggle shortcuts modal'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] shadow-2xs">?</kbd>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

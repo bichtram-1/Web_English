@@ -229,7 +229,7 @@ export default function HomePage() {
                   {t('home_hero_badge')}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-amber-400" />
-                <span className="text-amber-200 text-xs font-semibold">SM-2 Spaced Repetition</span>
+                <span className="text-amber-200 text-xs font-semibold">{isVi ? 'Ôn tập ngắt quãng thông minh' : 'Smart Spaced Repetition'}</span>
               </div>
 
               <h1
@@ -292,7 +292,7 @@ export default function HomePage() {
               <div className="flex justify-center md:justify-start gap-6 sm:gap-8 flex-wrap">
                 {[
                   { label: t('home_quick_stats_decks'), value: `${decks.length}+` },
-                  { label: isVi ? 'Thuật Toán SRS' : 'SRS Algorithm', value: 'SM-2' },
+                  { label: isVi ? 'Phương pháp' : 'Method', value: isVi ? 'Ghi nhớ sâu' : 'Spaced Repetition' },
                   { label: isVi ? '5 Đấu Trường Game' : '5 Arcade Games', value: isVi ? 'Trò chơi 🎮' : 'Arcade 🎮' },
                 ].map(({ label, value }) => (
                   <div key={label} className="text-center md:text-left">
@@ -334,7 +334,7 @@ export default function HomePage() {
 
                 <div className="absolute -bottom-1 -left-2 z-20 px-3 py-1 rounded-full bg-slate-900/90 text-amber-300 font-bold text-xs border border-amber-400/40 shadow-lg backdrop-blur-md flex items-center gap-1">
                   <span>🧠</span>
-                  <span>{isVi ? 'Nhớ Lâu SM-2' : 'SM-2 Memory'}</span>
+                  <span>{isVi ? 'Ghi nhớ dài hạn' : 'Long-term Memory'}</span>
                 </div>
               </div>
             </motion.div>

@@ -4,6 +4,7 @@ import { Heart, X, RotateCcw, Zap } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
+import { isAnswerMatching } from '../../../utils/answerMatch';
 
 interface Target {
   id: number;
@@ -183,7 +184,7 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
     if (!typed) return;
 
     setTargets((prev) => {
-      const hit = prev.find((t) => !t.exploding && t.english.toLowerCase() === typed);
+      const hit = prev.find((t) => !t.exploding && isAnswerMatching(typed, t.english));
       if (!hit) return prev;
 
       playCorrectSound();

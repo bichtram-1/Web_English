@@ -300,8 +300,8 @@ const ViTranslation = {
   match_badge_vi: 'Tiếng Việt',
   match_stars: 'Đánh giá sao',
 
-  // SM-2 Spaced Repetition System
-  sm2_title: 'Thuật toán lặp lại ngắt quãng SM-2 (Spaced Repetition)',
+  // Spaced Repetition System
+  sm2_title: 'Hệ thống ôn tập ngắt quãng thông minh',
   sm2_desc: 'Nhắc lại từ vựng vào đúng thời điểm vàng trước khi não bộ quên theo đường cong lãng quên Ebbinghaus.',
   sm2_rating_again: 'Học lại (< 10 phút)',
   sm2_rating_hard: 'Khó (1-2 ngày)',

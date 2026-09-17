@@ -49,6 +49,7 @@ const EnTranslation: I18nKey = {
   login: 'Sign In',
   register: 'Sign Up',
   logout: 'Sign Out',
+  auth_logout_btn: 'Sign Out',
   email: 'Email Address',
   email_placeholder: 'your.email@example.com',
   password: 'Password',

@@ -47,6 +47,7 @@ const ViTranslation = {
   login: 'Đăng nhập',
   register: 'Đăng ký',
   logout: 'Đăng xuất',
+  auth_logout_btn: 'Đăng xuất',
   email: 'Email',
   email_placeholder: 'nhập email@gmail.com',
   password: 'Mật khẩu',

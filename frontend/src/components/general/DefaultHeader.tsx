@@ -186,9 +186,9 @@ export default function DefaultHeader() {
                     setInitialLogoutConfirm(true);
                     setProfileModalOpen(true);
                   }}
-                  title={t('auth_logout_btn')}
+                  title={t('logout')}
                   className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all cursor-pointer"
-                  aria-label={t('auth_logout_btn')}
+                  aria-label={t('logout')}
                 >
                   <LogOut size={16} />
                 </button>

@@ -37,6 +37,18 @@ export default function WallpaperModal() {
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, setIsModalOpen]);
+
   if (!isModalOpen) return null;
 
   const showFeedback = (msg: string) => {

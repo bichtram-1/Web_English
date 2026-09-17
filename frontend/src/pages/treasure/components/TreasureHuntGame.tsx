@@ -22,6 +22,7 @@ import {
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 import useSpeech from '../../../hooks/useSpeech';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 import ChickenMascot from '../../../components/general/ChickenMascot';
 import GameAudioMenu from '../../../components/general/GameAudioMenu';
 import {
@@ -119,6 +120,13 @@ export default function TreasureHuntGame({
   const [isCompleted, setIsCompleted] = useState(false);
   const [autoPronounce, setAutoPronounce] = useState(true);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    isCompleted,
+    hasActiveModal: showShortcutsModal,
+    onCloseModal: () => setShowShortcutsModal(false),
+  });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionRecordedRef = useRef(false);
@@ -355,10 +363,6 @@ export default function TreasureHuntGame({
       }
 
       if (showShortcutsModal) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setShowShortcutsModal(false);
-        }
         return;
       }
 
@@ -978,6 +982,11 @@ export default function TreasureHuntGame({
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-300 border-t border-slate-700/60 mt-1">
+                  <span>{isVi ? 'Thoát trò chơi (nhấn 2 lần)' : 'Exit game (double press)'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] shadow-2xs">Esc + Esc</kbd>
+                </div>
+
                 <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
                   <span>{isVi ? 'Bật / tắt bảng phím tắt' : 'Toggle shortcuts modal'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] shadow-2xs">?</kbd>
@@ -987,6 +996,9 @@ export default function TreasureHuntGame({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast Element */}
+      {toastElement}
     </div>
   );
 }

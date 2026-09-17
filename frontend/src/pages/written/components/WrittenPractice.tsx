@@ -10,6 +10,7 @@ import { useWallpaper } from '../../../contexts/WallpaperContext';
 import LanguageSelect from '../../../components/general/LanguageSelect';
 import ThemeToggle from '../../../components/general/ThemeToggle';
 import { isAnswerMatching, stripParentheses } from '../../../utils/answerMatch';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 
 const FALLBACK_WORDS = [
   { id: 1, en: 'Developer', vi: 'lập trình viên' },
@@ -289,7 +290,7 @@ export default function WrittenPractice({
 }: WrittenPracticeProps) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
+  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 
   const baseWords: { id?: number; en: string; vi: string }[] = useMemo(() => {
     return deck
@@ -340,6 +341,16 @@ export default function WrittenPractice({
     return origIdx !== -1 ? origIdx : Math.min(index, Math.max(0, baseWords.length - 1));
   }, [word, index, baseWords]);
 
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    isCompleted: done,
+    hasActiveModal: showShortcutsModal || isWallpaperModalOpen,
+    onCloseModal: () => {
+      if (showShortcutsModal) setShowShortcutsModal(false);
+      else if (isWallpaperModalOpen) setWallpaperModalOpen(false);
+    },
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -347,14 +358,11 @@ export default function WrittenPractice({
       if (e.key === '?' && !isInput) {
         e.preventDefault();
         setShowShortcutsModal((prev) => !prev);
-      } else if (e.key === 'Escape' && showShortcutsModal) {
-        e.preventDefault();
-        setShowShortcutsModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showShortcutsModal]);
+  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -878,6 +886,11 @@ export default function WrittenPractice({
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→ / Alt + →</kbd>
                 </div>
 
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Thoát ra bộ thẻ (nhấn 2 lần)' : 'Exit practice (double press)'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">Esc + Esc</kbd>
+                </div>
+
                 <div className="flex items-center justify-between text-sm py-1.5">
                   <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Mở / đóng bảng phím tắt này' : 'Toggle shortcuts modal'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">?</kbd>
@@ -896,6 +909,9 @@ export default function WrittenPractice({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast Notification */}
+      {toastElement}
     </div>
   );
 }

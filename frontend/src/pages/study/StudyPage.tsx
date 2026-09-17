@@ -9,6 +9,7 @@ import ThemeToggle from '../../components/general/ThemeToggle';
 import LanguageSelect from '../../components/general/LanguageSelect';
 import WallpaperModal from '../../components/general/WallpaperModal';
 import { useWallpaper } from '../../contexts/WallpaperContext';
+import { useDoubleEscExit } from '../../hooks/useDoubleEscExit';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
 import type { CardItem, Deck } from '../../types/DeckType';
@@ -55,7 +56,7 @@ export default function StudyPage() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
+  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 
   const targetId = id || 'basic-comm';
 
@@ -134,6 +135,24 @@ export default function StudyPage() {
   }, [baseCards, extraReviewCards]);
 
   const card = cards[currentIndex] || cards[0];
+
+  const handleExit = useCallback(() => {
+    if (currentDeck?.id?.startsWith('col-')) {
+      navigate(getCollectionDetailRoute(currentDeck.id));
+    } else {
+      navigate(getDeckDetailRoute(targetId));
+    }
+  }, [currentDeck?.id, targetId, navigate]);
+
+  const { toastElement } = useDoubleEscExit({
+    onExit: handleExit,
+    isCompleted: isFinished,
+    hasActiveModal: showShortcutsModal || isWallpaperModalOpen,
+    onCloseModal: () => {
+      if (showShortcutsModal) setShowShortcutsModal(false);
+      else if (isWallpaperModalOpen) setWallpaperModalOpen(false);
+    },
+  });
 
   useEffect(() => {
     if (!id) {
@@ -319,10 +338,6 @@ export default function StudyPage() {
       }
 
       if (showShortcutsModal) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setShowShortcutsModal(false);
-        }
         return;
       }
 
@@ -441,14 +456,6 @@ export default function StudyPage() {
   }
 
   const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
-
-  const handleExit = () => {
-    if (currentDeck.id.startsWith('col-')) {
-      navigate(getCollectionDetailRoute(currentDeck.id));
-    } else {
-      navigate(getDeckDetailRoute(currentDeck.id));
-    }
-  };
 
   if (isFinished) {
     return (
@@ -875,6 +882,11 @@ export default function StudyPage() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Thoát ra bộ thẻ (nhấn 2 lần)' : 'Exit study (double press)'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">Esc + Esc</kbd>
+                </div>
+
                 <div className="flex items-center justify-between text-sm py-1.5">
                   <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Mở / Đóng bảng phím tắt này' : 'Open / close this cheat sheet'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">?</kbd>
@@ -893,6 +905,9 @@ export default function StudyPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast Element */}
+      {toastElement}
     </div>
   </div>
 );

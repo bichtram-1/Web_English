@@ -19,6 +19,7 @@ import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 import useSpeech from '../../../hooks/useSpeech';
 import GameAudioMenu from '../../../components/general/GameAudioMenu';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 import {
   playCardFlipSound,
   playMatchSound,
@@ -89,6 +90,11 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeVocabList, setActiveVocabList] = useState<FlashcardItem[]>([]);
   const [peekCountdown, setPeekCountdown] = useState<number | null>(null);
+
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    isCompleted,
+  });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -773,6 +779,9 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast */}
+      {toastElement}
     </div>
   );
 }

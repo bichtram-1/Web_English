@@ -38,6 +38,7 @@ import {
   getDeckDueCards,
 } from '../../../utils/sm2';
 import { useStarredCards } from '../../../utils/starredCards';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 import {
   DEFAULT_CHANNELS,
   ZEN_PRESETS,
@@ -3692,53 +3693,52 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     }
   };
 
-  // Escape key & fullscreen change listeners
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (ascendedCelebration) {
-          setAscendedCelebration(null);
-          return;
-        }
-        if (newlyUnlockedGuardian) {
-          setNewlyUnlockedGuardian(null);
-          return;
-        }
-        if (showFullscreenGuardian) {
-          setShowFullscreenGuardian(false);
-          return;
-        }
-        if (inspectingAsset) {
-          setInspectingAsset(null);
-          return;
-        }
-        if (showCodexModal) {
-          setShowCodexModal(false);
-          return;
-        }
-        if (isCanvasExpanded) {
-          setIsCanvasExpanded(false);
-          if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
-          }
-        }
-      }
-    };
+  const hasZenModal = Boolean(
+    ascendedCelebration ||
+    newlyUnlockedGuardian ||
+    showFullscreenGuardian ||
+    inspectingAsset ||
+    showCodexModal ||
+    showMixerModal ||
+    showShortcutsModal ||
+    isCanvasExpanded
+  );
 
+  const handleCloseZenModal = () => {
+    if (ascendedCelebration) setAscendedCelebration(null);
+    else if (newlyUnlockedGuardian) setNewlyUnlockedGuardian(null);
+    else if (showFullscreenGuardian) setShowFullscreenGuardian(false);
+    else if (inspectingAsset) setInspectingAsset(null);
+    else if (showCodexModal) setShowCodexModal(false);
+    else if (showMixerModal) setShowMixerModal(false);
+    else if (showShortcutsModal) setShowShortcutsModal(false);
+    else if (isCanvasExpanded) {
+      setIsCanvasExpanded(false);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    hasActiveModal: hasZenModal,
+    onCloseModal: handleCloseZenModal,
+  });
+
+  // Fullscreen change listener
+  useEffect(() => {
     const handleFsChange = () => {
       if (!document.fullscreenElement && isCanvasExpanded) {
         setIsCanvasExpanded(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
     document.addEventListener('fullscreenchange', handleFsChange);
-
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('fullscreenchange', handleFsChange);
     };
-  }, [isCanvasExpanded, inspectingAsset, showFullscreenGuardian, showCodexModal, newlyUnlockedGuardian, ascendedCelebration]);
+  }, [isCanvasExpanded]);
 
   // Sound toggles
   const handleToggleSoundMaster = () => {
@@ -4061,12 +4061,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
         return;
       }
 
-      // Đóng bảng phím tắt bằng Escape
       if (showShortcutsModal) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          setShowShortcutsModal(false);
-        }
         return;
       }
 
@@ -6275,6 +6270,9 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           </div>
         </div>
       </main>
+
+      {/* Double Esc Toast */}
+      {toastElement}
     </div>
   );
 }

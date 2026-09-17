@@ -5,6 +5,7 @@ import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 import { isAnswerMatching } from '../../../utils/answerMatch';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 
 interface Target {
   id: number;
@@ -61,6 +62,11 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
   const [lives, setLives] = useState(3);
   const [gameOver, setGameOver] = useState(false);
   const [started, setStarted] = useState(false);
+
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    isCompleted: gameOver || !started,
+  });
 
   const nextId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -481,6 +487,9 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast */}
+      {toastElement}
     </div>
   );
 }

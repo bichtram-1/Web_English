@@ -10,6 +10,7 @@ import WallpaperModal from '../../../components/general/WallpaperModal';
 import { useWallpaper } from '../../../contexts/WallpaperContext';
 import LanguageSelect from '../../../components/general/LanguageSelect';
 import ThemeToggle from '../../../components/general/ThemeToggle';
+import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 
 type MCQuestion = {
   kind: 'mc';
@@ -439,7 +440,7 @@ interface TestModeProps {
 export default function TestMode({ deck, onExit }: TestModeProps) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
+  const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 
   const [questions, setQuestions] = useState<Question[]>(() => buildQuestions(deck));
   const [current, setCurrent] = useState(0);
@@ -452,6 +453,16 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const { toastElement } = useDoubleEscExit({
+    onExit,
+    isCompleted: done,
+    hasActiveModal: showShortcutsModal || isWallpaperModalOpen,
+    onCloseModal: () => {
+      if (showShortcutsModal) setShowShortcutsModal(false);
+      else if (isWallpaperModalOpen) setWallpaperModalOpen(false);
+    },
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -459,14 +470,11 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
       if (e.key === '?' && !isInput) {
         e.preventDefault();
         setShowShortcutsModal((prev) => !prev);
-      } else if (e.key === 'Escape' && showShortcutsModal) {
-        e.preventDefault();
-        setShowShortcutsModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showShortcutsModal]);
+  }, []);
 
   const finishTest = useCallback((finalScore: number, finalWrongs: WrongItem[], finalElapsed: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -763,6 +771,11 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
                   </kbd>
                 </div>
 
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Thoát bài kiểm tra (nhấn 2 lần)' : 'Exit test (double press)'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">Esc + Esc</kbd>
+                </div>
+
                 <div className="flex items-center justify-between text-sm py-1.5">
                   <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Mở / đóng bảng phím tắt này' : 'Toggle shortcuts modal'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">?</kbd>
@@ -781,6 +794,9 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Double Esc Toast Element */}
+      {toastElement}
     </div>
   );
 }

@@ -35,7 +35,9 @@ import {
   saveSM2Record,
   getDeckSRSStats,
   getAllSM2Records,
+  getDeckDueCards,
 } from '../../../utils/sm2';
+import { useStarredCards } from '../../../utils/starredCards';
 import {
   DEFAULT_CHANNELS,
   ZEN_PRESETS,
@@ -3220,8 +3222,10 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
 
   const rawCards = deck.cards.filter((c): c is FlashcardItem => c.type === 'flashcard');
 
-  // SM-2 Spaced Repetition Due Filter
-  const [onlyDueSM2, setOnlyDueSM2] = useState(false);
+  // Starred Cards & SM-2 Filter
+  const { isStarred, toggleStar, starredCount } = useStarredCards(deck.id);
+  type ZenFilterMode = 'all' | 'due' | 'starred';
+  const [zenFilterMode, setZenFilterMode] = useState<ZenFilterMode>('all');
 
   const srsStats = useMemo(() => {
     const cardIds = rawCards.map((c) => c.id);
@@ -3229,17 +3233,16 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   }, [deck.id, rawCards]);
 
   const cards = useMemo(() => {
-    if (!onlyDueSM2) return rawCards.length > 0 ? rawCards : [];
-    const records = getAllSM2Records();
-    const now = new Date();
-    const dueList = rawCards.filter((c) => {
-      const key = `${deck.id}_${c.id}`;
-      const rec = records[key];
-      if (!rec || !rec.lastStudiedDate) return true; // new card is due
-      return new Date(rec.nextReviewDate) <= now;
-    });
-    return dueList.length > 0 ? dueList : rawCards;
-  }, [rawCards, onlyDueSM2, deck.id]);
+    if (zenFilterMode === 'starred') {
+      const starred = rawCards.filter((c) => isStarred(c.id));
+      return starred.length > 0 ? starred : rawCards;
+    }
+    if (zenFilterMode === 'due') {
+      const dueList = getDeckDueCards(deck.id, rawCards);
+      return dueList.length > 0 ? dueList : rawCards;
+    }
+    return rawCards.length > 0 ? rawCards : [];
+  }, [rawCards, zenFilterMode, deck.id, isStarred]);
 
   // Persistent Deck Progress (Đồng bộ tiến độ học của bộ thẻ trong Zen)
   const deckProgressKey = `zen_deck_progress_${deck.id}`;
@@ -5864,30 +5867,56 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 <span>{isVi ? 'Học lại' : 'Restart'}</span>
               </button>
             )}
-            <button
-              onClick={() => {
-                setOnlyDueSM2((prev) => !prev);
-                setCurrentIndex(0);
-                saveDeckProgress(0, completedCardIds);
-              }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer border ${
-                onlyDueSM2
-                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                  : 'bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-slate-700 hover:bg-indigo-100 dark:hover:bg-slate-700'
-              }`}
-              title={isVi ? (onlyDueSM2 ? 'Bấm để hiển thị lại toàn bộ thẻ' : 'Bấm để chỉ ôn các từ cần ôn hôm nay') : (onlyDueSM2 ? 'Show all cards' : 'Show only due cards')}
-            >
-              {onlyDueSM2 ? (
-                <RotateCcw size={12} className="text-amber-300" />
-              ) : (
-                <Brain size={12} className="text-indigo-500 dark:text-indigo-400" />
-              )}
-              <span>
-                {onlyDueSM2
-                  ? (isVi ? `Hiện tất cả (${rawCards.length} từ)` : `Show All (${rawCards.length})`)
-                  : (isVi ? `Ôn ${srsStats.dueTodayCount} từ hôm nay` : `Review ${srsStats.dueTodayCount} Due`)}
-              </span>
-            </button>
+            {/* Filter Pills in Zen: All / Due Today / Starred */}
+            <div className="flex items-center rounded-xl bg-slate-100/90 dark:bg-slate-800/90 p-0.5 border border-slate-200/60 dark:border-slate-700/60">
+              <button
+                onClick={() => {
+                  setZenFilterMode('all');
+                  setCurrentIndex(0);
+                  saveDeckProgress(0, completedCardIds);
+                }}
+                className={`px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer ${
+                  zenFilterMode === 'all'
+                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+                title={isVi ? 'Hiện tất cả các thẻ' : 'Show all cards'}
+              >
+                {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
+              </button>
+              <button
+                onClick={() => {
+                  setZenFilterMode((prev) => (prev === 'due' ? 'all' : 'due'));
+                  setCurrentIndex(0);
+                  saveDeckProgress(0, completedCardIds);
+                }}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer ${
+                  zenFilterMode === 'due'
+                    ? 'bg-indigo-600 text-white shadow-xs font-black'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                }`}
+                title={isVi ? 'Chỉ ôn các từ cần ôn hôm nay (SRS)' : 'Review cards due today'}
+              >
+                <Brain size={11} className={zenFilterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
+                <span>{isVi ? `Ôn ${srsStats.dueTodayCount} từ` : `Due (${srsStats.dueTodayCount})`}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setZenFilterMode((prev) => (prev === 'starred' ? 'all' : 'starred'));
+                  setCurrentIndex(0);
+                  saveDeckProgress(0, completedCardIds);
+                }}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer ${
+                  zenFilterMode === 'starred'
+                    ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+                }`}
+                title={isVi ? 'Chỉ học các từ có gắn sao ⭐' : 'Review starred cards'}
+              >
+                <Star size={11} className={zenFilterMode === 'starred' || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+                <span>{starredCount}</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
@@ -5947,7 +5976,22 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                         WebkitBackfaceVisibility: 'hidden',
                       }}
                     >
-                      <div className="absolute top-3.5 right-3.5">
+                      <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(card.id);
+                          }}
+                          className={`p-2.5 rounded-2xl transition-all cursor-pointer shadow-sm ${
+                            isStarred(card.id)
+                              ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-300'
+                              : 'bg-white/80 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500'
+                          }`}
+                          title={isStarred(card.id) ? (isVi ? 'Bỏ gắn sao từ này' : 'Unstar this card') : (isVi ? 'Gán sao từ này' : 'Star this card')}
+                        >
+                          <Star size={18} className={isStarred(card.id) ? 'fill-amber-950 text-amber-950' : ''} />
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -6000,6 +6044,23 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                         transform: 'rotateY(180deg)',
                       }}
                     >
+                      <div className="absolute top-3.5 right-3.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(card.id);
+                          }}
+                          className={`p-2.5 rounded-2xl transition-all cursor-pointer shadow-sm ${
+                            isStarred(card.id)
+                              ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-300'
+                              : 'bg-white/80 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-400 hover:text-amber-500'
+                          }`}
+                          title={isStarred(card.id) ? (isVi ? 'Bỏ gắn sao từ này' : 'Unstar this card') : (isVi ? 'Gán sao từ này' : 'Star this card')}
+                        >
+                          <Star size={18} className={isStarred(card.id) ? 'fill-amber-950 text-amber-950' : ''} />
+                        </button>
+                      </div>
                       <span className="text-[11px] font-extrabold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">
                         {isVi ? 'Ý nghĩa Tiếng Việt' : 'Vietnamese Meaning'}
                       </span>

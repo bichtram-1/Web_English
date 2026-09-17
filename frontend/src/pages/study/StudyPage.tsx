@@ -23,6 +23,7 @@ import {
   calculateSM2,
   saveSM2Record,
   getSM2RatingOptions,
+  getDeckDueCards,
   type SM2Rating,
   type SM2Record,
 } from '../../utils/sm2';
@@ -73,8 +74,14 @@ export default function StudyPage() {
     return Boolean(id);
   });
 
-  const initialStarredOnly = searchParams.get('starred') === 'true';
-  const [starredOnly, setStarredOnly] = useState(initialStarredOnly);
+  type StudyFilterMode = 'all' | 'due' | 'starred';
+  const initialFilterMode: StudyFilterMode = searchParams.get('starred') === 'true'
+    ? 'starred'
+    : searchParams.get('due') === 'true'
+    ? 'due'
+    : 'all';
+  const [filterMode, setFilterMode] = useState<StudyFilterMode>(initialFilterMode);
+  const [extraReviewCards, setExtraReviewCards] = useState<CardItem[]>([]);
 
   const { starredIds, starredCount, isStarred, toggleStar } = useStarredCards(targetId);
 
@@ -107,13 +114,24 @@ export default function StudyPage() {
     () => rawCards.filter((c) => isStarred(c.id)),
     [rawCards, isStarred]
   );
+  const dueCards = useMemo(
+    () => (currentDeck ? getDeckDueCards(currentDeck.id, rawCards) : rawCards),
+    [currentDeck, rawCards]
+  );
 
-  const cards = useMemo(() => {
-    if (starredOnly) {
+  const baseCards = useMemo(() => {
+    if (filterMode === 'starred') {
       return starredCards.length > 0 ? starredCards : rawCards;
     }
+    if (filterMode === 'due') {
+      return dueCards.length > 0 ? dueCards : rawCards;
+    }
     return rawCards;
-  }, [starredOnly, starredCards, rawCards]);
+  }, [filterMode, starredCards, dueCards, rawCards]);
+
+  const cards = useMemo(() => {
+    return [...baseCards, ...extraReviewCards];
+  }, [baseCards, extraReviewCards]);
 
   const card = cards[currentIndex] || cards[0];
 
@@ -225,17 +243,22 @@ export default function StudyPage() {
         playMismatchSound();
       }
 
+      if (rating === 1) {
+        // Re-queue card to be reviewed again at the end of current session (< 10 mins)
+        setExtraReviewCards((prev) => [...prev, card]);
+      }
+
       const days = updated.interval;
       const intervalMsg =
         rating === 1
           ? isVi
-            ? 'Đã ghi nhận: Cần học lại thẻ này (< 10 phút)'
-            : 'Marked: Need to review this card (< 10 mins)'
+            ? 'Đã ghi nhận: Thẻ sẽ quay lại ở cuối buổi học (< 10 phút)'
+            : 'Marked: Card will reappear at end of session (< 10 mins)'
           : rating === 2
           ? isVi
             ? 'Đã ghi nhận: Khó nhớ (ôn lại vào ngày mai)'
             : 'Marked: Hard recall (review tomorrow)'
-          : days === 1
+          : days <= 1
           ? isVi
             ? 'Đã nhớ tốt · Ôn lại vào ngày mai'
             : 'Good recall · Next review tomorrow'
@@ -251,24 +274,32 @@ export default function StudyPage() {
     [currentDeck, card, currentSM2Record, markProgress, showToast, goNext, isVi]
   );
 
-  const handleToggleStarredMode = useCallback(
-    (onlyStar: boolean) => {
-      if (onlyStar && starredCards.length === 0) {
+  const handleSelectFilterMode = useCallback(
+    (mode: StudyFilterMode) => {
+      if (mode === 'starred' && starredCards.length === 0) {
         showToast(isVi ? 'Chưa có thuật ngữ nào được gắn sao ⭐' : 'No terms have been starred yet ⭐');
         return;
       }
-      setStarredOnly(onlyStar);
+      if (mode === 'due' && dueCards.length === 0) {
+        showToast(isVi ? 'Không có từ nào cần ôn hôm nay 🎉 Tất cả đều đúng hạn!' : 'No cards due today 🎉 All caught up!');
+        return;
+      }
+      setFilterMode(mode);
+      setExtraReviewCards([]);
       setCurrentIndex(0);
       setIsFinished(false);
-      if (onlyStar) {
+      if (mode === 'starred') {
         setSearchParams({ starred: 'true' });
         showToast(isVi ? `Đang học ${starredCards.length} thuật ngữ có gắn sao ⭐` : `Studying ${starredCards.length} starred terms ⭐`);
+      } else if (mode === 'due') {
+        setSearchParams({ due: 'true' });
+        showToast(isVi ? `Đang ôn ${dueCards.length} thuật ngữ cần ôn hôm nay 🧠` : `Reviewing ${dueCards.length} terms due today 🧠`);
       } else {
         setSearchParams({});
         showToast(isVi ? `Đang học tất cả ${rawCards.length} thuật ngữ` : `Studying all ${rawCards.length} terms`);
       }
     },
-    [starredCards.length, rawCards.length, isVi, setSearchParams, showToast]
+    [starredCards.length, dueCards.length, rawCards.length, isVi, setSearchParams, showToast]
   );
 
   // Global keyboard shortcuts (including 1, 2, 3, 4 for SM-2 ratings, and S for Star)
@@ -538,27 +569,41 @@ export default function StudyPage() {
               {currentIndex + 1} / {cards.length}
             </span>
 
-            {/* Quizlet-style Starred Filter Pill Selector */}
+            {/* Filter Pill Selector: All / Due (SRS) / Starred */}
             <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
               <button
-                onClick={() => handleToggleStarredMode(false)}
+                onClick={() => handleSelectFilterMode('all')}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  !starredOnly
+                  filterMode === 'all'
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
+                title={isVi ? 'Học tất cả thẻ' : 'Study all cards'}
               >
                 {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
               </button>
               <button
-                onClick={() => handleToggleStarredMode(true)}
+                onClick={() => handleSelectFilterMode('due')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  starredOnly
+                  filterMode === 'due'
+                    ? 'bg-indigo-600 text-white shadow-xs font-black'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                }`}
+                title={isVi ? 'Chỉ ôn các từ đến hạn hôm nay theo phương pháp lặp lại ngắt quãng (SRS)' : 'Study cards due today (SRS)'}
+              >
+                <Brain size={12} className={filterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
+                <span>{isVi ? 'Cần ôn' : 'Due'} ({dueCards.length})</span>
+              </button>
+              <button
+                onClick={() => handleSelectFilterMode('starred')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  filterMode === 'starred'
                     ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
                 }`}
+                title={isVi ? 'Chỉ ôn các từ đã đánh dấu sao' : 'Study only starred cards'}
               >
-                <Star size={12} className={starredOnly || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+                <Star size={12} className={filterMode === 'starred' || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
                 <span>{starredCount}</span>
               </button>
             </div>

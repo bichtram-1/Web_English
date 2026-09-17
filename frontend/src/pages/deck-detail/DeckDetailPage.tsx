@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -18,6 +18,7 @@ import {
   Crown,
   Download,
   Star,
+  Brain,
   Volume2,
   Layers,
   Search,
@@ -39,6 +40,7 @@ import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission'
 import { generateFriendlyId } from '../../utils/slugify';
 import { getCategoryLabel } from '../home/HomePage';
 import { useStarredCards } from '../../utils/starredCards';
+import { getDeckSRSStats } from '../../utils/sm2';
 
 import {
   ROUTES,
@@ -97,6 +99,12 @@ export default function DeckDetailPage() {
   const targetDeckId = id || '';
   const { starredIds, starredCount, isStarred, toggleStar, starAll, unstarAll } = useStarredCards(targetDeckId);
   const [starredOnlyFilter, setStarredOnlyFilter] = useState(false);
+
+  const srsStats = useMemo(() => {
+    if (!deck) return { totalCards: 0, dueTodayCount: 0, newCardsCount: 0, learningCount: 0, masteredCount: 0 };
+    const cardIds = deck.cards.filter((c) => c.type === 'flashcard').map((c) => c.id);
+    return getDeckSRSStats(deck.id, cardIds);
+  }, [deck]);
 
   const speakWord = (text: string) => {
     if (!('speechSynthesis' in window)) return;
@@ -446,6 +454,16 @@ export default function DeckDetailPage() {
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
                 <div
+                  className="text-white text-xl font-black flex items-center justify-center gap-1"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Brain size={18} className={srsStats.dueTodayCount > 0 ? "text-indigo-200" : "text-white/60"} />
+                  <span>{srsStats.dueTodayCount}</span>
+                </div>
+                <div className="text-white/80 text-xs font-semibold">{isVi ? 'Cần ôn' : 'Due today'}</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
+                <div
                   className="text-white text-xl font-black"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
@@ -476,6 +494,53 @@ export default function DeckDetailPage() {
             setDeck(updated);
           }}
         />
+
+        {/* Quick SRS Due Study Mode Banner */}
+        {srsStats.dueTodayCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4.5 rounded-2xl bg-gradient-to-r from-indigo-600/15 via-indigo-500/10 to-violet-500/15 dark:from-indigo-900/30 dark:to-violet-900/30 border border-indigo-300/70 dark:border-indigo-500/40 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-300/50 dark:shadow-none shrink-0">
+                <Brain size={22} />
+              </div>
+              <div>
+                <h3
+                  className="text-slate-900 dark:text-white text-sm sm:text-base font-black tracking-tight flex items-center gap-2"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <span>{isVi ? `Đang có ${srsStats.dueTodayCount} từ vựng cần ôn hôm nay (SRS) 🧠` : `You have ${srsStats.dueTodayCount} terms due for review today 🧠`}</span>
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  {isVi
+                    ? 'Ôn tập đúng lúc trước khi quên theo phương pháp lặp lại ngắt quãng SM-2'
+                    : 'Review right on time according to SuperMemo SM-2 spaced repetition'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+              <button
+                onClick={() => navigate(`${getStudyRoute(deck.id)}?due=true`)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-indigo-300/50 dark:shadow-none transition-all cursor-pointer whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <BookOpen size={14} />
+                <span>{isVi ? `Lật ${srsStats.dueTodayCount} thẻ cần ôn` : `Study ${srsStats.dueTodayCount} due`}</span>
+              </button>
+              <button
+                onClick={() => navigate(`${getWrittenRoute(deck.id)}?due=true`)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-indigo-200 dark:border-indigo-800/80 font-bold text-xs transition-all cursor-pointer whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                <PenLine size={14} className="text-indigo-600 dark:text-indigo-400" />
+                <span>{isVi ? 'Luyện gõ từ cần ôn' : 'Write due'}</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Quizlet-style Quick Starred Study Mode Banner */}
         {starredCount > 0 && (

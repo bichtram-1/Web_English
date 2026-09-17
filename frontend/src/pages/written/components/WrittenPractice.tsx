@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, X, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard } from 'lucide-react';
+import { CheckCircle2, X, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard, Star, Brain } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
@@ -12,9 +12,9 @@ import ThemeToggle from '../../../components/general/ThemeToggle';
 import { isAnswerMatching, stripParentheses } from '../../../utils/answerMatch';
 
 const FALLBACK_WORDS = [
-  { en: 'Developer', vi: 'lập trình viên' },
-  { en: 'Database', vi: 'cơ sở dữ liệu' },
-  { en: 'Framework', vi: 'bộ khung' },
+  { id: 1, en: 'Developer', vi: 'lập trình viên' },
+  { id: 2, en: 'Database', vi: 'cơ sở dữ liệu' },
+  { id: 3, en: 'Framework', vi: 'bộ khung' },
 ];
 
 type Direction = 'en-to-vi' | 'vi-to-en';
@@ -99,12 +99,15 @@ function CompletionScreen({
 }) {
   const correct = results.filter((r) => r === true).length;
   const pct = Math.round((correct / total) * 100);
-  const grade =
-    pct === 100
-      ? { emoji: '🏆', label: isVi ? 'Hoàn hảo!' : 'Perfect!', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/90 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-800' }
-      : pct >= 70
-      ? { emoji: '🌟', label: isVi ? 'Làm tốt lắm!' : 'Great job!', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-300 dark:border-indigo-800' }
-      : { emoji: '💪', label: isVi ? 'Cố gắng lên nhé!' : 'Keep at it!', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50/90 dark:bg-amber-950/70 border-amber-300 dark:border-amber-800' };
+
+  const getGrade = () => {
+    if (pct >= 90) return { label: isVi ? 'Xuất sắc!' : 'Outstanding!', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/30', emoji: '🏆' };
+    if (pct >= 70) return { label: isVi ? 'Làm tốt lắm!' : 'Well done!', color: 'text-indigo-500', bg: 'bg-indigo-500/10 border-indigo-500/30', emoji: '⭐' };
+    if (pct >= 50) return { label: isVi ? 'Khá tốt!' : 'Good effort!', color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/30', emoji: '💪' };
+    return { label: isVi ? 'Cần luyện thêm!' : 'Keep practicing!', color: 'text-red-500', bg: 'bg-red-500/10 border-red-500/30', emoji: '📖' };
+  };
+
+  const grade = getGrade();
 
   return (
     <motion.div
@@ -155,21 +158,42 @@ function CompletionScreen({
   );
 }
 
+export type WrittenFilterMode = 'all' | 'due' | 'starred';
+
 interface WrittenPracticeProps {
   deck?: Deck;
   onExit: () => void;
+  filterMode?: WrittenFilterMode;
+  onFilterChange?: (mode: WrittenFilterMode) => void;
+  totalCount?: number;
+  dueCount?: number;
+  starredCount?: number;
+  isStarred?: (cardId: number) => boolean;
+  onToggleStar?: (cardId: number) => void;
 }
 
-export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) {
+export default function WrittenPractice({
+  deck,
+  onExit,
+  filterMode = 'all',
+  onFilterChange,
+  totalCount,
+  dueCount,
+  starredCount,
+  isStarred,
+  onToggleStar,
+}: WrittenPracticeProps) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
 
-  const baseWords: { en: string; vi: string }[] = deck
-    ? deck.cards
-        .filter((c): c is FlashcardItem => c.type === 'flashcard')
-        .map((c) => ({ en: c.front, vi: c.back }))
-    : FALLBACK_WORDS;
+  const baseWords: { id?: number; en: string; vi: string }[] = useMemo(() => {
+    return deck
+      ? deck.cards
+          .filter((c): c is FlashcardItem => c.type === 'flashcard')
+          .map((c) => ({ id: c.id, en: c.front, vi: c.back }))
+      : FALLBACK_WORDS;
+  }, [deck]);
 
   const [queue, setQueue] = useState([...baseWords]);
   const [answeredCount, setAnsweredCount] = useState(0);
@@ -183,6 +207,19 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
   const [results, setResults] = useState<(boolean | null)[]>(Array(baseWords.length).fill(null));
   const [done, setDone] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  // Sync state whenever baseWords changes
+  useEffect(() => {
+    setQueue([...baseWords]);
+    setAnsweredCount(0);
+    setSkipCount(0);
+    setIndex(0);
+    setInput('');
+    setStatus('idle');
+    setShaking(false);
+    setResults(Array(baseWords.length).fill(null));
+    setDone(false);
+  }, [baseWords]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -391,6 +428,48 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
                 {isVi ? 'Luyện gõ chính tả' : 'Written Practice'}
               </span>
             </div>
+
+            {/* Filter Pills in Written Practice */}
+            {onFilterChange && (
+              <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
+                <button
+                  onClick={() => onFilterChange('all')}
+                  className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title={isVi ? 'Luyện tất cả từ' : 'All words'}
+                >
+                  {isVi ? 'Tất cả' : 'All'} ({totalCount ?? baseWords.length})
+                </button>
+                <button
+                  onClick={() => onFilterChange('due')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'due'
+                      ? 'bg-indigo-600 text-white shadow-xs font-black'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                  }`}
+                  title={isVi ? 'Chỉ luyện các từ đến hạn hôm nay (SRS)' : 'Due today'}
+                >
+                  <Brain size={11} className={filterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
+                  <span>{isVi ? 'Cần ôn' : 'Due'} ({dueCount ?? 0})</span>
+                </button>
+                <button
+                  onClick={() => onFilterChange('starred')}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'starred'
+                      ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+                  }`}
+                  title={isVi ? 'Chỉ luyện các từ có gắn sao ⭐' : 'Starred'}
+                >
+                  <Star size={11} className={filterMode === 'starred' || (starredCount ?? 0) > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+                  <span>{starredCount ?? 0}</span>
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               {skipCount > 0 && (
                 <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full" style={{ fontFamily: 'var(--font-display)' }}>
@@ -421,25 +500,43 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
                 >
                   <Keyboard size={16} />
                 </button>
-                <LanguageSelect mini />
+                <LanguageSelect />
                 <ThemeToggle />
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-          <div className="w-full max-w-xl flex flex-col gap-5">
-            <ModeToggle value={direction} onChange={handleDirectionChange} />
-            <ProgressDots total={baseWords.length} current={Math.min(answeredCount, baseWords.length - 1)} results={results} />
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
+          <div className="max-w-2xl w-full flex flex-col gap-6">
+            {/* Top controls: ModeToggle & Progress */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <ModeToggle value={direction} onChange={handleDirectionChange} />
+              <ProgressDots
+                total={baseWords.length}
+                current={index}
+                results={results}
+              />
+            </div>
 
+            {/* Main Typing / Practice Box */}
             <AnimatePresence mode="wait">
               {done ? (
                 <CompletionScreen
-                  key="done"
                   results={results}
                   total={baseWords.length}
-                  onRestart={restart}
+                  onRestart={() => {
+                    setQueue([...baseWords]);
+                    setAnsweredCount(0);
+                    setSkipCount(0);
+                    setIndex(0);
+                    setInput('');
+                    setStatus('idle');
+                    setShaking(false);
+                    setResults(Array(baseWords.length).fill(null));
+                    setDone(false);
+                  }}
                   onExit={onExit}
                   isVi={isVi}
                 />
@@ -452,7 +549,21 @@ export default function WrittenPractice({ deck, onExit }: WrittenPracticeProps) 
                   transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
                   className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden"
                 >
-                  <div className="px-7 pt-8 pb-6 text-center border-b border-slate-100 dark:border-slate-800/80">
+                  <div className="px-7 pt-8 pb-6 text-center border-b border-slate-100 dark:border-slate-800/80 relative">
+                    {word?.id && isStarred && onToggleStar && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleStar(word.id!)}
+                        className={`absolute top-4 right-4 p-2 rounded-xl transition-all cursor-pointer ${
+                          isStarred(word.id)
+                            ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-500 ring-1 ring-amber-300'
+                            : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        title={isStarred(word.id) ? (isVi ? 'Bỏ gắn sao từ này' : 'Unstar this word') : (isVi ? 'Gán sao từ này' : 'Star this word')}
+                      >
+                        <Star size={18} className={isStarred(word.id) ? 'fill-amber-500 text-amber-500' : ''} />
+                      </button>
+                    )}
                     <p
                       className="text-xs font-bold uppercase tracking-widest mb-3"
                       style={{

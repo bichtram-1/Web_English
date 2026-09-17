@@ -90,30 +90,46 @@ export function calculateSM2(current: SM2Record, rating: SM2Rating): SM2Record {
   let interval = safeCurrent.interval;
   let easeFactor = safeCurrent.easeFactor;
 
-  if (rating < 3) {
-    // Failed - reset repetition sequence
+  const now = new Date();
+  let nextDate = new Date(now);
+
+  if (rating === 1) {
+    // 1: Again (Complete blackout / Fail) - Need re-learning within 10 minutes
     repetition = 0;
-    interval = 1;
-  } else {
-    // Succeeded - increment repetition sequence
-    if (repetition === 0) {
-      interval = 1;
-    } else if (repetition === 1) {
-      interval = rating === 5 ? 6 : 4;
+    interval = 0; // Due today / same session
+    easeFactor = Math.max(1.3, Number((easeFactor - 0.2).toFixed(2)));
+    nextDate = new Date(now.getTime() + 10 * 60 * 1000); // 10 mins from now
+  } else if (rating === 2) {
+    // 2: Hard (Struggled to recall) - Review tomorrow with small interval
+    repetition = Math.max(0, repetition > 0 ? repetition - 1 : 0);
+    interval = repetition <= 1 ? 1 : Math.max(1, Math.round(interval * 1.2));
+    easeFactor = Math.max(1.3, Number((easeFactor - 0.15).toFixed(2)));
+    nextDate.setDate(nextDate.getDate() + interval);
+  } else if (rating === 3) {
+    // 3: Good (Recalled with standard effort)
+    repetition += 1;
+    if (repetition === 1) {
+      interval = 2; // 2 days for first successful recall
+    } else if (repetition === 2) {
+      interval = 4; // 4 days for second recall
     } else {
       interval = Math.round(interval * easeFactor);
     }
+    easeFactor = Math.max(1.3, Number((easeFactor - 0.05).toFixed(2)));
+    nextDate.setDate(nextDate.getDate() + interval);
+  } else {
+    // 5: Easy (Instant, effortless recall)
     repetition += 1;
+    if (repetition === 1) {
+      interval = 4; // 4 days for effortless first recall
+    } else if (repetition === 2) {
+      interval = 7; // 7 days for effortless second recall
+    } else {
+      interval = Math.round(interval * easeFactor * 1.3);
+    }
+    easeFactor = Math.max(1.3, Number((easeFactor + 0.15).toFixed(2)));
+    nextDate.setDate(nextDate.getDate() + interval);
   }
-
-  // Calculate new Ease Factor (EF)
-  // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-  const newEF = easeFactor + (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
-  easeFactor = Math.max(1.3, Number(newEF.toFixed(2)));
-
-  const now = new Date();
-  const nextDate = new Date(now);
-  nextDate.setDate(nextDate.getDate() + interval);
 
   return {
     cardId: safeCurrent.cardId,
@@ -146,13 +162,13 @@ export function saveSM2Record(record: SM2Record): void {
  * Calculate expected interval preview for a given rating
  */
 export function getIntervalPreview(record: SM2Record, rating: SM2Rating): { vi: string; en: string } {
+  if (rating === 1) {
+    return { vi: '< 10 phút', en: '< 10 mins' };
+  }
   const simulated = calculateSM2(record, rating);
   const days = simulated.interval;
 
-  if (rating < 3) {
-    return { vi: '< 10 phút', en: '< 10 mins' };
-  }
-  if (days === 1) {
+  if (days <= 1) {
     return { vi: '1 ngày', en: '1 day' };
   }
   if (days < 30) {
@@ -263,4 +279,31 @@ export function getDeckSRSStats(deckId: string, cardIds: number[]): DeckSRSStats
     learningCount,
     masteredCount,
   };
+}
+
+/**
+ * Check if a card in a deck is due for SRS review today (or is new)
+ */
+export function isCardDue(deckId: string, cardId: number): boolean {
+  if (typeof window === 'undefined') return true;
+  const records = getAllSM2Records();
+  const key = `${deckId}_${cardId}`;
+  const record = records[key];
+  if (!record || !record.lastStudiedDate) return true;
+  return new Date(record.nextReviewDate) <= new Date();
+}
+
+/**
+ * Filter list of items to only those due for review today
+ */
+export function getDeckDueCards<T extends { id: number }>(deckId: string, cards: T[]): T[] {
+  if (typeof window === 'undefined') return cards;
+  const records = getAllSM2Records();
+  const now = new Date();
+  return cards.filter((c) => {
+    const key = `${deckId}_${c.id}`;
+    const rec = records[key];
+    if (!rec || !rec.lastStudiedDate) return true;
+    return new Date(rec.nextReviewDate) <= now;
+  });
 }

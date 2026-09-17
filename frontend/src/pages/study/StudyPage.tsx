@@ -11,7 +11,7 @@ import WallpaperModal from '../../components/general/WallpaperModal';
 import { useWallpaper } from '../../contexts/WallpaperContext';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
-import type { Deck } from '../../types/DeckType';
+import type { CardItem, Deck } from '../../types/DeckType';
 import { mockDecks } from '../../data/mockData';
 import { useAuth } from '../../hooks/useAuth';
 import { canViewDeck } from '../../utils/permission';

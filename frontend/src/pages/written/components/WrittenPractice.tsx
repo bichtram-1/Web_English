@@ -56,30 +56,134 @@ function ProgressDots({
   total,
   current,
   results,
+  answeredCount,
+  isVi = true,
 }: {
   total: number;
   current: number;
   results: (boolean | null)[];
+  answeredCount?: number;
+  isVi?: boolean;
 }) {
+  const correctCount = results.filter((r) => r === true).length;
+  const incorrectCount = results.filter((r) => r === false).length;
+  const safeCurrent = Math.min(Math.max(current, 0), Math.max(0, total - 1));
+  const progressPct = total > 0 ? Math.min(100, Math.round(((answeredCount ?? safeCurrent) / total) * 100)) : 0;
+
+  // For small decks (<= 12), show all dots in one neat row.
+  // For large decks (e.g. 1500 words), show a sliding window of max 9 dots.
+  const MAX_VISIBLE = 9;
+  const isWindowed = total > 12;
+
+  let startIdx = 0;
+  let endIdx = total;
+
+  if (isWindowed) {
+    const half = Math.floor(MAX_VISIBLE / 2);
+    startIdx = Math.max(0, safeCurrent - half);
+    endIdx = Math.min(total, startIdx + MAX_VISIBLE);
+    if (endIdx - startIdx < MAX_VISIBLE) {
+      startIdx = Math.max(0, endIdx - MAX_VISIBLE);
+    }
+  }
+
+  const visibleIndices: number[] = [];
+  for (let i = startIdx; i < endIdx; i++) {
+    visibleIndices.push(i);
+  }
+
+  const hasPrev = isWindowed && startIdx > 0;
+  const hasNext = isWindowed && endIdx < total;
+
   return (
-    <div className="flex items-center gap-1.5 flex-wrap justify-center">
-      {Array.from({ length: total }).map((_, i) => {
-        const r = results[i];
-        return (
-          <div
-            key={i}
-            className={`rounded-full transition-all duration-300 ${
-              i === current
-                ? 'w-6 h-2.5 bg-indigo-500'
-                : r === true
-                ? 'w-2.5 h-2.5 bg-emerald-500'
-                : r === false
-                ? 'w-2.5 h-2.5 bg-red-500'
-                : 'w-2.5 h-2.5 bg-slate-200 dark:bg-slate-700'
-            }`}
-          />
-        );
-      })}
+    <div className="flex flex-col gap-1.5 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl px-3.5 py-2 border border-slate-200/60 dark:border-slate-700/60 shadow-xs shrink-0 max-w-full sm:max-w-xs min-w-[240px]">
+      {/* Top row: Counter / Sliding Dots / Index */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Correct / Incorrect mini badges */}
+        <div className="flex items-center gap-1 shrink-0 text-xs font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+            title={isVi ? 'Số từ đúng' : 'Correct'}
+          >
+            <CheckCircle2 size={11} />
+            <span>{correctCount}</span>
+          </span>
+          {incorrectCount > 0 && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+              title={isVi ? 'Số từ cần ôn lại' : 'Missed'}
+            >
+              <X size={11} />
+              <span>{incorrectCount}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Sliding Window Dots (Never wraps, cleanly bounded) */}
+        <div className="flex items-center gap-1.5 justify-center flex-nowrap overflow-hidden px-1 py-0.5">
+          {hasPrev && (
+            <span
+              className="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-tighter select-none"
+              title={isVi ? `Còn ${startIdx} từ phía trước` : `${startIdx} words before`}
+            >
+              •••
+            </span>
+          )}
+
+          {visibleIndices.map((i) => {
+            const isCurrent = i === safeCurrent;
+            const r = results[i];
+            return (
+              <div
+                key={i}
+                title={
+                  isCurrent
+                    ? (isVi ? `Từ hiện tại (#${i + 1})` : `Current word (#${i + 1})`)
+                    : r === true
+                    ? (isVi ? `Từ #${i + 1}: Đúng` : `Word #${i + 1}: Correct`)
+                    : r === false
+                    ? (isVi ? `Từ #${i + 1}: Cần gõ lại` : `Word #${i + 1}: Missed`)
+                    : (isVi ? `Từ #${i + 1}: Chưa gõ` : `Word #${i + 1}: Upcoming`)
+                }
+                className={`rounded-full transition-all duration-300 shrink-0 ${
+                  isCurrent
+                    ? 'w-5 sm:w-6 h-2 bg-indigo-600 dark:bg-indigo-400 shadow-sm shadow-indigo-500/40 ring-2 ring-indigo-400/30'
+                    : r === true
+                    ? 'w-2 h-2 bg-emerald-500 shadow-xs shadow-emerald-500/30'
+                    : r === false
+                    ? 'w-2 h-2 bg-rose-500 shadow-xs shadow-rose-500/30'
+                    : 'w-2 h-2 bg-slate-300/80 dark:bg-slate-600/80'
+                }`}
+              />
+            );
+          })}
+
+          {hasNext && (
+            <span
+              className="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-tighter select-none"
+              title={isVi ? `Còn ${total - endIdx} từ phía sau` : `${total - endIdx} words after`}
+            >
+              •••
+            </span>
+          )}
+        </div>
+
+        {/* Word Counter */}
+        <div
+          className="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0 font-mono text-right"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {Math.min(safeCurrent + 1, total)}/{total}
+        </div>
+      </div>
+
+      {/* Macro progress bar across all cards (e.g. 1500 words) */}
+      <div className="w-full bg-slate-200/80 dark:bg-slate-700/60 rounded-full h-1.5 overflow-hidden flex">
+        <div
+          className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-emerald-500 rounded-full transition-all duration-300 ease-out"
+          style={{ width: `${Math.max(progressPct, total > 0 ? ((safeCurrent + 1) / total) * 100 : 0)}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -229,6 +333,12 @@ export default function WrittenPractice({
   const correctAnswer = direction === 'en-to-vi' ? word?.vi ?? '' : word?.en ?? '';
   const cleanCorrectAnswer = stripParentheses(correctAnswer) || correctAnswer;
   const hasParenthesesNote = cleanCorrectAnswer !== correctAnswer;
+
+  const activeWordIndex = useMemo(() => {
+    if (!word) return Math.min(index, Math.max(0, baseWords.length - 1));
+    const origIdx = baseWords.findIndex((w) => (w.id && word.id ? w.id === word.id : w.en === word.en));
+    return origIdx !== -1 ? origIdx : Math.min(index, Math.max(0, baseWords.length - 1));
+  }, [word, index, baseWords]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -477,7 +587,7 @@ export default function WrittenPractice({
                 </span>
               )}
               <span className="text-sm font-bold text-slate-500 dark:text-slate-400" style={{ fontFamily: 'var(--font-display)' }}>
-                {answeredCount + 1}/{baseWords.length}
+                {Math.min(answeredCount + 1, baseWords.length)}/{baseWords.length}
               </span>
 
               {/* Wallpaper, Shortcuts & Theme controls */}
@@ -511,12 +621,14 @@ export default function WrittenPractice({
         <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
           <div className="max-w-2xl w-full flex flex-col gap-6">
             {/* Top controls: ModeToggle & Progress */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <ModeToggle value={direction} onChange={handleDirectionChange} />
               <ProgressDots
                 total={baseWords.length}
-                current={index}
+                current={activeWordIndex}
                 results={results}
+                answeredCount={answeredCount}
+                isVi={isVi}
               />
             </div>
 

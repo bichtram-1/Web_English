@@ -649,10 +649,16 @@ export default function StudyPage() {
             </span>
           </div>
 
-        {starredOnly && (
+        {filterMode === 'starred' && (
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold shadow-2xs">
             <Star size={13} className="fill-amber-400 text-amber-500" />
             <span>{isVi ? `Chế độ học: ${starredCards.length} từ có gắn sao` : `Starred mode: ${starredCards.length} terms`}</span>
+          </div>
+        )}
+        {filterMode === 'due' && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold shadow-2xs">
+            <Brain size={13} className="text-indigo-500" />
+            <span>{isVi ? `Chế độ học: ${dueCards.length} từ cần ôn hôm nay (SRS)` : `Due mode: ${dueCards.length} cards (SRS)`}</span>
           </div>
         )}
       </div>

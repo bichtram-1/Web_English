@@ -16,28 +16,12 @@ import ReactConfetti from 'react-confetti';
 import { Volume2, Sparkles, BookOpen, Lightbulb, CheckCircle2, ArrowUpDown } from 'lucide-react';
 import { playCorrectSound, playIncorrectSound } from '../../utils/soundEffects';
 import { cleanTtsText } from '../../hooks/useSpeech';
-import type { DragDropItem, DragDropWord, WordType } from '../../types/DeckType';
+import type { DragDropItem, DragDropWord } from '../../types/DeckType';
 
 export interface DragDropCardRef {
   speak: () => void;
   checkAnswer: () => void;
 }
-
-const pillColors: Record<WordType, string> = {
-  noun: 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border-blue-400 dark:border-blue-600',
-  verb: 'bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border-red-400 dark:border-red-600',
-  adjective: 'bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-300 border-green-400 dark:border-green-600',
-  pronoun: 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-400 dark:border-purple-600',
-  other: 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600',
-};
-
-const pillShadows: Record<WordType, string> = {
-  noun: 'shadow-blue-200 dark:shadow-none',
-  verb: 'shadow-red-200 dark:shadow-none',
-  adjective: 'shadow-green-200 dark:shadow-none',
-  pronoun: 'shadow-purple-200 dark:shadow-none',
-  other: 'shadow-amber-200 dark:shadow-none',
-};
 
 interface DraggableWordPillProps {
   word: DragDropWord;
@@ -58,8 +42,9 @@ function DraggableWordPill({
     disabled,
   });
 
-  const colorClass = pillColors[word.type] || 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600';
-  const shadowClass = pillShadows[word.type] || 'shadow-slate-200 dark:shadow-none';
+  const pillStyle = inSlot
+    ? 'bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-200 border-indigo-300 dark:border-indigo-600 shadow-sm'
+    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 shadow-sm hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:shadow-md';
 
   return (
     <div
@@ -75,10 +60,9 @@ function DraggableWordPill({
       className={`
         px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border-2 font-semibold text-sm cursor-grab active:cursor-grabbing
         transition-all duration-150 select-none flex items-center gap-1.5
-        ${colorClass} ${shadowClass}
+        ${pillStyle}
         ${isDragging ? 'opacity-20 scale-95' : 'opacity-100'}
-        ${disabled ? 'pointer-events-none opacity-60' : 'hover:scale-105 hover:shadow-md active:scale-95 cursor-pointer'}
-        shadow-sm
+        ${disabled ? 'pointer-events-none opacity-60' : 'hover:scale-105 active:scale-95 cursor-pointer'}
       `}
       style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 600, whiteSpace: 'nowrap' }}
       title={inSlot ? 'Bấm để gỡ từ · Kéo để đổi vị trí' : 'Bấm để chọn · Kéo vào ô trống'}
@@ -544,29 +528,6 @@ const DragDropCard = forwardRef<DragDropCardRef, DragDropCardProps>(function Dra
             </WordBankDropZone>
           </div>
 
-          {/* Word Type Legend */}
-          <div className="flex flex-wrap gap-2 items-center justify-between pt-1">
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ['noun', t('word_type_noun')],
-                  ['verb', t('word_type_verb')],
-                  ['adjective', t('word_type_adj')],
-                  ['pronoun', t('word_type_pronoun')],
-                  ['other', t('word_type_other')],
-                ] as [WordType, string][]
-              ).map(([type, label]) => (
-                <span
-                  key={type}
-                  className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${pillColors[type]}`}
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
           {/* Check Button */}
           <button
             onClick={checkAnswer}
@@ -588,7 +549,7 @@ const DragDropCard = forwardRef<DragDropCardRef, DragDropCardProps>(function Dra
         <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
           {activeWord ? (
             <div
-              className={`px-4 py-2 rounded-full border-2 font-semibold text-sm shadow-2xl rotate-2 ${pillColors[activeWord.type] || 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'}`}
+              className="px-4 py-2 rounded-full border-2 border-indigo-500 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 font-semibold text-sm shadow-2xl rotate-2"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}
             >
               {activeWord.word}

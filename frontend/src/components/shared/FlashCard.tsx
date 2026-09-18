@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Star } from 'lucide-react';
+import { Volume2, Star, Image as ImageIcon } from 'lucide-react';
 import { cleanTtsText } from '../../hooks/useSpeech';
 import type { FlashcardItem } from '../../types/DeckType';
 
@@ -29,6 +29,7 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
   const [rotationX, setRotationX] = useState(0);
   const [hasFlipped, setHasFlipped] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const isBack = Math.abs(rotationX % 360) === 180;
 
@@ -49,7 +50,8 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
   useEffect(() => {
     setRotationX(0);
     setHasFlipped(false);
-  }, [card.id]);
+    setImageError(false);
+  }, [card.id, card.imageUrl]);
 
   const triggerFlip = useCallback(
     (direction: 'up' | 'down' = 'down') => {
@@ -119,8 +121,17 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
           }}
         >
           <div className="w-full flex items-center justify-between">
-            <span className="text-indigo-200 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm">
-              {isVi ? 'Tiếng Anh' : 'English'}
+            <span className="text-indigo-200 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm flex items-center gap-1.5">
+              <span>{isVi ? 'Tiếng Anh' : 'English'}</span>
+              {card.imageUrl && !imageError && (
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-100 bg-white/20 px-1.5 py-0.5 rounded-md"
+                  title={isVi ? 'Có hình minh họa khi lật thẻ' : 'Has illustration image'}
+                >
+                  <ImageIcon size={10} />
+                  <span>{isVi ? 'Ảnh' : 'Img'}</span>
+                </span>
+              )}
             </span>
             <div className="flex items-center gap-2">
               {onToggleStar && (
@@ -256,15 +267,35 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
             </div>
           </div>
 
-          <div className="flex flex-col items-center my-auto px-2">
+          <div className="flex flex-col items-center my-auto px-2 w-full max-h-[72%] overflow-hidden">
+            {card.imageUrl && !imageError && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.25 }}
+                className="relative mb-2 sm:mb-2.5 shrink-0 group/cardimg"
+              >
+                <img
+                  src={card.imageUrl}
+                  alt={card.back || card.front}
+                  onError={() => setImageError(true)}
+                  className="h-20 sm:h-28 md:h-32 lg:h-36 max-h-[140px] w-auto max-w-[240px] sm:max-w-[320px] md:max-w-[380px] object-cover rounded-2xl shadow-md border border-indigo-100 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 transition-transform duration-200 group-hover/cardimg:scale-105"
+                  loading="lazy"
+                />
+              </motion.div>
+            )}
             <h2
-              className="text-slate-900 dark:text-white text-center leading-tight mb-2"
-              style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 3.8vw, 3.2rem)', fontWeight: 800 }}
+              className="text-slate-900 dark:text-white text-center leading-tight mb-1"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: card.imageUrl && !imageError ? 'clamp(1.5rem, 2.8vw, 2.2rem)' : 'clamp(2rem, 3.8vw, 3.2rem)',
+                fontWeight: 800,
+              }}
             >
               {card.back}
             </h2>
             {card.exampleVi && (
-              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center italic mt-2.5 max-w-md lg:max-w-xl">
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center italic mt-1 max-w-md lg:max-w-xl line-clamp-2">
                 "{card.exampleVi}"
               </p>
             )}

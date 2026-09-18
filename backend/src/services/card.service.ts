@@ -40,7 +40,8 @@ export class CardService {
           phonetic: card.phonetic,
           exampleEn: card.exampleEn,
           exampleVi: card.exampleVi,
-        },
+          imageUrl: card.imageUrl,
+        } as any,
       });
     }
 
@@ -81,6 +82,7 @@ export class CardService {
       if (cardData.phonetic !== undefined) data.phonetic = cardData.phonetic;
       if (cardData.exampleEn !== undefined) data.exampleEn = cardData.exampleEn;
       if (cardData.exampleVi !== undefined) data.exampleVi = cardData.exampleVi;
+      if (cardData.imageUrl !== undefined) data.imageUrl = cardData.imageUrl;
     } else if (cardData.type === 'drag_drop') {
       if (cardData.meaning !== undefined) data.meaning = cardData.meaning;
       if (cardData.shuffled !== undefined) data.shuffledJson = JSON.stringify(cardData.shuffled);

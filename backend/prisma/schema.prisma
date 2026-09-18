@@ -4,7 +4,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+  binaryTargets = ["native"]
 }
 
 datasource db {
@@ -73,6 +73,7 @@ model Card {
   phonetic         String?  // IPA phonetic transcription
   exampleEn        String?  // Example sentence in English
   exampleVi        String?  // Example translation in Vietnamese
+  imageUrl         String?  // Optional illustration image URL for vocabulary
 
   // Drag & drop grammar fields
   meaning            String?  // Target sentence Vietnamese meaning

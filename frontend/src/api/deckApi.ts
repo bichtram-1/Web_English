@@ -165,9 +165,14 @@ export const deckApi = {
       found = mockDecks.find((d) => d.id === id);
     }
     if (found && (!found.cards || found.cards.length === 0)) {
-      const mock = mockDecks.find((d) => d.id === id);
-      if (mock && mock.cards && mock.cards.length > 0) {
-        found = { ...found, cards: mock.cards, itemCount: mock.cards.length };
+      const cached = getStoredDecks().find((d) => d.id === id);
+      if (cached && cached.cards && cached.cards.length > 0) {
+        found = { ...found, cards: cached.cards, itemCount: cached.cards.length };
+      } else {
+        const mock = mockDecks.find((d) => d.id === id);
+        if (mock && mock.cards && mock.cards.length > 0) {
+          found = { ...found, cards: mock.cards, itemCount: mock.cards.length };
+        }
       }
     }
 

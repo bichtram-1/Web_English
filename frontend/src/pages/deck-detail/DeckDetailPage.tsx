@@ -813,6 +813,19 @@ export default function DeckDetailPage() {
                                 "{c.exampleEn}"
                               </div>
                             )}
+                            {c.imageUrl && (
+                              <div className="mt-2">
+                                <img
+                                  src={c.imageUrl}
+                                  alt={c.front}
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
+                                  className="h-14 sm:h-16 w-auto max-w-[120px] object-cover rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs"
+                                  loading="lazy"
+                                />
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">

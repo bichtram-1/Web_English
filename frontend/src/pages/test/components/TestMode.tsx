@@ -18,6 +18,7 @@ type MCQuestion = {
   english: string;
   correct: string;
   options: string[];
+  imageUrl?: string;
 };
 
 type TFQuestion = {
@@ -26,6 +27,7 @@ type TFQuestion = {
   english: string;
   vietnamese: string;
   isTrue: boolean;
+  imageUrl?: string;
 };
 
 type WrittenQuestion = {
@@ -33,6 +35,7 @@ type WrittenQuestion = {
   id: number;
   vietnamese: string;
   correct: string;
+  imageUrl?: string;
 };
 
 type Question = MCQuestion | TFQuestion | WrittenQuestion;
@@ -60,7 +63,7 @@ function buildQuestions(deck: Deck): Question[] {
         .slice(0, 3)
         .map((c) => c.back);
       const options = shuffle([card.back, ...distractors]);
-      questions.push({ kind: 'mc', id: card.id, english: card.front, correct: card.back, options });
+      questions.push({ kind: 'mc', id: card.id, english: card.front, correct: card.back, options, imageUrl: card.imageUrl });
     } else if (kind === 'tf') {
       const useWrong = Math.random() > 0.5;
       const wrongCard = cards.find((c) => c.id !== card.id) ?? card;
@@ -70,9 +73,10 @@ function buildQuestions(deck: Deck): Question[] {
         english: card.front,
         vietnamese: useWrong ? wrongCard.back : card.back,
         isTrue: !useWrong,
+        imageUrl: card.imageUrl,
       });
     } else {
-      questions.push({ kind: 'written', id: card.id, vietnamese: card.back, correct: card.front });
+      questions.push({ kind: 'written', id: card.id, vietnamese: card.back, correct: card.front, imageUrl: card.imageUrl });
     }
   });
 
@@ -121,6 +125,17 @@ function MCCard({
   return (
     <div className="w-full max-w-xl flex flex-col gap-4">
       <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xl text-center">
+        {q.imageUrl && (
+          <div className="flex justify-center mb-3.5">
+            <img
+              src={q.imageUrl}
+              alt={q.english}
+              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+              className="h-28 sm:h-36 w-auto max-w-full object-cover rounded-2xl shadow-md border border-indigo-100 dark:border-slate-800"
+              loading="lazy"
+            />
+          </div>
+        )}
         <p className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-2">
           {isVi ? 'Từ này có nghĩa là gì?' : 'What does this mean?'}
         </p>
@@ -204,6 +219,17 @@ function TFCard({ q, onAnswer, isVi }: { q: TFQuestion; onAnswer: (correct: bool
   return (
     <div className="w-full max-w-xl flex flex-col gap-5">
       <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xl text-center">
+        {q.imageUrl && (
+          <div className="flex justify-center mb-3.5">
+            <img
+              src={q.imageUrl}
+              alt={q.english}
+              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+              className="h-24 sm:h-32 w-auto max-w-full object-cover rounded-2xl shadow-md border border-amber-100 dark:border-slate-800"
+              loading="lazy"
+            />
+          </div>
+        )}
         <p className="text-xs font-bold text-amber-500 dark:text-amber-400 uppercase tracking-widest mb-3">
           {isVi ? 'Đúng hay Sai?' : 'True or False?'}
         </p>
@@ -270,6 +296,17 @@ function WrittenCard({ q, onAnswer, isVi }: { q: WrittenQuestion; onAnswer: (cor
   return (
     <div className="w-full max-w-xl flex flex-col gap-4">
       <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-xl text-center">
+        {q.imageUrl && (
+          <div className="flex justify-center mb-3.5">
+            <img
+              src={q.imageUrl}
+              alt={q.vietnamese}
+              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+              className="h-24 sm:h-32 w-auto max-w-full object-cover rounded-2xl shadow-md border border-violet-100 dark:border-slate-800"
+              loading="lazy"
+            />
+          </div>
+        )}
         <p className="text-xs font-bold text-violet-500 dark:text-violet-400 uppercase tracking-widest mb-2">
           {isVi ? 'Gõ từ tiếng Anh tương ứng' : 'Type the English word'}
         </p>

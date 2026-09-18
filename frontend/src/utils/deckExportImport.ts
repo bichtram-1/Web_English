@@ -4,6 +4,7 @@ export interface ParsedCard {
   front: string;
   back: string;
   type: 'flashcard' | 'drag_drop';
+  imageUrl?: string;
   grammarRule?: string;
   grammarExplanation?: string;
 }
@@ -76,6 +77,7 @@ export async function parseVocabularyFile(file: File): Promise<{ title?: string;
             front: item.front || item.term || item.word || item.english || `Word ${idx + 1}`,
             back: item.back || item.definition || item.meaning || item.vietnamese || '',
             type: item.type === 'drag_drop' ? 'drag_drop' : 'flashcard',
+            imageUrl: item.imageUrl || undefined,
             grammarRule: item.grammarRule || '',
             grammarExplanation: item.grammarExplanation || '',
           })),
@@ -88,6 +90,7 @@ export async function parseVocabularyFile(file: File): Promise<{ title?: string;
             front: item.front || item.term || item.word || item.english || `Word ${idx + 1}`,
             back: item.back || item.definition || item.meaning || item.vietnamese || '',
             type: item.type === 'drag_drop' ? 'drag_drop' : 'flashcard',
+            imageUrl: item.imageUrl || undefined,
             grammarRule: item.grammarRule || '',
             grammarExplanation: item.grammarExplanation || '',
           })),

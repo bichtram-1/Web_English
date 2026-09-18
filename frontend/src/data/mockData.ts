@@ -13,7 +13,13 @@ export const mockDecks: Deck[] = [
     rating: 4.9,
     ratingCount: 128,
     cards: [
-      { id: 1, type: 'flashcard', front: 'Developer', back: 'Lập trình viên' },
+      {
+        id: 1,
+        type: 'flashcard',
+        front: 'Developer',
+        back: 'Lập trình viên',
+        imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500&auto=format&fit=crop&q=80',
+      },
       {
         id: 2,
         type: 'drag_drop',
@@ -29,7 +35,13 @@ export const mockDecks: Deck[] = [
         ],
         correctOrder: ['w4', 'w5', 'w2', 'w1', 'w3'],
       },
-      { id: 3, type: 'flashcard', front: 'Beautiful', back: 'Đẹp' },
+      {
+        id: 3,
+        type: 'flashcard',
+        front: 'Beautiful',
+        back: 'Đẹp',
+        imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=80',
+      },
       { id: 4, type: 'flashcard', front: 'Knowledge', back: 'Kiến thức' },
       { id: 5, type: 'flashcard', front: 'Achievement', back: 'Thành tích' },
       {

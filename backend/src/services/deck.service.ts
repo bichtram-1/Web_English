@@ -32,6 +32,7 @@ const mapCardFromDb = (card: any): CardItem => {
     phonetic: card.phonetic || undefined,
     exampleEn: card.exampleEn || undefined,
     exampleVi: card.exampleVi || undefined,
+    imageUrl: card.imageUrl || undefined,
   };
 };
 
@@ -236,6 +237,7 @@ export class DeckService {
         phonetic: c.phonetic,
         exampleEn: c.exampleEn,
         exampleVi: c.exampleVi,
+        imageUrl: c.imageUrl,
         orderIndex: index + 1,
       };
     });
@@ -301,9 +303,8 @@ export class DeckService {
       },
     });
 
-    // If cards provided, replace cards
+    // If cards provided, replace cards atomically
     if (dto.cards) {
-      await prisma.card.deleteMany({ where: { deckId: id } });
       const cardsData = dto.cards.map((c, index) => {
         if (c.type === 'drag_drop') {
           return {
@@ -325,17 +326,22 @@ export class DeckService {
           phonetic: c.phonetic,
           exampleEn: c.exampleEn,
           exampleVi: c.exampleVi,
+          imageUrl: c.imageUrl,
           orderIndex: index + 1,
         };
       });
 
-      await prisma.card.createMany({
-        data: cardsData as any,
-      });
-
-      await prisma.deck.update({
-        where: { id },
-        data: { itemCount: cardsData.length },
+      await prisma.$transaction(async (tx) => {
+        await tx.card.deleteMany({ where: { deckId: id } });
+        if (cardsData.length > 0) {
+          await tx.card.createMany({
+            data: cardsData as any,
+          });
+        }
+        await tx.deck.update({
+          where: { id },
+          data: { itemCount: cardsData.length },
+        });
       });
     }
 

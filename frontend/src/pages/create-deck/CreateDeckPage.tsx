@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal, Upload, Sparkles, Edit3, Check, Palette } from 'lucide-react';
+import { Trash2, Plus, Save, ArrowLeft, GripVertical, Globe, Lock, BookOpen, GripHorizontal, Upload, Sparkles, Edit3, Check, Palette, Image as ImageIcon } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { recordCreatedDeck } from '../../utils/recentDecks';
@@ -13,6 +13,7 @@ import VocabAutocompleteInput from '../../components/common/VocabAutocompleteInp
 import { type VocabSuggestion } from '../../data/vocabDictionary';
 import { translateSingleWord } from '../../utils/textExtractor';
 import { ParsedCard } from '../../utils/deckExportImport';
+import { compressImageFile } from '../../utils/imageCompressor';
 import type { Deck, CardItem } from '../../types/DeckType';
 import deckApi from '../../api/deckApi';
 import { canEditDeck } from '../../utils/permission';
@@ -36,6 +37,7 @@ interface CardRow {
   term: string;
   definition: string;
   type: CardType;
+  imageUrl?: string;
   grammarRule?: string;
   grammarExplanation?: string;
 }
@@ -46,6 +48,7 @@ const emptyCard = (): CardRow => ({
   term: '',
   definition: '',
   type: 'flashcard',
+  imageUrl: '',
   grammarRule: '',
   grammarExplanation: '',
 });
@@ -87,6 +90,32 @@ function CardRowItem({
 }) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const [showImageInput, setShowImageInput] = useState(Boolean(card.imageUrl));
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsCompressing(true);
+      const compressed = await compressImageFile(file, {
+        maxWidth: 480,
+        maxHeight: 360,
+        quality: 0.8,
+      });
+      onChange(card.id, 'imageUrl', compressed);
+      setShowImageInput(true);
+    } catch (err: any) {
+      alert(err?.message || (isVi ? 'Không thể xử lý hình ảnh này.' : 'Failed to process image.'));
+    } finally {
+      setIsCompressing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   return (
     <Reorder.Item
@@ -114,6 +143,22 @@ function CardRowItem({
         </div>
 
         <div className="flex items-center gap-2">
+          {card.type === 'flashcard' && (
+            <button
+              type="button"
+              onClick={() => setShowImageInput((prev) => !prev)}
+              className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                card.imageUrl
+                  ? 'bg-indigo-50 dark:bg-indigo-950/80 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 dark:text-slate-400'
+              }`}
+              title={isVi ? 'Thêm / sửa hình minh họa cho thẻ' : 'Add / edit card illustration image'}
+            >
+              <ImageIcon size={13} />
+              <span>{isVi ? (card.imageUrl ? 'Có ảnh' : 'Hình ảnh') : (card.imageUrl ? 'Image' : 'Image')}</span>
+            </button>
+          )}
+
           <select
             value={card.type}
             onChange={(e) => onChange(card.id, 'type', e.target.value)}
@@ -181,6 +226,104 @@ function CardRowItem({
           />
         </div>
       </div>
+
+      <AnimatePresence>
+        {card.type === 'flashcard' && (showImageInput || Boolean(card.imageUrl)) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-800/30"
+          >
+            <div className="p-3.5 flex flex-col gap-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <ImageIcon size={14} />
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {isVi ? 'Hình minh họa từ vựng' : 'Vocabulary Image'}:
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isCompressing}
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload size={13} />
+                    <span>{isCompressing ? (isVi ? 'Đang nén ảnh...' : 'Compressing...') : (isVi ? 'Tải ảnh từ máy' : 'Upload File')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={
+                      card.imageUrl?.startsWith('data:image/')
+                        ? (isVi ? '🖼️ [Ảnh đã tải từ máy tính thành công]' : '🖼️ [Image uploaded from device]')
+                        : (card.imageUrl || '')
+                    }
+                    onChange={(e) => onChange(card.id, 'imageUrl', e.target.value)}
+                    readOnly={Boolean(card.imageUrl?.startsWith('data:image/'))}
+                    placeholder={isVi ? 'Dán đường link ảnh web (https://...)' : 'Paste web image URL (https://...)'}
+                    className={`w-full text-xs font-medium rounded-xl px-3 py-2 outline-none border transition-all placeholder:text-slate-400 ${
+                      card.imageUrl?.startsWith('data:image/')
+                        ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 text-indigo-800 dark:text-indigo-200 font-semibold'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-700'
+                    }`}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+
+                {card.imageUrl ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <img
+                      src={card.imageUrl}
+                      alt="Preview"
+                      className="w-9 h-9 rounded-xl object-cover border-2 border-indigo-300 dark:border-indigo-700 shadow-xs"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.opacity = '0.3';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(card.id, 'imageUrl', '');
+                        setShowImageInput(false);
+                      }}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 px-2.5 py-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                      title={isVi ? 'Xóa ảnh' : 'Remove image'}
+                    >
+                      <Trash2 size={13} />
+                      <span className="hidden sm:inline">{isVi ? 'Xóa' : 'Remove'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowImageInput(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer px-2 py-1 shrink-0"
+                  >
+                    {isVi ? 'Ẩn' : 'Hide'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {card.type === 'drag_drop' && (
@@ -339,6 +482,7 @@ export default function CreateDeckPage() {
               term: c.front || '',
               definition: c.back || '',
               type: 'flashcard',
+              imageUrl: c.imageUrl || '',
               grammarRule: '',
               grammarExplanation: '',
             };
@@ -369,6 +513,7 @@ export default function CreateDeckPage() {
       term: c.front,
       definition: c.back,
       type: c.type,
+      imageUrl: c.imageUrl || '',
       grammarRule: c.grammarRule || '',
       grammarExplanation: c.grammarExplanation || '',
     }));
@@ -455,6 +600,7 @@ export default function CreateDeckPage() {
           type: 'flashcard',
           front: cleanTerm || cleanDef,
           back: cleanDef || cleanTerm,
+          imageUrl: c.imageUrl?.trim() || undefined,
         };
       });
 

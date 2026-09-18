@@ -8,6 +8,7 @@ export interface FlashcardItem {
   phonetic?: string;
   exampleEn?: string;
   exampleVi?: string;
+  imageUrl?: string;
 }
 
 export interface DragDropWord {

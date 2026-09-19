@@ -13,6 +13,7 @@ import {
   ChevronRight,
   FolderOpen,
   X,
+  Users,
 } from 'lucide-react';
 import { useCollections } from '../../hooks/useCollections';
 import { useDecks } from '../../hooks/useDecks';
@@ -34,7 +35,7 @@ export default function CollectionsPage() {
   const { collections, loading, createCollection, updateCollection, deleteCollection } = useCollections();
 
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'public' | 'my' | 'private'>('public');
+  const [tab, setTab] = useState<'public' | 'my' | 'shared' | 'private'>('public');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -84,6 +85,19 @@ export default function CollectionsPage() {
     () => collections.filter((c) => isCollectionCreator(c, user)),
     [collections, user]
   );
+  const sharedCollections = useMemo(
+    () =>
+      collections.filter(
+        (c) =>
+          !isCollectionCreator(c, user) &&
+          c.collaborators?.some(
+            (collab) =>
+              (user?.id && collab.userId === user.id) ||
+              (user?.email && collab.email.toLowerCase() === user.email.toLowerCase())
+          )
+      ),
+    [collections, user]
+  );
   const myPrivateCollections = useMemo(
     () => collections.filter((c) => isCollectionCreator(c, user) && c.isPublic === false),
     [collections, user]
@@ -97,6 +111,8 @@ export default function CollectionsPage() {
       base = publicCollections;
     } else if (tab === 'my') {
       base = myCollections;
+    } else if (tab === 'shared') {
+      base = sharedCollections;
     } else if (tab === 'private') {
       base = myPrivateCollections;
     }
@@ -108,7 +124,7 @@ export default function CollectionsPage() {
         c.creator.toLowerCase().includes(q) ||
         (c.description && c.description.toLowerCase().includes(q))
     );
-  }, [collections, publicCollections, myCollections, myPrivateCollections, tab, search]);
+  }, [collections, publicCollections, myCollections, sharedCollections, myPrivateCollections, tab, search]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,6 +252,21 @@ export default function CollectionsPage() {
             </button>
           )}
 
+          {isAuthenticated && (
+            <button
+              onClick={() => setTab('shared')}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                tab === 'shared'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Users size={13} />
+              <span>{isVi ? 'Được chia sẻ' : 'Shared with me'}</span>
+              <span className="text-[10px] opacity-75 font-semibold">({sharedCollections.length})</span>
+            </button>
+          )}
+
           {isAuthenticated && myPrivateCollections.length > 0 && (
             <button
               onClick={() => setTab('private')}
@@ -323,8 +354,24 @@ export default function CollectionsPage() {
                     </p>
                   )}
 
-                  <div className="text-xs text-slate-400 dark:text-slate-500 mb-3">
-                    {t('deck_creator_label')}: <span className="font-bold text-slate-700 dark:text-slate-300">{col.creator}</span>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mb-3 flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      {t('deck_creator_label')}: <span className="font-bold text-slate-700 dark:text-slate-300">{col.creator}</span>
+                    </div>
+                    {(() => {
+                      const collab = col.collaborators?.find(
+                        (c) =>
+                          (user?.id && c.userId === user.id) ||
+                          (user?.email && c.email.toLowerCase() === user.email.toLowerCase())
+                      );
+                      if (!collab || isCollectionCreator(col, user)) return null;
+                      return (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                          <Users size={10} />
+                          {collab.role === 'editor' ? (isVi ? 'Được chia sẻ (Chỉnh sửa)' : 'Shared (Editor)') : (isVi ? 'Được chia sẻ (Cùng học)' : 'Shared (Viewer)')}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">

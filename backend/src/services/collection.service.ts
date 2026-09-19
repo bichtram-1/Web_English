@@ -141,6 +141,7 @@ export class CollectionService {
     userId?: string;
     currentUserId?: string;
     currentUserRole?: string;
+    currentUserEmail?: string;
   }): Promise<DeckCollection[]> {
     await ensureTable();
 
@@ -166,18 +167,21 @@ export class CollectionService {
 
     // Filter by visibility:
     // Admin: sees all
-    // Logged in user: sees public collections OR own collections OR collaborator
+    // Logged in user: sees public collections OR own collections OR collaborator (by userId or email)
     // Guest: sees public only
     const userRole = options?.currentUserRole;
     const currentUserId = options?.currentUserId;
+    const currentUserEmail = options?.currentUserEmail?.toLowerCase();
 
     if (userRole !== 'admin') {
       collections = collections.filter((c) => {
         if (c.isPublic) return true;
-        if (!currentUserId) return false;
-        if (c.creatorId === currentUserId) return true;
+        if (!currentUserId && !currentUserEmail) return false;
+        if (currentUserId && c.creatorId === currentUserId) return true;
         const isCollab = c.collaborators?.some(
-          (collab) => collab.userId === currentUserId
+          (collab) =>
+            (currentUserId && collab.userId === currentUserId) ||
+            (currentUserEmail && collab.email.toLowerCase() === currentUserEmail)
         );
         return Boolean(isCollab);
       });
@@ -202,7 +206,12 @@ export class CollectionService {
     return collections;
   }
 
-  static async getCollectionById(id: string, currentUserId?: string, currentUserRole?: string): Promise<DeckCollection> {
+  static async getCollectionById(
+    id: string,
+    currentUserId?: string,
+    currentUserRole?: string,
+    currentUserEmail?: string
+  ): Promise<DeckCollection> {
     await ensureTable();
 
     let found: any = null;
@@ -229,15 +238,29 @@ export class CollectionService {
     }
 
     const col = mapCollectionFromDb(found);
+    const emailLower = currentUserEmail?.toLowerCase();
 
     if (col.isPublic === false) {
-      if (!currentUserId) {
+      if (!currentUserId && !emailLower) {
         throw new AppError('Danh sách này ở chế độ riêng tư. Vui lòng đăng nhập để truy cập.', 403);
       }
-      const isOwner = col.creatorId === currentUserId;
-      const isCollab = col.collaborators?.some((c) => c.userId === currentUserId);
+      const isOwner = Boolean(currentUserId && col.creatorId === currentUserId);
+      const isCollab = col.collaborators?.some(
+        (c) =>
+          (currentUserId && c.userId === currentUserId) ||
+          (emailLower && c.email.toLowerCase() === emailLower)
+      );
       if (currentUserRole !== 'admin' && !isOwner && !isCollab) {
         throw new AppError('Bạn không có quyền truy cập danh sách bộ thẻ riêng tư này', 403);
+      }
+    }
+
+    // If collaborator has matching email but no userId, auto-attach userId
+    if (currentUserId && emailLower && col.collaborators) {
+      const matching = col.collaborators.find((c) => !c.userId && c.email.toLowerCase() === emailLower);
+      if (matching) {
+        matching.userId = currentUserId;
+        this.persistCollection(col).catch((err) => console.warn('Could not auto-link collaborator userId:', err));
       }
     }
 
@@ -337,9 +360,10 @@ export class CollectionService {
     id: string,
     updates: UpdateCollectionDTO,
     userId?: string,
-    userRole?: string
+    userRole?: string,
+    userEmail?: string
   ): Promise<DeckCollection> {
-    const existing = await this.getCollectionById(id, userId, userRole);
+    const existing = await this.getCollectionById(id, userId, userRole, userEmail);
 
     if (!userId) {
       throw new AppError('Vui lòng đăng nhập để chỉnh sửa', 401);
@@ -350,7 +374,12 @@ export class CollectionService {
       // If collection has no creatorId yet, allow user to claim it upon first edit
       isOwner = true;
     }
-    const isEditor = existing.collaborators?.some((c) => c.userId === userId && c.role === 'editor');
+    const emailLower = userEmail?.toLowerCase();
+    const isEditor = existing.collaborators?.some(
+      (c) =>
+        (c.userId === userId || (emailLower && c.email && c.email.toLowerCase() === emailLower)) &&
+        c.role === 'editor'
+    );
     if (userRole !== 'admin' && !isOwner && !isEditor) {
       throw new AppError('Bạn không có quyền chỉnh sửa danh sách bộ thẻ này', 403);
     }
@@ -363,14 +392,18 @@ export class CollectionService {
       updatedAt: new Date().toISOString(),
     };
 
-    const deckIdsJson = JSON.stringify(updatedCol.deckIds);
+    return this.persistCollection(updatedCol);
+  }
+
+  static async persistCollection(updatedCol: DeckCollection): Promise<DeckCollection> {
+    const deckIdsJson = JSON.stringify(updatedCol.deckIds || []);
     const collaboratorsJson = JSON.stringify(updatedCol.collaborators || []);
     const now = new Date();
 
     try {
       if ((prisma as any).collection) {
         await (prisma as any).collection.update({
-          where: { id },
+          where: { id: updatedCol.id },
           data: {
             title: updatedCol.title,
             description: updatedCol.description,
@@ -394,7 +427,7 @@ export class CollectionService {
           collaboratorsJson,
           updatedCol.color || 'from-indigo-600 to-violet-600',
           now,
-          id
+          updatedCol.id
         );
       }
     } catch (e) {
@@ -407,7 +440,7 @@ export class CollectionService {
              collaboratorsJson = '${collaboratorsJson.replace(/'/g, "''")}', 
              color = '${updatedCol.color || 'from-indigo-600 to-violet-600'}', 
              updatedAt = CURRENT_TIMESTAMP
-         WHERE id = '${id.replace(/'/g, "''")}'`
+         WHERE id = '${updatedCol.id.replace(/'/g, "''")}'`
       );
     }
 
@@ -487,7 +520,26 @@ export class CollectionService {
       collaborators.push(newCollaborator);
     }
 
-    return this.updateCollection(collectionId, { collaborators }, userId, userRole);
+    const updated = await this.updateCollection(collectionId, { collaborators }, userId, userRole);
+
+    // Create an in-app notification for the invited friend
+    try {
+      const { NotificationService } = await import('./notification.service');
+      await NotificationService.createNotification({
+        recipientEmail: collaborator.email.trim().toLowerCase(),
+        recipientUserId: collaborator.userId,
+        senderName: existing.creator || 'Bạn bè',
+        senderEmail: '',
+        type: 'collection_invite',
+        collectionId: existing.id,
+        collectionTitle: existing.title,
+        role: collaborator.role,
+      });
+    } catch (notifErr) {
+      console.warn('Failed to dispatch in-app notification:', notifErr);
+    }
+
+    return updated;
   }
 
   static async removeCollaborator(
@@ -514,6 +566,126 @@ export class CollectionService {
     const collaborators = (existing.collaborators || []).map((c) =>
       c.email.toLowerCase() === email.toLowerCase() ? { ...c, role } : c
     );
-    return this.updateCollection(collectionId, { collaborators }, userId, userRole);
+    const updated = await this.updateCollection(collectionId, { collaborators }, userId, userRole);
+
+    // Notify the collaborator that their role has been updated
+    try {
+      const { NotificationService } = await import('./notification.service');
+      const roleText = role === 'editor' ? 'Chỉnh sửa bộ thẻ' : 'Cùng học';
+      await NotificationService.createNotification({
+        recipientEmail: email.trim().toLowerCase(),
+        senderName: existing.creator || 'Chủ sở hữu',
+        senderEmail: '',
+        type: 'system',
+        collectionId: existing.id,
+        collectionTitle: existing.title,
+        role,
+        message: `Bạn đã được cập nhật quyền hạn trong danh sách "${existing.title}": ${roleText}.`,
+        actionUrl: `/collections/${existing.id}`,
+      });
+    } catch (e) {
+      console.warn('Could not dispatch role update notification:', e);
+    }
+
+    return updated;
+  }
+
+  static async joinCollection(
+    collectionId: string,
+    user: { userId: string; email: string; name?: string },
+    role: 'viewer' | 'editor' = 'viewer'
+  ): Promise<DeckCollection> {
+    await ensureTable();
+
+    let found: any = null;
+    try {
+      if ((prisma as any).collection) {
+        found = await (prisma as any).collection.findUnique({ where: { id: collectionId } });
+      } else {
+        const rows: any[] = await prisma.$queryRawUnsafe(`SELECT * FROM collections WHERE id = $1 LIMIT 1`, collectionId);
+        found = rows?.[0];
+      }
+    } catch (e) {
+      try {
+        const rows: any[] = await prisma.$queryRawUnsafe(`SELECT * FROM collections WHERE id = '${collectionId.replace(/'/g, "''")}' LIMIT 1`);
+        found = rows?.[0];
+      } catch (err2) {
+        console.warn('[CollectionService] Query error in joinCollection:', err2);
+      }
+    }
+
+    if (!found) {
+      const mock = mockDefaultCollections.find((m) => m.id === collectionId);
+      if (!mock) {
+        throw new AppError('Không tìm thấy danh sách bộ thẻ', 404);
+      }
+      found = mock;
+    }
+
+    const existing = mapCollectionFromDb(found);
+    const collaborators = [...(existing.collaborators || [])];
+    const emailLower = user.email.trim().toLowerCase();
+    const existingIndex = collaborators.findIndex(
+      (c) =>
+        (c.userId && c.userId === user.userId) ||
+        (c.email && c.email.toLowerCase() === emailLower)
+    );
+
+    const targetRole = role === 'editor' ? 'editor' : 'viewer';
+    const newCollaborator: Collaborator = {
+      userId: user.userId,
+      email: emailLower,
+      name: user.name?.trim() || user.email.split('@')[0],
+      role: targetRole,
+      addedAt: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      const currentRole = collaborators[existingIndex].role;
+      collaborators[existingIndex] = {
+        ...collaborators[existingIndex],
+        ...newCollaborator,
+        // Upgrade to editor if link provides editor role, else preserve
+        role: targetRole === 'editor' || currentRole === 'editor' ? 'editor' : 'viewer',
+      };
+    } else {
+      collaborators.push(newCollaborator);
+    }
+
+    const updatedCol: DeckCollection = {
+      ...existing,
+      collaborators,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const saved = await this.persistCollection(updatedCol);
+
+    // Notify the collection creator about the new member who joined via link
+    if (existing.creatorId && existing.creatorId !== user.userId) {
+      try {
+        const creatorUser = await prisma.user.findUnique({ where: { id: existing.creatorId } });
+        if (creatorUser?.email) {
+          const { NotificationService } = await import('./notification.service');
+          const joinerName = user.name || user.email.split('@')[0];
+          const roleText = targetRole === 'editor' ? 'Chỉnh sửa bộ thẻ' : 'Cùng học';
+          await NotificationService.createNotification({
+            recipientEmail: creatorUser.email,
+            recipientUserId: existing.creatorId,
+            senderName: joinerName,
+            senderEmail: user.email,
+            type: 'invite_response',
+            collectionId: existing.id,
+            collectionTitle: existing.title,
+            role: targetRole,
+            message: `${joinerName} đã tham gia danh sách bộ thẻ "${existing.title}" qua liên kết mời (quyền: ${roleText}).`,
+            actionUrl: `/collections/${existing.id}`,
+          });
+        }
+      } catch (notifyErr) {
+        console.warn('Could not notify creator on joinCollection:', notifyErr);
+      }
+    }
+
+    return saved;
   }
 }

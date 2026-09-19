@@ -5,6 +5,7 @@ import cardRoutes from './card.routes';
 import studyRoutes from './study.routes';
 import statsRoutes from './stats.routes';
 import collectionRoutes from './collection.routes';
+import notificationRoutes from './notification.routes';
 
 const rootRouter = Router();
 
@@ -25,5 +26,6 @@ rootRouter.use('/cards', cardRoutes);
 rootRouter.use('/study', studyRoutes);
 rootRouter.use('/stats', statsRoutes);
 rootRouter.use('/collections', collectionRoutes);
+rootRouter.use('/notifications', notificationRoutes);
 
 export default rootRouter;

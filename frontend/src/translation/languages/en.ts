@@ -274,6 +274,12 @@ const EnTranslation: I18nKey = {
   invite_author_badge: 'Author',
   invite_can_edit_badge: 'Can Edit Cards',
   invite_readonly_badge: 'Viewer (Read-Only)',
+  invite_method_link_title: 'Option 1: Quick Invite Link (Recommended)',
+  invite_method_link_desc: 'Send via Zalo, Messenger, WhatsApp... Friends click the link to join immediately without waiting for approval.',
+  invite_method_inapp_title: 'Option 2: Send to LinguaLeap Account (Bell 🔔)',
+  invite_method_inapp_desc: 'The invitation will be sent straight to their In-app Notification Bell 🔔.',
+  invite_inapp_send_btn: 'Send Account Invite',
+  invite_inapp_sent_toast: 'Invitation sent to friend account successfully!',
 
   // Memory Card Flip Match Game
   match_game_title: 'Vocabulary Memory Match',

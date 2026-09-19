@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, LogIn, ArrowLeft, Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
@@ -8,6 +8,7 @@ import { ROUTES } from '../../constants/routers';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const { t } = useTranslation();
@@ -37,7 +38,8 @@ export default function LoginPage() {
     setIsNotRegistered(false);
     try {
       await login({ email, password });
-      navigate(ROUTES.HOME);
+      const from = (location.state as any)?.from || searchParams.get('redirect') || ROUTES.HOME;
+      navigate(from, { replace: true });
     } catch (err: any) {
       const status = err?.status;
       const rawMsg = err?.message || '';

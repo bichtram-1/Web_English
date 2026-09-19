@@ -12,6 +12,7 @@ export class CollectionController {
         userId: userId as string,
         currentUserId: req.user?.userId,
         currentUserRole: req.user?.role,
+        currentUserEmail: req.user?.email,
       });
       return ApiResponseHandler.success(res, collections, 'Lấy danh sách bộ thẻ thành công', 200, {
         total: collections.length,
@@ -27,7 +28,8 @@ export class CollectionController {
       const collection = await CollectionService.getCollectionById(
         id,
         req.user?.userId,
-        req.user?.role
+        req.user?.role,
+        req.user?.email
       );
       return ApiResponseHandler.success(res, collection, 'Lấy thông tin danh sách bộ thẻ thành công');
     } catch (err) {
@@ -57,7 +59,7 @@ export class CollectionController {
       if (!userId) {
         throw new AppError('Vui lòng đăng nhập để chỉnh sửa danh sách bộ thẻ', 401);
       }
-      const updated = await CollectionService.updateCollection(id, req.body, userId, userRole);
+      const updated = await CollectionService.updateCollection(id, req.body, userId, userRole, req.user?.email);
       return ApiResponseHandler.success(res, updated, 'Cập nhật danh sách bộ thẻ thành công');
     } catch (err) {
       next(err);
@@ -166,6 +168,24 @@ export class CollectionController {
       }
       const updated = await CollectionService.updateCollaboratorRole(id, email, role, userId, userRole);
       return ApiResponseHandler.success(res, updated, 'Đã cập nhật vai trò cộng tác viên');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async joinCollection(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+      const email = req.user?.email;
+      if (!userId || !email) {
+        throw new AppError('Vui lòng đăng nhập để tham gia danh sách bộ thẻ', 401);
+      }
+      const role = (req.body.role === 'editor' ? 'editor' : 'viewer') as 'viewer' | 'editor';
+      const name = req.body.name || (email ? email.split('@')[0] : 'Thành viên');
+
+      const updated = await CollectionService.joinCollection(id, { userId, email, name }, role);
+      return ApiResponseHandler.success(res, updated, 'Đã tham gia danh sách bộ thẻ thành công');
     } catch (err) {
       next(err);
     }

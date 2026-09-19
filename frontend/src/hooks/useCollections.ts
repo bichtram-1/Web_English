@@ -13,7 +13,6 @@ export function useCollections(searchQuery?: string) {
     try {
       const data = await collectionApi.getCollections({
         search: searchQuery,
-        userId: user?.id,
       });
       setCollections(data);
     } catch (e) {
@@ -21,7 +20,7 @@ export function useCollections(searchQuery?: string) {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, user?.id]);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchCollections();

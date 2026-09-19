@@ -126,6 +126,12 @@ export const collectionApi = {
       } else if ((res as any)?.id) {
         found = res as any;
       }
+      if (found) {
+        const stored = getStoredCollections();
+        const exists = stored.some((c) => c.id === id);
+        const updated = exists ? stored.map((c) => (c.id === id ? found! : c)) : [found!, ...stored];
+        saveCollectionsToStorage(updated);
+      }
     } catch (e: any) {
       if (e?.status === 403) is403 = true;
       if (e?.status === 404) is404 = true;
@@ -312,6 +318,76 @@ export const collectionApi = {
     return target;
   },
 
+  joinCollection: async (
+    collectionId: string,
+    payload: { role?: 'viewer' | 'editor'; name?: string } = {}
+  ): Promise<DeckCollection | undefined> => {
+    try {
+      const res = (await axiosInstance.post(
+        ENDPOINTS.COLLECTION_JOIN(collectionId),
+        payload
+      )) as unknown as ApiResponse<DeckCollection>;
+
+      if (res?.data) {
+        const stored = getStoredCollections();
+        const exists = stored.some((c) => c.id === collectionId);
+        const updated = exists
+          ? stored.map((c) => (c.id === collectionId ? res.data : c))
+          : [res.data, ...stored];
+        saveCollectionsToStorage(updated);
+        notifyCollectionsChanged(res.data);
+        return res.data;
+      }
+    } catch (e: any) {
+      if (e?.status === 401) throw e;
+      console.warn('Backend unavailable for joinCollection, updating locally:', e);
+    }
+
+    const collections = getStoredCollections();
+    const target = collections.find((c) => c.id === collectionId);
+    if (!target) return undefined;
+
+    const authStr = localStorage.getItem('lingua_auth');
+    let currentUser: any = null;
+    try {
+      currentUser = authStr ? JSON.parse(authStr).user : null;
+    } catch {}
+
+    if (!currentUser) return target;
+
+    if (!target.collaborators) target.collaborators = [];
+    const targetRole = payload.role === 'editor' ? 'editor' : 'viewer';
+    const emailLower = currentUser.email?.toLowerCase();
+    const existingIndex = target.collaborators.findIndex(
+      (c) =>
+        (c.userId && c.userId === currentUser.id) ||
+        (emailLower && c.email && c.email.toLowerCase() === emailLower)
+    );
+
+    const newCollaborator = {
+      userId: currentUser.id,
+      email: currentUser.email,
+      name: payload.name || currentUser.name || currentUser.email?.split('@')[0] || 'User',
+      role: targetRole,
+      addedAt: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      const curRole = target.collaborators[existingIndex].role;
+      target.collaborators[existingIndex] = {
+        ...target.collaborators[existingIndex],
+        ...newCollaborator,
+        role: targetRole === 'editor' || curRole === 'editor' ? 'editor' : 'viewer',
+      };
+    } else {
+      target.collaborators.push(newCollaborator);
+    }
+
+    target.updatedAt = new Date().toISOString();
+    saveCollectionsToStorage(collections);
+    return target;
+  },
+
   inviteCollaborator: async (
     collectionId: string,
     collaborator: { email: string; name?: string; role: 'viewer' | 'editor'; userId?: string }
@@ -404,6 +480,7 @@ export const collectionApi = {
         const stored = getStoredCollections();
         const updated = stored.map((c) => (c.id === collectionId ? res.data : c));
         saveCollectionsToStorage(updated);
+        notifyCollectionsChanged(res.data);
         return res.data;
       }
     } catch (e: any) {

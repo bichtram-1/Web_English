@@ -25,7 +25,7 @@ export class DeckController {
   static async getDeckById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const deck = await DeckService.getDeckById(id, req.user?.userId, req.user?.role);
+      const deck = await DeckService.getDeckById(id, req.user?.userId, req.user?.role, req.user?.email);
       return ApiResponseHandler.success(res, deck, 'Lấy thông tin bộ thẻ thành công');
     } catch (err) {
       next(err);
@@ -51,10 +51,11 @@ export class DeckController {
       const { id } = req.params;
       const userId = req.user?.userId;
       const userRole = req.user?.role;
+      const userEmail = req.user?.email;
       if (!userId) {
         throw new AppError('Vui lòng đăng nhập để chỉnh sửa bộ thẻ', 401);
       }
-      const updated = await DeckService.updateDeck(id, req.body, userId, userRole);
+      const updated = await DeckService.updateDeck(id, req.body, userId, userRole, userEmail);
       return ApiResponseHandler.success(res, updated, 'Cập nhật bộ thẻ thành công');
     } catch (err) {
       next(err);

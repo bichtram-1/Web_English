@@ -11,8 +11,13 @@ import {
   Trash2,
   Eye,
   PenTool,
+  Link2,
+  Bell,
+  Sparkles,
+  Send,
 } from 'lucide-react';
 import collectionApi from '../../api/collectionApi';
+import notificationApi from '../../api/notificationApi';
 import { useAuth } from '../../hooks/useAuth';
 import type { DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
@@ -29,34 +34,102 @@ export default function InviteCollaboratorModal({
   onClose,
   onUpdateCollection,
 }: InviteCollaboratorModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<CollaboratorRole>('viewer');
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-  const isOwner = user?.id && collection.creatorId === user.id;
+  const isOwner = Boolean(user?.id && collection.creatorId === user.id);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 2200);
+    setTimeout(() => setToastMsg(''), 2400);
+  };
+
+  const collectionId = collection?.id || '';
+  const inviteLink = `${window.location.origin}/collections/${collectionId}?join=true&role=${role}`;
+
+  const handleCopyLink = async () => {
+    let success = false;
+
+    // 1. Try modern navigator.clipboard API
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(inviteLink);
+        success = true;
+      } catch (err) {
+        console.warn('navigator.clipboard.writeText failed (non-secure HTTP origin):', err);
+      }
+    }
+
+    // 2. Robust fallback for HTTP LAN IPs (http://172.19.16.1:5173/) or mobile browsers
+    if (!success) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = inviteLink;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.width = '2em';
+        textarea.style.height = '2em';
+        textarea.style.padding = '0';
+        textarea.style.border = 'none';
+        textarea.style.outline = 'none';
+        textarea.style.boxShadow = 'none';
+        textarea.style.background = 'transparent';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch (e) {
+        console.error('Fallback execCommand failed:', e);
+      }
+    }
+
+    if (success) {
+      setCopied(true);
+      showToast(t('invite_link_copied'));
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      showToast(isVi ? 'Đã chọn link! Vui lòng nhấn Ctrl+C để sao chép.' : 'Link selected! Please press Ctrl+C to copy.');
+    }
   };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || isSending) return;
 
-    const updated = await collectionApi.inviteCollaborator(collection.id, {
-      email: email.trim(),
-      role,
-    });
+    setIsSending(true);
+    try {
+      const updated = await collectionApi.inviteCollaborator(collection.id, {
+        email: email.trim(),
+        role,
+      });
 
-    if (updated) {
-      onUpdateCollection(updated);
-      setEmail('');
-      showToast(t('collection_added_toast'));
+      if (updated) {
+        onUpdateCollection(updated);
+        // Also dispatch local notification mock helper so it's instantly visible in local tab tests
+        notificationApi.dispatchLocalInviteNotification({
+          recipientEmail: email.trim(),
+          senderName: user?.name || collection.creator,
+          collectionId: collection.id,
+          collectionTitle: collection.title,
+          role,
+        });
+        setEmail('');
+        showToast(t('invite_inapp_sent_toast'));
+      }
+    } catch (err) {
+      console.error('Invite collaborator failed:', err);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -75,14 +148,6 @@ export default function InviteCollaboratorModal({
       onUpdateCollection(updated);
       showToast(t('collection_removed_toast'));
     }
-  };
-
-  const handleCopyLink = () => {
-    const inviteLink = `${window.location.origin}/collections/${collection.id}?join=true&role=${role}`;
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    showToast(t('invite_link_copied'));
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const collaborators = collection.collaborators || [];
@@ -105,10 +170,10 @@ export default function InviteCollaboratorModal({
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                   <UserPlus size={20} />
@@ -117,7 +182,7 @@ export default function InviteCollaboratorModal({
                   <h3 className="text-lg font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
                     {t('invite_collaborator_title')}
                   </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[280px]">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[320px]">
                     "{collection.title}"
                   </p>
                 </div>
@@ -136,100 +201,136 @@ export default function InviteCollaboratorModal({
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center"
+                className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-1.5"
               >
-                {toastMsg}
+                <Check size={14} />
+                <span>{toastMsg}</span>
               </motion.div>
             )}
 
-            {/* Invite Form */}
-            <form onSubmit={handleInvite} className="flex flex-col gap-3.5 bg-slate-50/80 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  {t('invite_email_label')} *
-                </label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            {/* Role Selection (Shared for both methods) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                {t('invite_permission_label')}
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setRole('viewer')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                    role === 'viewer'
+                      ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-300 dark:ring-indigo-800'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-black">
+                    <Eye size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    <span>{t('invite_role_viewer')}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
+                    {t('invite_role_viewer_desc')}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRole('editor')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                    role === 'editor'
+                      ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-2 ring-amber-300 dark:ring-amber-800'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-black">
+                    <PenTool size={14} className="text-amber-600 dark:text-amber-400" />
+                    <span>{t('invite_role_editor')}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
+                    {t('invite_role_editor_desc')}
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* OPTION 1: QUICK INVITE LINK (RECOMMENDED) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/80 to-violet-50/80 dark:from-indigo-950/30 dark:to-violet-950/30 border border-indigo-200/80 dark:border-indigo-800/60 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                  <Link2 size={14} className="text-indigo-600 dark:text-indigo-400" />
+                  {t('invite_method_link_title')}
+                </span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-xs">
+                  {t('recommended', 'Khuyên dùng')}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                {t('invite_method_link_desc')}
+              </p>
+
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteLink}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                  className="flex-1 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-mono select-all outline-none truncate"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-md ${
+                    copied
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 dark:shadow-none'
+                  }`}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copied ? (t('copied', 'Đã sao chép') as string) : t('invite_copy_link')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* OPTION 2: IN-APP BELL NOTIFICATION */}
+            <form onSubmit={handleInvite} className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2.5">
+              <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Bell size={14} className="text-amber-500" />
+                {t('invite_method_inapp_title')}
+              </span>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                {t('invite_method_inapp_desc')}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                <div className="relative flex-1">
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('invite_email_placeholder')}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-300 font-medium"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-indigo-300 font-medium"
                   />
                 </div>
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  {t('invite_permission_label')}
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole('viewer')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                      role === 'viewer'
-                        ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-300 dark:ring-indigo-800'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs font-black">
-                      <Eye size={14} className="text-indigo-600 dark:text-indigo-400" />
-                      <span>{t('invite_role_viewer')}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
-                      {t('invite_role_viewer_desc')}
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRole('editor')}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
-                      role === 'editor'
-                        ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-300 dark:ring-indigo-800'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 text-xs font-black">
-                      <PenTool size={14} className="text-indigo-600 dark:text-indigo-400" />
-                      <span>{t('invite_role_editor')}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight font-medium">
-                      {t('invite_role_editor_desc')}
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                  <span>{t('invite_copy_link')}</span>
-                </button>
 
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled={isSending}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50 shadow-xs"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  <UserPlus size={14} />
-                  <span>{t('invite_send_btn')}</span>
+                  <Send size={13} />
+                  <span>{isSending ? 'Đang gửi...' : t('invite_inapp_send_btn')}</span>
                 </button>
               </div>
             </form>
 
             {/* List of Active Members */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 pt-1">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Users size={14} className="text-indigo-600 dark:text-indigo-400" />
@@ -242,7 +343,7 @@ export default function InviteCollaboratorModal({
                 {/* Author row */}
                 <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                       {collection.creator.charAt(0).toUpperCase()}
                     </div>
                     <div>

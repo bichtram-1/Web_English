@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Loading from './components/shared/Loading';
 import DefaultLayout from './components/layout/DefaultLayout';
 import AuthLayout from './components/layout/AuthLayout';
@@ -43,6 +43,8 @@ export default function App() {
             {/* Main Application with Default Layout */}
             <Route element={<DefaultLayout />}>
               <Route path={ROUTES.HOME} element={<HomePage />} />
+              <Route path="/decks" element={<Navigate to={ROUTES.HOME} replace />} />
+              <Route path="/study" element={<Navigate to={ROUTES.HOME} replace />} />
               <Route path={ROUTES.DECK_DETAIL} element={<DeckDetailPage />} />
               <Route path={ROUTES.CREATE_DECK} element={<CreateDeckPage />} />
               <Route path={ROUTES.EDIT_DECK} element={<CreateDeckPage />} />

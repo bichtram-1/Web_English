@@ -169,7 +169,12 @@ export class DeckService {
     return decks.map(mapDeckFromDb);
   }
 
-  static async getDeckById(id: string, currentUserId?: string, currentUserRole?: string): Promise<Deck> {
+  static async getDeckById(
+    id: string,
+    currentUserId?: string,
+    currentUserRole?: string,
+    currentUserEmail?: string
+  ): Promise<Deck> {
     const deck = await prisma.deck.findUnique({
       where: { id },
       include: {
@@ -184,17 +189,73 @@ export class DeckService {
       throw new AppError('Không tìm thấy bộ thẻ', 404);
     }
 
-    // Access control for private decks: only creator or admin can view
+    // Find any collections containing this deck to attach collaborators and grant permissions
+    let collectionCollaborators: any[] = [];
+    try {
+      const collections = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT "collaboratorsJson", "deckIdsJson" FROM collections WHERE "deckIdsJson" LIKE $1`,
+        `%${id}%`
+      );
+      for (const col of collections) {
+        let deckIds: string[] = [];
+        try {
+          deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
+        } catch {}
+        if (Array.isArray(deckIds) && deckIds.includes(id)) {
+          let collabs: any[] = [];
+          try {
+            collabs = typeof col.collaboratorsJson === 'string' ? JSON.parse(col.collaboratorsJson) : col.collaboratorsJson;
+          } catch {}
+          if (Array.isArray(collabs)) {
+            collectionCollaborators.push(...collabs);
+          }
+        }
+      }
+    } catch (e) {
+      try {
+        const collections = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT collaboratorsJson, deckIdsJson FROM collections WHERE deckIdsJson LIKE '%${id}%'`
+        );
+        for (const col of collections) {
+          let deckIds: string[] = [];
+          try {
+            deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
+          } catch {}
+          if (Array.isArray(deckIds) && deckIds.includes(id)) {
+            let collabs: any[] = [];
+            try {
+              collabs = typeof col.collaboratorsJson === 'string' ? JSON.parse(col.collaboratorsJson) : col.collaboratorsJson;
+            } catch {}
+            if (Array.isArray(collabs)) {
+              collectionCollaborators.push(...collabs);
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Access control for private decks: creator, admin, or collaborator on parent collection
     if (deck.isPublic === false) {
-      if (!currentUserId) {
+      if (!currentUserId && !currentUserEmail) {
         throw new AppError('Bộ thẻ này ở chế độ riêng tư. Vui lòng đăng nhập để truy cập.', 403);
       }
-      if (currentUserRole !== 'admin' && deck.creatorId !== currentUserId) {
+      const isCreator = Boolean(currentUserId && deck.creatorId === currentUserId);
+      const emailLower = currentUserEmail?.toLowerCase();
+      const isCollab = collectionCollaborators.some(
+        (c) =>
+          (currentUserId && c.userId === currentUserId) ||
+          (emailLower && c.email && c.email.toLowerCase() === emailLower)
+      );
+      if (currentUserRole !== 'admin' && !isCreator && !isCollab) {
         throw new AppError('Bạn không có quyền truy cập bộ thẻ riêng tư này', 403);
       }
     }
 
-    return mapDeckFromDb(deck);
+    const mapped = mapDeckFromDb(deck);
+    if (collectionCollaborators.length > 0) {
+      mapped.collaborators = collectionCollaborators;
+    }
+    return mapped;
   }
 
   static async createDeck(dto: CreateDeckDTO, creatorName = 'LinguaUser', creatorId?: string): Promise<Deck> {
@@ -266,7 +327,7 @@ export class DeckService {
     return mapDeckFromDb(newDeck);
   }
 
-  static async updateDeck(id: string, dto: UpdateDeckDTO, userId?: string, userRole?: string): Promise<Deck> {
+  static async updateDeck(id: string, dto: UpdateDeckDTO, userId?: string, userRole?: string, userEmail?: string): Promise<Deck> {
     const existing = await prisma.deck.findUnique({
       where: { id },
     });
@@ -280,7 +341,70 @@ export class DeckService {
     }
 
     if (userRole !== 'admin') {
-      if (existing.creatorId && existing.creatorId !== userId) {
+      let canEdit = !existing.creatorId || existing.creatorId === userId;
+      if (!canEdit) {
+        // Check if user is an editor of any collection containing this deck
+        try {
+          const collections = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT "collaboratorsJson", "deckIdsJson" FROM collections WHERE "deckIdsJson" LIKE $1`,
+            `%${id}%`
+          );
+          for (const col of collections) {
+            let deckIds: string[] = [];
+            try {
+              deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
+            } catch {}
+            if (Array.isArray(deckIds) && deckIds.includes(id)) {
+              let collabs: any[] = [];
+              try {
+                collabs = typeof col.collaboratorsJson === 'string' ? JSON.parse(col.collaboratorsJson) : col.collaboratorsJson;
+              } catch {}
+              if (
+                Array.isArray(collabs) &&
+                collabs.some(
+                  (c: any) =>
+                    (c.userId === userId || (userEmail && c.email?.toLowerCase() === userEmail.toLowerCase())) &&
+                    c.role === 'editor'
+                )
+              ) {
+                canEdit = true;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          try {
+            const collections = await prisma.$queryRawUnsafe<any[]>(
+              `SELECT collaboratorsJson, deckIdsJson FROM collections WHERE deckIdsJson LIKE '%${id}%'`
+            );
+            for (const col of collections) {
+              let deckIds: string[] = [];
+              try {
+                deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
+              } catch {}
+              if (Array.isArray(deckIds) && deckIds.includes(id)) {
+                let collabs: any[] = [];
+                try {
+                  collabs = typeof col.collaboratorsJson === 'string' ? JSON.parse(col.collaboratorsJson) : col.collaboratorsJson;
+                } catch {}
+                if (
+                  Array.isArray(collabs) &&
+                  collabs.some(
+                    (c: any) =>
+                      (c.userId === userId || (userEmail && c.email?.toLowerCase() === userEmail.toLowerCase())) &&
+                      c.role === 'editor'
+                  )
+                ) {
+                  canEdit = true;
+                  break;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      if (!canEdit) {
         throw new AppError('Bạn không có quyền chỉnh sửa bộ thẻ này', 403);
       }
       if (!existing.creatorId) {

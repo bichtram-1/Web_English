@@ -46,6 +46,7 @@ export interface Deck {
   rating?: number;
   ratingCount?: number;
   userRatings?: Record<string, number>;
+  collaborators?: any[];
   createdAt: string;
   updatedAt: string;
 }

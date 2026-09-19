@@ -15,6 +15,7 @@ router.post('/:id/decks', requireAuth, CollectionController.addDeck);
 router.delete('/:id/decks/:deckId', requireAuth, CollectionController.removeDeck);
 
 // Collaborator management
+router.post('/:id/join', requireAuth, CollectionController.joinCollection);
 router.post('/:id/collaborators', requireAuth, CollectionController.inviteCollaborator);
 router.delete('/:id/collaborators/:email', requireAuth, CollectionController.removeCollaborator);
 router.patch('/:id/collaborators/:email', requireAuth, CollectionController.updateCollaboratorRole);

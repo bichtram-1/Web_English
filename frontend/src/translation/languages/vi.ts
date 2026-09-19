@@ -272,6 +272,12 @@ const ViTranslation = {
   invite_author_badge: 'Tác giả',
   invite_can_edit_badge: 'Được cấp quyền sửa thẻ',
   invite_readonly_badge: 'Cùng học (Chỉ đọc)',
+  invite_method_link_title: 'Cách 1: Sao chép link mời nhanh (Khuyên dùng)',
+  invite_method_link_desc: 'Gửi qua Zalo, Messenger, Facebook,... Bạn bè mở link sẽ tự động tham gia ngay mà không cần đợi duyệt.',
+  invite_method_inapp_title: 'Cách 2: Gửi đến tài khoản LinguaLeap (Chuông 🔔)',
+  invite_method_inapp_desc: 'Lời mời sẽ được gửi thẳng đến Chuông thông báo 🔔 trên tài khoản LinguaLeap của bạn bè.',
+  invite_inapp_send_btn: 'Gửi thông báo mời',
+  invite_inapp_sent_toast: 'Đã gửi lời mời đến tài khoản bạn bè thành công!',
 
   // Memory Card Flip Match Game
   match_game_title: 'Lật Thẻ Ghép Đôi Từ Vựng',

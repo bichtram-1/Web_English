@@ -1,5 +1,6 @@
 import type { Deck, DeckCollection } from '../types/DeckType';
 import type { User } from '../types/auth.types';
+import { STORAGE_KEYS } from '../constants/storage';
 
 /**
  * Check if the currently logged-in user is the original creator of a Deck (or Admin)
@@ -22,9 +23,13 @@ export function isDeckCreator(deck: Deck | null | undefined, user: User | null |
 
 
 /**
- * Check if the user has edit permission for a Deck (Creator OR Collaborator with 'editor' role)
+ * Check if the user has edit permission for a Deck (Creator OR Collaborator with 'editor' role, OR Editor in a parent Collection)
  */
-export function canEditDeck(deck: Deck | null | undefined, user: User | null | undefined): boolean {
+export function canEditDeck(
+  deck: Deck | null | undefined,
+  user: User | null | undefined,
+  parentCollection?: DeckCollection | null
+): boolean {
   if (!deck) return false;
   if (isDeckCreator(deck, user)) return true;
   if (!user) return false;
@@ -34,7 +39,29 @@ export function canEditDeck(deck: Deck | null | undefined, user: User | null | u
       (c.userId && c.userId === user.id) ||
       (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase())
   );
-  return collaborator?.role === 'editor';
+  if (collaborator?.role === 'editor') return true;
+
+  if (parentCollection && canEditCollection(parentCollection, user)) {
+    return true;
+  }
+
+  // Also check if any stored collection containing this deck allows editing
+  try {
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.COLLECTIONS_CACHE) ||
+      localStorage.getItem('lingua_deck_collections');
+    if (raw) {
+      const collections: DeckCollection[] = JSON.parse(raw);
+      const isCollectionEditor = collections.some(
+        (col) =>
+          col.deckIds?.includes(deck.id) &&
+          canEditCollection(col, user)
+      );
+      if (isCollectionEditor) return true;
+    }
+  } catch {}
+
+  return false;
 }
 
 /**
@@ -69,9 +96,13 @@ export function canEditCollection(collection: DeckCollection | null | undefined,
 /**
  * Check if the user has view/study permission for a Deck
  * - Public decks: accessible to everyone
- * - Private decks: accessible ONLY to original creator, collaborators, or Admin
+ * - Private decks: accessible to creator, collaborators, or parent collection members
  */
-export function canViewDeck(deck: Deck | null | undefined, user: User | null | undefined): boolean {
+export function canViewDeck(
+  deck: Deck | null | undefined,
+  user: User | null | undefined,
+  parentCollection?: DeckCollection | null
+): boolean {
   if (!deck) return false;
   // Public deck is visible to everyone
   if (deck.isPublic !== false) return true;
@@ -85,7 +116,28 @@ export function canViewDeck(deck: Deck | null | undefined, user: User | null | u
       (c.userId && c.userId === user.id) ||
       (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase())
   );
-  return Boolean(collaborator);
+  if (collaborator) return true;
+
+  if (parentCollection && canViewCollection(parentCollection, user)) {
+    return true;
+  }
+
+  try {
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.COLLECTIONS_CACHE) ||
+      localStorage.getItem('lingua_deck_collections');
+    if (raw) {
+      const collections: DeckCollection[] = JSON.parse(raw);
+      const canViewViaCol = collections.some(
+        (col) =>
+          col.deckIds?.includes(deck.id) &&
+          canViewCollection(col, user)
+      );
+      if (canViewViaCol) return true;
+    }
+  } catch {}
+
+  return false;
 }
 
 /**

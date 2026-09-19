@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import LanguageSelect from './LanguageSelect';
 import MobileDrawer from './MobileDrawer';
 import UserProfileModal from './UserProfileModal';
+import NotificationBell from './NotificationBell';
 
 export default function DefaultHeader() {
   const navigate = useNavigate();
@@ -139,6 +140,9 @@ export default function DefaultHeader() {
 
             {/* Theme Toggle (Dark/Light) */}
             <ThemeToggle />
+
+            {/* Notification Bell */}
+            <NotificationBell />
 
             {/* Quick Create Button (Hidden on small mobile) */}
             <button

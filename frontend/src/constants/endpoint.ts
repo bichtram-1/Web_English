@@ -30,6 +30,13 @@ export const ENDPOINTS = {
   COLLECTION_DECK_ITEM: (id: string, deckId: string) => `/api/v1/collections/${id}/decks/${deckId}`,
   COLLECTION_COLLABORATORS: (id: string) => `/api/v1/collections/${id}/collaborators`,
   COLLECTION_COLLABORATOR_ITEM: (id: string, email: string) => `/api/v1/collections/${id}/collaborators/${encodeURIComponent(email)}`,
+  COLLECTION_JOIN: (id: string) => `/api/v1/collections/${id}/join`,
+
+  // Notifications
+  NOTIFICATIONS: '/api/v1/notifications',
+  NOTIFICATION_ACCEPT: (id: string) => `/api/v1/notifications/${id}/accept`,
+  NOTIFICATION_DECLINE: (id: string) => `/api/v1/notifications/${id}/decline`,
+  NOTIFICATION_MARK_READ: '/api/v1/notifications/mark-read',
 
   // Stats
   STATS_SUMMARY: '/api/v1/stats/summary',

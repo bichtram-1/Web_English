@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,6 +41,7 @@ export default function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
@@ -76,37 +77,38 @@ export default function CollectionDetailPage() {
   const fetchCollection = async () => {
     if (!id) return;
     setLoading(true);
-    const data = await collectionApi.getCollectionById(id);
-    setCollection(data || null);
-    setLoading(false);
+    try {
+      const isJoin = searchParams.get('join') === 'true';
+      const inviteRole = (searchParams.get('role') as CollaboratorRole) || 'viewer';
+
+      // If user opened with an invite link and is logged in, auto-join
+      if (isJoin && isAuthenticated && user) {
+        const joined = await collectionApi.joinCollection(id, {
+          role: inviteRole,
+          name: user.name,
+        });
+        if (joined) {
+          setCollection(joined);
+          showToast(t('invite_joined_toast'));
+          setSearchParams({});
+          setLoading(false);
+          return;
+        }
+      }
+
+      const data = await collectionApi.getCollectionById(id);
+      setCollection(data || null);
+    } catch (err) {
+      console.error('Failed to fetch collection:', err);
+      setCollection(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCollection();
-  }, [id]);
-
-  // Handle URL join invitation: ?join=true&role=editor
-  useEffect(() => {
-    if (!collection || !isAuthenticated || !user) return;
-    if (searchParams.get('join') === 'true') {
-      const inviteRole = (searchParams.get('role') as CollaboratorRole) || 'viewer';
-      collectionApi
-        .inviteCollaborator(collection.id, {
-          email: user.email,
-          name: user.name,
-          role: inviteRole,
-          userId: user.id,
-        })
-        .then((updated) => {
-          if (updated) {
-            setCollection(updated);
-            showToast(t('invite_joined_toast'));
-          }
-          // Remove query params from url
-          setSearchParams({});
-        });
-    }
-  }, [collection?.id, isAuthenticated, user]);
+  }, [id, isAuthenticated, user]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -213,6 +215,40 @@ export default function CollectionDetailPage() {
   };
 
   if (loading) return <Loading />;
+
+  if (searchParams.get('join') === 'true' && !isAuthenticated) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900 shadow-xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+            <UserPlus size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {isVi ? 'Lời Mời Tham Gia Cùng Học' : 'Invitation to Study & Collaborate'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            {isVi
+              ? 'Bạn vừa nhận được liên kết mời tham gia danh sách bộ thẻ này. Vui lòng đăng nhập để bắt đầu cùng học và lưu danh sách vào tài khoản của bạn.'
+              : 'You have been invited to join this deck collection. Please log in to start studying together and claim your access.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate(ROUTES.LOGIN, { state: { from: location.pathname + location.search } })}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+            >
+              {isVi ? 'Đăng Nhập Để Tham Gia' : 'Log In to Join'}
+            </button>
+            <button
+              onClick={() => navigate(ROUTES.REGISTER, { state: { from: location.pathname + location.search } })}
+              className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
+            >
+              {isVi ? 'Đăng Ký Tài Khoản Mới' : 'Create New Account'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!collection || !canViewCollection(collection, user)) {
     return (
@@ -522,7 +558,7 @@ export default function CollectionDetailPage() {
                       {deck.category}
                     </span>
                     <div className="flex items-center gap-1">
-                      {canEditDeck(deck, user) && (
+                      {canEditDeck(deck, user, collection) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

@@ -475,7 +475,7 @@ export default function WrittenPractice({
       e.preventDefault();
       submit();
     }
-    if ((e.altKey && e.key === 'ArrowRight') || (e.key === 'ArrowRight' && input.trim() === '')) {
+    if (e.key === 'ArrowRight') {
       e.preventDefault();
       skip();
     }
@@ -838,12 +838,14 @@ export default function WrittenPractice({
                           className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
                           style={{ fontFamily: 'var(--font-display)' }}
                           tabIndex={-1}
+                          title={isVi ? 'Nhấn phím → để bỏ qua' : 'Press → to skip'}
                         >
                           <SkipForward
                             size={14}
                             className="group-hover:translate-x-0.5 transition-transform"
                           />
-                          {isVi ? 'Tạm thời bỏ qua' : 'Skip for now'}
+                          <span>{isVi ? 'Tạm thời bỏ qua' : 'Skip for now'}</span>
+                          <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">→</kbd>
                         </button>
                       )}
                     </div>
@@ -894,7 +896,7 @@ export default function WrittenPractice({
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Bỏ qua từ này' : 'Skip current word'}</span>
-                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→ / Alt + →</kbd>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→</kbd>
                 </div>
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">

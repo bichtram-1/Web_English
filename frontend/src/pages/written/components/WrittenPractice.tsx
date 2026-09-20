@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, X, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard, Star, Brain } from 'lucide-react';
+import { CheckCircle2, X, ArrowLeft, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard, Star, Brain } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
@@ -313,6 +313,16 @@ export default function WrittenPractice({
   const [done, setDone] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
+  // Lịch sử để có thể quay lại (Undo/Go back)
+  interface HistoryStep {
+    queue: { id?: number; en: string; vi: string }[];
+    index: number;
+    answeredCount: number;
+    skipCount: number;
+    results: (boolean | null)[];
+  }
+  const [history, setHistory] = useState<HistoryStep[]>([]);
+
   // Sync state whenever baseWords changes
   useEffect(() => {
     setQueue([...baseWords]);
@@ -324,6 +334,7 @@ export default function WrittenPractice({
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
     setDone(false);
+    setHistory([]);
   }, [baseWords]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -387,6 +398,7 @@ export default function WrittenPractice({
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
     setDone(false);
+    setHistory([]);
   };
 
   const advance = useCallback(() => {
@@ -403,15 +415,17 @@ export default function WrittenPractice({
         timeSpentSeconds: 60,
       }).catch(console.error);
     } else {
+      setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results }]);
       setIndex((i) => i + 1);
       setInput('');
       setStatus('idle');
     }
-  }, [answeredCount, baseWords.length, deck?.id, results]);
+  }, [answeredCount, baseWords.length, deck?.id, results, queue, index, skipCount]);
 
   const skip = useCallback(() => {
     if (status === 'correct' || status === 'force-retype') return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results }]);
     setQueue((q) => {
       const current = q[index];
       if (!current) return q;
@@ -422,7 +436,25 @@ export default function WrittenPractice({
     setInput('');
     setStatus('idle');
     setShaking(false);
-  }, [status, index]);
+  }, [status, index, queue, answeredCount, skipCount, results]);
+
+  const goBack = useCallback(() => {
+    if (status === 'correct') return;
+    if (history.length === 0) return;
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+
+    const prevStep = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+
+    setQueue(prevStep.queue);
+    setIndex(prevStep.index);
+    setAnsweredCount(prevStep.answeredCount);
+    setSkipCount(prevStep.skipCount);
+    setResults(prevStep.results);
+    setInput('');
+    setStatus('idle');
+    setShaking(false);
+  }, [history, status]);
 
   const submit = useCallback(() => {
     if (status === 'correct') return;
@@ -479,6 +511,12 @@ export default function WrittenPractice({
       e.preventDefault();
       skip();
     }
+    if ((e.key === 'ArrowLeft' && input === '') || (e.altKey && e.key === 'ArrowLeft')) {
+      if (history.length > 0 && status !== 'correct') {
+        e.preventDefault();
+        goBack();
+      }
+    }
   };
 
   const restart = () => {
@@ -492,6 +530,7 @@ export default function WrittenPractice({
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
     setDone(false);
+    setHistory([]);
   };
 
   const inputStyle = (() => {
@@ -832,22 +871,43 @@ export default function WrittenPractice({
                         {' '}{isVi ? 'để gửi' : 'to submit'}
                       </p>
 
-                      {status !== 'correct' && status !== 'force-retype' && (
-                        <button
-                          onClick={skip}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
-                          style={{ fontFamily: 'var(--font-display)' }}
-                          tabIndex={-1}
-                          title={isVi ? 'Nhấn phím → để bỏ qua' : 'Press → to skip'}
-                        >
-                          <SkipForward
-                            size={14}
-                            className="group-hover:translate-x-0.5 transition-transform"
-                          />
-                          <span>{isVi ? 'Tạm thời bỏ qua' : 'Skip for now'}</span>
-                          <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">→</kbd>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        {history.length > 0 && status !== 'correct' && (
+                          <button
+                            type="button"
+                            onClick={goBack}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
+                            style={{ fontFamily: 'var(--font-display)' }}
+                            tabIndex={-1}
+                            title={isVi ? 'Quay lại từ trước (phím ← khi ô trống)' : 'Back to previous word (←)'}
+                          >
+                            <ArrowLeft
+                              size={14}
+                              className="group-hover:-translate-x-0.5 transition-transform"
+                            />
+                            <span>{isVi ? 'Quay lại' : 'Back'}</span>
+                            <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">←</kbd>
+                          </button>
+                        )}
+
+                        {status !== 'correct' && status !== 'force-retype' && (
+                          <button
+                            type="button"
+                            onClick={skip}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
+                            style={{ fontFamily: 'var(--font-display)' }}
+                            tabIndex={-1}
+                            title={isVi ? 'Nhấn phím → để bỏ qua' : 'Press → to skip'}
+                          >
+                            <SkipForward
+                              size={14}
+                              className="group-hover:translate-x-0.5 transition-transform"
+                            />
+                            <span>{isVi ? 'Tạm thời bỏ qua' : 'Skip for now'}</span>
+                            <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">→</kbd>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -897,6 +957,11 @@ export default function WrittenPractice({
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Bỏ qua từ này' : 'Skip current word'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→</kbd>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Quay lại từ trước' : 'Back to previous word'}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">← (khi ô trống)</kbd>
                 </div>
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">

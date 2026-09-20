@@ -365,8 +365,15 @@ export default function WrittenPractice({
   }, []);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, [index, direction]);
+    if (status !== 'correct') {
+      inputRef.current?.focus();
+      // Bù lại độ trễ chuyển cảnh của AnimatePresence (250ms)
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 260);
+      return () => clearTimeout(timer);
+    }
+  }, [index, direction, status]);
 
   const handleDirectionChange = (d: Direction) => {
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
@@ -667,6 +674,9 @@ export default function WrittenPractice({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -18 }}
                   transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+                  onAnimationComplete={() => {
+                    inputRef.current?.focus();
+                  }}
                   className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden"
                 >
                   <div className="px-7 pt-8 pb-6 text-center border-b border-slate-100 dark:border-slate-800/80 relative">
@@ -745,6 +755,7 @@ export default function WrittenPractice({
                       <div className="relative">
                         <input
                           ref={inputRef}
+                          autoFocus
                           type="text"
                           value={input}
                           onChange={(e) => {

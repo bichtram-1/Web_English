@@ -54,6 +54,7 @@ import {
 } from '../../../utils/zenAudio';
 import { cleanTtsText, stripParentheses } from '../../../hooks/useSpeech';
 import { playIncorrectSound } from '../../../utils/soundEffects';
+import { getTelexTriggerKey } from '../../../utils/answerMatch';
 
 // --- 🐉 LIÊN QUÂN MOBILE GUARDIANS & REALMS TYPE ---
 export type MythicType =
@@ -3645,6 +3646,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   const [availableLetters, setAvailableLetters] = useState<{ id: string; char: string }[]>([]);
   const [stoneError, setStoneError] = useState(false);
   const lastCharPlacedTimeRef = useRef<number>(0);
+  const backspaceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Level Up Banner
   const [showFlourishedBanner, setShowFlourishedBanner] = useState(false);
@@ -3654,6 +3656,10 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   // Initialize word state whenever index changes
   useEffect(() => {
     if (!card) return;
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     const targetTerm = stripParentheses(card.front) || card.front;
     const cleanWord = targetTerm.replace(/\s+/g, '').toUpperCase();
     const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
@@ -3667,10 +3673,13 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     setStep(1);
   }, [currentIndex, card]);
 
-  // Cleanup sound on unmount
+  // Cleanup sound and timeout on unmount
   useEffect(() => {
     return () => {
       stopZenEngine();
+      if (backspaceTimeoutRef.current) {
+        clearTimeout(backspaceTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -3886,6 +3895,10 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
 
   // STEP 3: Letter Stone Tapped
   const handleStoneTap = (item: { id: string; char: string }) => {
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     playZenTapSound();
     setStoneError(false);
     lastCharPlacedTimeRef.current = Date.now();
@@ -4014,6 +4027,10 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   };
 
   const handleUndoStone = (index: number) => {
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     if (!card) return;
     const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     if (placedLetters.length === targetWord.length && placedLetters.join('') === targetWord) return;
@@ -4140,23 +4157,45 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
         const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
-          // Chặn Backspace ảo do bộ gõ tiếng Việt (Unikey/EVKey Telex) tự động phát sinh khi gõ ký tự
-          if (e.isComposing || Date.now() - lastCharPlacedTimeRef.current < 65) {
-            e.preventDefault();
-            return;
-          }
-          if (placedLetters.length > 0 && placedLetters.join('') !== targetWord) {
-            e.preventDefault();
-            handleUndoStone(placedLetters.length - 1);
-          }
+          e.preventDefault();
+          if (e.isComposing) return;
+
+          // Nếu đã có 1 timeout Backspace đang chờ, không xếp chồng
+          if (backspaceTimeoutRef.current) return;
+
+          // Trì hoãn 75ms: Nếu do Unikey gõ ký tự Telex (ví dụ: gõ a + r -> Unikey gửi Backspace rồi gửi ả),
+          // sự kiện gõ ký tự tiếp theo sẽ hủy timeout này ngay tức thì, bảo vệ chữ trước đó không bị xóa!
+          backspaceTimeoutRef.current = setTimeout(() => {
+            backspaceTimeoutRef.current = null;
+            setPlacedLetters((prevPlaced) => {
+              if (prevPlaced.length === 0 || prevPlaced.join('') === targetWord) return prevPlaced;
+              const lastIdx = prevPlaced.length - 1;
+              const char = prevPlaced[lastIdx];
+              if (!char) return prevPlaced;
+              playZenTapSound();
+              setStoneError(false);
+              setAvailableLetters((prevAvail) => [...prevAvail, { id: `${char}-${Date.now()}-${Math.random()}`, char }]);
+              return prevPlaced.slice(0, lastIdx);
+            });
+          }, 75);
           return;
         }
 
         if (e.key === 'ArrowLeft' && placedLetters.length === 0) {
+          if (backspaceTimeoutRef.current) {
+            clearTimeout(backspaceTimeoutRef.current);
+            backspaceTimeoutRef.current = null;
+          }
           e.preventDefault();
           setStep(2);
           playZenTapSound();
           return;
+        }
+
+        // Nếu có Backspace ảo đang chờ từ Unikey, hủy ngay lập tức vì người dùng vừa gõ ký tự mới
+        if (backspaceTimeoutRef.current) {
+          clearTimeout(backspaceTimeoutRef.current);
+          backspaceTimeoutRef.current = null;
         }
 
         // Bỏ qua sự kiện IME composition đang soạn thảo dở dang
@@ -4165,18 +4204,30 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
         if (e.key.length === 1 || (e.code.startsWith('Key') && e.code.length === 4)) {
           if (placedLetters.length >= targetWord.length) return;
 
-          let pressedChar = e.key.toUpperCase();
-          let match = availableLetters.find((it) => it.char.toUpperCase() === pressedChar);
+          // 1. Kiểm tra nếu ký tự được tạo ra từ phím gõ Telex (ví dụ: gõ 'r' sau 'a' tạo thành 'ả')
+          const telexKey = getTelexTriggerKey(e.key);
+          let match: { id: string; char: string } | undefined;
 
-          // Nếu bộ gõ Unikey/EVKey đã biến đổi ký tự (ví dụ Telex tạo dấu), ưu tiên phím vật lý e.code
+          if (telexKey) {
+            match = availableLetters.find((it) => it.char.toUpperCase() === telexKey);
+          }
+
+          // 2. Kiểm tra phím vật lý e.code (ví dụ: KeyR -> 'R')
           if (!match && e.code.startsWith('Key') && e.code.length === 4) {
             const physicalChar = e.code.charAt(3).toUpperCase();
             match = availableLetters.find((it) => it.char.toUpperCase() === physicalChar);
           }
 
-          // Fallback: Chuẩn hóa bỏ dấu tiếng Việt (ví dụ ả -> a, ê -> e, đ -> d...)
+          // 3. Khớp trực tiếp e.key
           if (!match) {
-            const stripped = pressedChar
+            const pressedChar = e.key.toUpperCase();
+            match = availableLetters.find((it) => it.char.toUpperCase() === pressedChar);
+          }
+
+          // 4. Fallback: Chuẩn hóa loại bỏ dấu tiếng Việt (ví dụ ả -> a, ê -> e, đ -> d...)
+          if (!match) {
+            const stripped = e.key
+              .toUpperCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '')
               .replace(/Đ/g, 'D');

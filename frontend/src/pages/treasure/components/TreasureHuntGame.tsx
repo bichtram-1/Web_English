@@ -34,7 +34,7 @@ import {
   playLetterRemoveSound,
   playTreasureChestSound,
 } from '../../../utils/soundEffects';
-import { stripParentheses } from '../../../utils/answerMatch';
+import { stripParentheses, getTelexTriggerKey } from '../../../utils/answerMatch';
 
 export interface TreasureHuntGameProps {
   deck?: Deck;
@@ -131,6 +131,7 @@ export default function TreasureHuntGame({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionRecordedRef = useRef(false);
   const lastTilePlacedTimeRef = useRef<number>(0);
+  const backspaceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Generate Stage Questions
   const initGame = useCallback(() => {
@@ -201,6 +202,7 @@ export default function TreasureHuntGame({
     initGame();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (backspaceTimeoutRef.current) clearTimeout(backspaceTimeoutRef.current);
     };
   }, [initGame]);
 
@@ -238,6 +240,10 @@ export default function TreasureHuntGame({
   // Phase 2: Letter Anagram Slot Handlers
   const handlePlaceLetter = (tile: LetterTile) => {
     if (phase !== 'spelling') return;
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     playLetterPlaceSound();
     lastTilePlacedTimeRef.current = Date.now();
 
@@ -258,6 +264,10 @@ export default function TreasureHuntGame({
 
   const handleRemoveLetter = (index: number) => {
     if (phase !== 'spelling') return;
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     const tile = placedLetters[index];
     if (!tile) return;
 
@@ -273,6 +283,10 @@ export default function TreasureHuntGame({
   };
 
   const handleClearLetters = () => {
+    if (backspaceTimeoutRef.current) {
+      clearTimeout(backspaceTimeoutRef.current);
+      backspaceTimeoutRef.current = null;
+    }
     if (!currentStage) return;
     setupSpellingStage(currentStage);
   };
@@ -394,40 +408,70 @@ export default function TreasureHuntGame({
       // PHASE 2: Xếp ngọc chữ (A - Z, Backspace)
       if (phase === 'spelling' && currentStage) {
         if (e.key === 'Backspace' || e.key === 'Delete') {
-          // Chặn Backspace ảo do bộ gõ tiếng Việt (Unikey/EVKey Telex) tự động phát sinh khi gõ ký tự
-          if (e.isComposing || Date.now() - lastTilePlacedTimeRef.current < 65) {
-            e.preventDefault();
-            return;
-          }
           e.preventDefault();
-          let lastIdx = -1;
-          for (let i = placedLetters.length - 1; i >= 0; i--) {
-            if (placedLetters[i] !== null) {
-              lastIdx = i;
-              break;
-            }
-          }
-          if (lastIdx !== -1) {
-            handleRemoveLetter(lastIdx);
-          }
+          if (e.isComposing) return;
+
+          if (backspaceTimeoutRef.current) return;
+
+          // Trì hoãn 75ms: Nếu do Unikey gõ ký tự Telex (ví dụ: a + r -> Unikey gửi Backspace rồi gửi ả),
+          // ký tự tiếp theo sẽ hủy timeout này, ngăn ngọc chữ trước đó bị xóa!
+          backspaceTimeoutRef.current = setTimeout(() => {
+            backspaceTimeoutRef.current = null;
+            setPlacedLetters((prevPlaced) => {
+              let lastIdx = -1;
+              for (let i = prevPlaced.length - 1; i >= 0; i--) {
+                if (prevPlaced[i] !== null) {
+                  lastIdx = i;
+                  break;
+                }
+              }
+              if (lastIdx === -1) return prevPlaced;
+              const tile = prevPlaced[lastIdx];
+              if (!tile) return prevPlaced;
+              playLetterRemoveSound();
+              setLetterPool((prevPool) => [...prevPool, tile]);
+              setSpellingIsWrong(false);
+              const nextPlaced = [...prevPlaced];
+              nextPlaced[lastIdx] = null;
+              return nextPlaced;
+            });
+          }, 75);
           return;
+        }
+
+        // Hủy Backspace ảo nếu người dùng vừa gõ ký tự mới
+        if (backspaceTimeoutRef.current) {
+          clearTimeout(backspaceTimeoutRef.current);
+          backspaceTimeoutRef.current = null;
         }
 
         if (e.isComposing) return;
 
         if (e.key.length === 1 || (e.code.startsWith('Key') && e.code.length === 4)) {
-          let pressedChar = e.key.toUpperCase();
-          let matchTile = letterPool.find((t) => t.char.toUpperCase() === pressedChar);
+          // 1. Kiểm tra ký tự tạo ra từ phím gõ Telex (ví dụ: gõ 'r' sau 'a' tạo thành 'ả')
+          const telexKey = getTelexTriggerKey(e.key);
+          let matchTile: LetterTile | undefined;
 
-          // Nếu bộ gõ Telex biến đổi ký tự, ưu tiên phím vật lý e.code
+          if (telexKey) {
+            matchTile = letterPool.find((t) => t.char.toUpperCase() === telexKey);
+          }
+
+          // 2. Nếu bộ gõ Telex biến đổi ký tự, ưu tiên phím vật lý e.code
           if (!matchTile && e.code.startsWith('Key') && e.code.length === 4) {
             const physicalChar = e.code.charAt(3).toUpperCase();
             matchTile = letterPool.find((t) => t.char.toUpperCase() === physicalChar);
           }
 
-          // Fallback: Chuẩn hóa bỏ dấu tiếng Việt
+          // 3. Khớp trực tiếp e.key
           if (!matchTile) {
-            const stripped = pressedChar
+            const pressedChar = e.key.toUpperCase();
+            matchTile = letterPool.find((t) => t.char.toUpperCase() === pressedChar);
+          }
+
+          // 4. Fallback: Chuẩn hóa bỏ dấu tiếng Việt
+          if (!matchTile) {
+            const stripped = e.key
+              .toUpperCase()
               .normalize('NFD')
               .replace(/[\u0300-\u036f]/g, '')
               .replace(/Đ/g, 'D');

@@ -119,3 +119,42 @@ export function isAnswerMatching(userInput: string, correctAnswer: string): bool
 
   return false;
 }
+
+/**
+ * Detects if an incoming character was produced by a Vietnamese Telex IME accent key.
+ * When Telex is active in Vietnamese input methods (Unikey, EVKey), typing certain keys
+ * after vowels triggers an accent transformation:
+ * - 'r': Dấu hỏi (ả, ẻ, ỉ, ỏ, ủ, ỷ...)
+ * - 's': Dấu sắc (á, é, í, ó, ú, ý...)
+ * - 'f': Dấu huyền (à, è, ì, ò, ù, ỳ...)
+ * - 'x': Dấu ngã (ã, ẽ, ĩ, õ, ũ, ỹ...)
+ * - 'j': Dấu nặng (ạ, ẹ, ị, ọ, ụ, ỵ...)
+ * - 'w': Chữ ă, ơ, ư
+ * - 'd': Chữ đ
+ * - 'a': Chữ â
+ * - 'e': Chữ ê
+ * - 'o': Chữ ô
+ */
+export function getTelexTriggerKey(char: string): string | null {
+  if (!char || char.length !== 1) return null;
+  // Dấu hỏi (?) -> Phím 'R'
+  if (/[ảẻỉỏủỷẳẩẻểổởửẢẺỈỎỦỶẲẨẺỂỔỞỬ]/.test(char)) return 'R';
+  // Dấu sắc (/) -> Phím 'S'
+  if (/[áéíóúýắấếốớứÁÉÍÓÚÝẮẤẾỐỚỨ]/.test(char)) return 'S';
+  // Dấu huyền (\) -> Phím 'F'
+  if (/[àèìòùỳằầềồờừÀÈÌÒÙỲẰẦỀỒỜỪ]/.test(char)) return 'F';
+  // Dấu ngã (~) -> Phím 'X'
+  if (/[ãẽĩõũỹẵẫễỗỡữÃẼĨÕŨỸẴẪỄỖỠỮ]/.test(char)) return 'X';
+  // Dấu nặng (.) -> Phím 'J'
+  if (/[ạẹịọụỵặậệộợựẠẸỊỌỤỴẶẬỆỘỢỰ]/.test(char)) return 'J';
+  // Chữ w -> ă, ơ, ư
+  if (/[ăơưĂƠƯ]/.test(char)) return 'W';
+  // Chữ đ -> phím 'D'
+  if (/[đĐ]/.test(char)) return 'D';
+  // Mũ â, ê, ô -> phím đôi A, E, O
+  if (/[âÂ]/.test(char)) return 'A';
+  if (/[êÊ]/.test(char)) return 'E';
+  if (/[ôÔ]/.test(char)) return 'O';
+  return null;
+}
+

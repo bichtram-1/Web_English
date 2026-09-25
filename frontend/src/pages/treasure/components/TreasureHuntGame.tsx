@@ -130,6 +130,7 @@ export default function TreasureHuntGame({
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionRecordedRef = useRef(false);
+  const lastTilePlacedTimeRef = useRef<number>(0);
 
   // Generate Stage Questions
   const initGame = useCallback(() => {
@@ -238,6 +239,7 @@ export default function TreasureHuntGame({
   const handlePlaceLetter = (tile: LetterTile) => {
     if (phase !== 'spelling') return;
     playLetterPlaceSound();
+    lastTilePlacedTimeRef.current = Date.now();
 
     // Find first empty slot
     const firstEmptyIdx = placedLetters.findIndex((slot) => slot === null);
@@ -392,6 +394,11 @@ export default function TreasureHuntGame({
       // PHASE 2: Xếp ngọc chữ (A - Z, Backspace)
       if (phase === 'spelling' && currentStage) {
         if (e.key === 'Backspace' || e.key === 'Delete') {
+          // Chặn Backspace ảo do bộ gõ tiếng Việt (Unikey/EVKey Telex) tự động phát sinh khi gõ ký tự
+          if (e.isComposing || Date.now() - lastTilePlacedTimeRef.current < 65) {
+            e.preventDefault();
+            return;
+          }
           e.preventDefault();
           let lastIdx = -1;
           for (let i = placedLetters.length - 1; i >= 0; i--) {
@@ -406,9 +413,29 @@ export default function TreasureHuntGame({
           return;
         }
 
-        if (e.key.length === 1) {
-          const pressedChar = e.key.toUpperCase();
-          const matchTile = letterPool.find((t) => t.char.toUpperCase() === pressedChar);
+        if (e.isComposing) return;
+
+        if (e.key.length === 1 || (e.code.startsWith('Key') && e.code.length === 4)) {
+          let pressedChar = e.key.toUpperCase();
+          let matchTile = letterPool.find((t) => t.char.toUpperCase() === pressedChar);
+
+          // Nếu bộ gõ Telex biến đổi ký tự, ưu tiên phím vật lý e.code
+          if (!matchTile && e.code.startsWith('Key') && e.code.length === 4) {
+            const physicalChar = e.code.charAt(3).toUpperCase();
+            matchTile = letterPool.find((t) => t.char.toUpperCase() === physicalChar);
+          }
+
+          // Fallback: Chuẩn hóa bỏ dấu tiếng Việt
+          if (!matchTile) {
+            const stripped = pressedChar
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/Đ/g, 'D');
+            if (stripped) {
+              matchTile = letterPool.find((t) => t.char.toUpperCase() === stripped);
+            }
+          }
+
           if (matchTile) {
             e.preventDefault();
             handlePlaceLetter(matchTile);

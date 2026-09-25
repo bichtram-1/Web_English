@@ -53,6 +53,7 @@ import {
   type ZenPresetId,
 } from '../../../utils/zenAudio';
 import { cleanTtsText, stripParentheses } from '../../../hooks/useSpeech';
+import { playIncorrectSound } from '../../../utils/soundEffects';
 
 // --- 🐉 LIÊN QUÂN MOBILE GUARDIANS & REALMS TYPE ---
 export type MythicType =
@@ -3642,6 +3643,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   // Step 3: Stones state
   const [placedLetters, setPlacedLetters] = useState<string[]>([]);
   const [availableLetters, setAvailableLetters] = useState<{ id: string; char: string }[]>([]);
+  const [stoneError, setStoneError] = useState(false);
+  const lastCharPlacedTimeRef = useRef<number>(0);
 
   // Level Up Banner
   const [showFlourishedBanner, setShowFlourishedBanner] = useState(false);
@@ -3656,6 +3659,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
     setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
     setPlacedLetters([]);
+    setStoneError(false);
     setSelectedOption(null);
     setBloomStatus('idle');
     setIsFlipped(false);
@@ -3883,6 +3887,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   // STEP 3: Letter Stone Tapped
   const handleStoneTap = (item: { id: string; char: string }) => {
     playZenTapSound();
+    setStoneError(false);
+    lastCharPlacedTimeRef.current = Date.now();
     const nextPlaced = [...placedLetters, item.char];
     setPlacedLetters(nextPlaced);
     setAvailableLetters((prev) => prev.filter((it) => it.id !== item.id));
@@ -3890,6 +3896,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     if (nextPlaced.length === targetWord.length) {
       if (nextPlaced.join('') === targetWord) {
+        setStoneError(false);
         // GRAND VICTORY: Manifest living element & move to next card!
         playZenChime();
         spawnGardenElement();
@@ -3996,13 +4003,12 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           saveDeckProgress(nextIndex, updatedCompleted);
         }, 1400);
       } else {
+        // Sai thứ tự: Rung lắc báo sai & phát âm thanh, KHÔNG tự động xóa sạch để người học tự sửa
+        setStoneError(true);
+        playIncorrectSound();
         setTimeout(() => {
-          const targetTerm = stripParentheses(card.front) || card.front;
-          const cleanWord = targetTerm.replace(/\s+/g, '').toUpperCase();
-          const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
-          setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
-          setPlacedLetters([]);
-        }, 850);
+          setStoneError(false);
+        }, 1200);
       }
     }
   };
@@ -4014,6 +4020,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     const char = placedLetters[index];
     if (!char) return;
     playZenTapSound();
+    setStoneError(false);
     setPlacedLetters((prev) => prev.filter((_, i) => i !== index));
     setAvailableLetters((prev) => [...prev, { id: `${char}-${Date.now()}-${Math.random()}`, char }]);
   };
@@ -4133,6 +4140,11 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
         const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
+          // Chặn Backspace ảo do bộ gõ tiếng Việt (Unikey/EVKey Telex) tự động phát sinh khi gõ ký tự
+          if (e.isComposing || Date.now() - lastCharPlacedTimeRef.current < 65) {
+            e.preventDefault();
+            return;
+          }
           if (placedLetters.length > 0 && placedLetters.join('') !== targetWord) {
             e.preventDefault();
             handleUndoStone(placedLetters.length - 1);
@@ -4147,11 +4159,32 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
           return;
         }
 
-        if (e.key.length === 1) {
+        // Bỏ qua sự kiện IME composition đang soạn thảo dở dang
+        if (e.isComposing) return;
+
+        if (e.key.length === 1 || (e.code.startsWith('Key') && e.code.length === 4)) {
           if (placedLetters.length >= targetWord.length) return;
 
-          const pressedChar = e.key.toUpperCase();
-          const match = availableLetters.find((it) => it.char.toUpperCase() === pressedChar);
+          let pressedChar = e.key.toUpperCase();
+          let match = availableLetters.find((it) => it.char.toUpperCase() === pressedChar);
+
+          // Nếu bộ gõ Unikey/EVKey đã biến đổi ký tự (ví dụ Telex tạo dấu), ưu tiên phím vật lý e.code
+          if (!match && e.code.startsWith('Key') && e.code.length === 4) {
+            const physicalChar = e.code.charAt(3).toUpperCase();
+            match = availableLetters.find((it) => it.char.toUpperCase() === physicalChar);
+          }
+
+          // Fallback: Chuẩn hóa bỏ dấu tiếng Việt (ví dụ ả -> a, ê -> e, đ -> d...)
+          if (!match) {
+            const stripped = pressedChar
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/Đ/g, 'D');
+            if (stripped) {
+              match = availableLetters.find((it) => it.char.toUpperCase() === stripped);
+            }
+          }
+
           if (match) {
             e.preventDefault();
             handleStoneTap(match);
@@ -6187,24 +6220,55 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 </div>
 
                 {/* Placed Letter Slots */}
-                <div className="flex flex-wrap items-center justify-center gap-2 min-h-[50px] p-3 rounded-2xl bg-emerald-50/70 dark:bg-slate-800/60 border border-emerald-100 dark:border-slate-700 w-full">
+                <motion.div
+                  animate={stoneError ? { x: [-8, 8, -6, 6, -2, 2, 0] } : {}}
+                  transition={{ duration: 0.4 }}
+                  className={`flex flex-wrap items-center justify-center gap-2 min-h-[50px] p-3 rounded-2xl border w-full transition-colors ${
+                    stoneError
+                      ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 shadow-rose-200 shadow-sm'
+                      : 'bg-emerald-50/70 dark:bg-slate-800/60 border-emerald-100 dark:border-slate-700'
+                  }`}
+                >
                   {placedLetters.length === 0 ? (
                     <span className="text-xs text-slate-400 dark:text-slate-400 italic">
-                      {isVi ? 'Chạm sỏi phía dưới để đặt vào đây...' : 'Tap pebbles below to place here...'}
+                      {isVi ? 'Chạm sỏi phía dưới hoặc gõ phím để đặt vào đây...' : 'Tap pebbles below or type keys to place here...'}
                     </span>
                   ) : (
                     placedLetters.map((char, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleUndoStone(idx)}
-                        className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black text-base flex items-center justify-center shadow-md cursor-pointer hover:bg-emerald-700 transition-colors"
-                        title={t('zen_stone_clear_last')}
+                        className={`w-10 h-10 rounded-xl font-black text-base flex items-center justify-center shadow-md cursor-pointer transition-colors ${
+                          stoneError
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        }`}
+                        title={isVi ? 'Bấm để gỡ chữ này' : 'Click to remove this letter'}
                       >
                         {char}
                       </button>
                     ))
                   )}
-                </div>
+                </motion.div>
+
+                {/* Stone Error Alert or Helpful Hint */}
+                {stoneError ? (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs text-rose-500 font-bold text-center"
+                  >
+                    {isVi
+                      ? '❌ Chưa đúng thứ tự! Hãy bấm vào chữ muốn gỡ hoặc dùng Backspace để sửa.'
+                      : '❌ Incorrect order! Tap a letter to remove or use Backspace to edit.'}
+                  </motion.p>
+                ) : (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-400 text-center">
+                    {isVi
+                      ? '💡 Mẹo: Bấm vào sỏi đã đặt hoặc nhấn Backspace để gỡ chữ · Chuyển Unikey sang EN nếu gõ phím'
+                      : '💡 Tip: Tap a placed stone or press Backspace to remove · Use English input if typing'}
+                  </p>
+                )}
 
                 {/* Available Floating Stones */}
                 <div className="flex flex-wrap items-center justify-center gap-2 w-full">
@@ -6234,6 +6298,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                         const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}`, char: c }));
                         setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
                         setPlacedLetters([]);
+                        setStoneError(false);
                       }}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer transition-colors"
                     >

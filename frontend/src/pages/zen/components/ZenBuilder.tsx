@@ -3645,6 +3645,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   const [placedLetters, setPlacedLetters] = useState<string[]>([]);
   const [availableLetters, setAvailableLetters] = useState<{ id: string; char: string }[]>([]);
   const [stoneError, setStoneError] = useState(false);
+  const [hintCount, setHintCount] = useState(0);
+  const [hintResetBanner, setHintResetBanner] = useState<string | null>(null);
   const lastCharPlacedTimeRef = useRef<number>(0);
   const backspaceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -3666,6 +3668,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
     setPlacedLetters([]);
     setStoneError(false);
+    setHintCount(0);
+    setHintResetBanner(null);
     setSelectedOption(null);
     setBloomStatus('idle');
     setIsFlipped(false);
@@ -3894,7 +3898,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   };
 
   // STEP 3: Letter Stone Tapped
-  const handleStoneTap = (item: { id: string; char: string }) => {
+  const handleStoneTap = (item: { id: string; char: string }, fromHint: boolean = false) => {
+    if (hintResetBanner) return;
     if (backspaceTimeoutRef.current) {
       clearTimeout(backspaceTimeoutRef.current);
       backspaceTimeoutRef.current = null;
@@ -3909,7 +3914,35 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     if (nextPlaced.length === targetWord.length) {
       if (nextPlaced.join('') === targetWord) {
+        // KIỂM TRA ĐIỀU KIỆN GỢI Ý TOÀN BỘ:
+        // Nếu chữ cuối cùng được đặt do bấm nút "Gợi ý" (gợi ý đến hết từ),
+        // hoặc người dùng đã dùng gợi ý cho phần lớn từ (>= targetWord.length - 1):
+        const currentHintsUsed = fromHint ? hintCount + 1 : hintCount;
+        const isCompletedByHint = fromHint || currentHintsUsed >= Math.max(2, targetWord.length - 1);
+
+        if (isCompletedByHint) {
+          // Cho người học nhìn thấy trọn vẹn từ đúng trong 1.6s để ghi nhớ, sau đó reset bắt tự sắp xếp lại
+          playZenTapSound();
+          const noticeMsg = isVi
+            ? '💡 Bạn đã xem toàn bộ gợi ý của từ này! Hãy ghi nhớ và tự tay sắp xếp lại nhé.'
+            : '💡 You revealed this word with hints! Memorize it and assemble it yourself.';
+          setHintResetBanner(noticeMsg);
+
+          setTimeout(() => {
+            const cleanWord = targetWord;
+            const chars = cleanWord.split('').map((c, i) => ({ id: `${c}-${i}-${Date.now()}`, char: c }));
+            setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
+            setPlacedLetters([]);
+            setHintCount(0);
+            setHintResetBanner(null);
+            setStoneError(false);
+          }, 1600);
+          return;
+        }
+
         setStoneError(false);
+        setHintResetBanner(null);
+        setHintCount(0);
         // GRAND VICTORY: Manifest living element & move to next card!
         playZenChime();
         spawnGardenElement();
@@ -4027,6 +4060,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
   };
 
   const handleUndoStone = (index: number) => {
+    if (hintResetBanner) return;
     if (backspaceTimeoutRef.current) {
       clearTimeout(backspaceTimeoutRef.current);
       backspaceTimeoutRef.current = null;
@@ -4038,18 +4072,22 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     if (!char) return;
     playZenTapSound();
     setStoneError(false);
+    setHintCount((c) => Math.max(0, c - 1));
     setPlacedLetters((prev) => prev.filter((_, i) => i !== index));
     setAvailableLetters((prev) => [...prev, { id: `${char}-${Date.now()}-${Math.random()}`, char }]);
   };
 
   const handleHintStone = () => {
-    if (!card) return;
+    if (!card || hintResetBanner) return;
     const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
     const nextIdx = placedLetters.length;
     if (nextIdx >= targetWord.length) return;
     const needed = targetWord[nextIdx];
     const match = availableLetters.find((it) => it.char === needed);
-    if (match) handleStoneTap(match);
+    if (match) {
+      setHintCount((prev) => prev + 1);
+      handleStoneTap(match, true);
+    }
   };
 
   // UNIFIED ZEN FLOW KEYBOARD SHORTCUTS (Hybrid Chuột + Bàn phím cho Bước 1, 2, 3)
@@ -4154,6 +4192,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
       // BƯỚC 3: XẾP SỎI CHỮ (STONE SPELL)
       // ==========================================
       if (step === 3 && card) {
+        if (hintResetBanner) return;
         const targetWord = (stripParentheses(card.front) || card.front).replace(/\s+/g, '').toUpperCase();
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -4267,6 +4306,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
     completedCardIds,
     currentIndex,
     cards.length,
+    hintResetBanner,
   ]);
 
   if (!card) {
@@ -6303,7 +6343,15 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 </motion.div>
 
                 {/* Stone Error Alert or Helpful Hint */}
-                {stoneError ? (
+                {hintResetBanner ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-200 font-bold text-xs text-center shadow-xs w-full flex items-center justify-center gap-2"
+                  >
+                    <span>{hintResetBanner}</span>
+                  </motion.div>
+                ) : stoneError ? (
                   <motion.p
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -6327,7 +6375,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                     <button
                       key={it.id}
                       onClick={() => handleStoneTap(it)}
-                      className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-800 border-2 border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-100 font-extrabold text-base flex items-center justify-center shadow-md hover:border-emerald-500 cursor-pointer transition-colors"
+                      disabled={Boolean(hintResetBanner)}
+                      className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-800 border-2 border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-100 font-extrabold text-base flex items-center justify-center shadow-md hover:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     >
                       {it.char}
                     </button>
@@ -6338,7 +6387,8 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleHintStone}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-xs font-bold cursor-pointer"
+                      disabled={Boolean(hintResetBanner)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-opacity"
                     >
                       <HelpCircle size={13} /> {isVi ? 'Gợi ý 1 chữ' : 'Hint 1 Letter'}
                     </button>
@@ -6350,8 +6400,11 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                         setAvailableLetters([...chars].sort(() => Math.random() - 0.5));
                         setPlacedLetters([]);
                         setStoneError(false);
+                        setHintCount(0);
+                        setHintResetBanner(null);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold cursor-pointer transition-colors"
+                      disabled={Boolean(hintResetBanner)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                     >
                       <RotateCcw size={13} /> {t('zen_stone_reset')}
                     </button>

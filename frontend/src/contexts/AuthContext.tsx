@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setToken(null);
             localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
             localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+            localStorage.removeItem('lingualeap_user_cefr');
           } else {
             console.warn('Session check offline, using cached credentials');
           }
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    localStorage.removeItem('lingualeap_user_cefr');
     notifyDecksChanged();
   };
 

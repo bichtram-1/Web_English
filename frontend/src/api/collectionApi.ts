@@ -2,7 +2,7 @@ import axiosInstance from './axiosInstance';
 import { ENDPOINTS } from '../constants/endpoint';
 import { STORAGE_KEYS } from '../constants/storage';
 import { deckApi, getCurrentUserFromStorage } from './deckApi';
-import type { Deck, DeckCollection, CardItem } from '../types/DeckType';
+import type { Deck, DeckCollection, CardItem, Collaborator, CollaboratorRole } from '../types/DeckType';
 import type { ApiResponse } from '../types/api.types';
 import { generateFriendlyId } from '../utils/slugify';
 import { canViewCollection } from '../utils/permission';
@@ -356,7 +356,7 @@ export const collectionApi = {
     if (!currentUser) return target;
 
     if (!target.collaborators) target.collaborators = [];
-    const targetRole = payload.role === 'editor' ? 'editor' : 'viewer';
+    const targetRole: CollaboratorRole = payload.role === 'editor' ? 'editor' : 'viewer';
     const emailLower = currentUser.email?.toLowerCase();
     const existingIndex = target.collaborators.findIndex(
       (c) =>
@@ -364,7 +364,7 @@ export const collectionApi = {
         (emailLower && c.email && c.email.toLowerCase() === emailLower)
     );
 
-    const newCollaborator = {
+    const newCollaborator: Collaborator = {
       userId: currentUser.id,
       email: currentUser.email,
       name: payload.name || currentUser.name || currentUser.email?.split('@')[0] || 'User',

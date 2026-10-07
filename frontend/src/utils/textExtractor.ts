@@ -1253,25 +1253,33 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
       if (seenWordKeys.has(wordLower)) return;
 
       // 1. Direct match in ACRONYM_DICTIONARY
-      let matchedInfo = ACRONYM_DICTIONARY[wordLower];
+      let matchedInfo: { pos: VocabPOS; meaning: string; phonetic?: string } | undefined =
+        ACRONYM_DICTIONARY[wordLower]
+          ? { ...ACRONYM_DICTIONARY[wordLower]!, phonetic: undefined }
+          : undefined;
 
       // 2. Direct match in DICTIONARY_MAP
-      if (!matchedInfo) {
-        matchedInfo = DICTIONARY_MAP[wordLower];
+      if (!matchedInfo && DICTIONARY_MAP[wordLower]) {
+        const vPhonetic = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === wordLower)?.phonetic;
+        matchedInfo = {
+          ...DICTIONARY_MAP[wordLower]!,
+          phonetic: vPhonetic,
+        };
       }
 
-      // 2. Direct match in VOCAB_DICTIONARY
+      // 3. Direct match in VOCAB_DICTIONARY
       if (!matchedInfo) {
         const vocabItem = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === wordLower);
         if (vocabItem && vocabItem.definition) {
           matchedInfo = {
             pos: (vocabItem.pos as VocabPOS) || 'noun',
             meaning: vocabItem.definition,
+            phonetic: vocabItem.phonetic,
           };
         }
       }
 
-      // 3. Try base forms (e.g. learning -> learn, achieved -> achieve, challenges -> challenge, earlier -> early)
+      // 4. Try base forms (e.g. learning -> learn, achieved -> achieve, challenges -> challenge, earlier -> early)
       if (!matchedInfo) {
         const candidates = [
           wordLower.replace(/(ing|ed|s|es|ly)$/, ''),
@@ -1284,7 +1292,11 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
         for (const base of candidates) {
           if (!base || base === wordLower) continue;
           if (DICTIONARY_MAP[base]) {
-            matchedInfo = DICTIONARY_MAP[base];
+            const vPhonetic = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === base)?.phonetic;
+            matchedInfo = {
+              ...DICTIONARY_MAP[base]!,
+              phonetic: vPhonetic,
+            };
             break;
           }
           const baseVocabItem = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === base);
@@ -1292,6 +1304,7 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
             matchedInfo = {
               pos: (baseVocabItem.pos as VocabPOS) || 'noun',
               meaning: baseVocabItem.definition,
+              phonetic: baseVocabItem.phonetic,
             };
             break;
           }
@@ -1307,6 +1320,7 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
           categoryType: 'vocab',
           meaning: matchedInfo.meaning,
           contextSentence: cleanSentence,
+          phonetic: matchedInfo.phonetic,
           selected: true,
         });
       } else if (wordLower.length >= 4) {

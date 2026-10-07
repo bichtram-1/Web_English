@@ -13,7 +13,9 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "mcp:stdio": "tsx src/mcp/stdio.ts",
+    "mcp:test": "tsx src/mcp/test_client.ts"
   },
   "keywords": [
     "english-learning",
@@ -28,6 +30,8 @@
   "author": "LinguaTeam",
   "license": "MIT",
   "dependencies": {
+    "@google/genai": "^2.25.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@prisma/client": "^6.4.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -36,7 +40,8 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.0",
     "prisma": "^6.4.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

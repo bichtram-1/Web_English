@@ -3,6 +3,7 @@ export type NotificationType =
   | 'invite_response'
   | 'streak_reminder'
   | 'review_reminder'
+  | 'daily_vocab'
   | 'system';
 export type NotificationStatus = 'pending' | 'accepted' | 'declined';
 

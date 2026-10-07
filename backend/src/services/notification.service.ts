@@ -79,12 +79,8 @@ export class NotificationService {
     await ensureNotificationTable();
     const emailLower = email.toLowerCase().trim();
 
-    // Dynamically ensure Quizlet-style daily study reminders (streak & SRS review)
-    try {
-      await this.ensureDailyStudyReminders(userId, emailLower);
-    } catch (reminderErr) {
-      console.warn('[NotificationService] ensureDailyStudyReminders error:', reminderErr);
-    }
+    // Streak and SRS review reminders are managed by the n8n Automation Engine
+    // (n8n/workflows/srs_streak_reminder.json) to eliminate duplicate mock rows and ensure clean database state.
 
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import notificationApi from '../../api/notificationApi';
-import { getCollectionDetailRoute, getStudyRoute, ROUTES } from '../../constants/routers';
+import { getCollectionDetailRoute, getDeckDetailRoute, getStudyRoute, ROUTES } from '../../constants/routers';
 import { getRecentViewedDecks } from '../../utils/recentDecks';
 import type { InAppNotification } from '../../types/notification.types';
 
@@ -36,9 +36,17 @@ export default function NotificationBell() {
 
   const handleStreakOrReviewAction = (actionUrl?: string) => {
     setIsOpen(false);
-    if (actionUrl && actionUrl !== '/decks' && actionUrl !== '/study' && actionUrl !== '/') {
-      navigate(actionUrl);
-      return;
+    if (actionUrl) {
+      // Normalize legacy /study/:id to valid /deck/:id to prevent 404
+      if (actionUrl.startsWith('/study/')) {
+        const deckId = actionUrl.replace('/study/', '');
+        navigate(getDeckDetailRoute(deckId));
+        return;
+      }
+      if (actionUrl !== '/decks' && actionUrl !== '/study' && actionUrl !== '/') {
+        navigate(actionUrl);
+        return;
+      }
     }
     const recent = getRecentViewedDecks();
     if (recent.length > 0 && recent[0].id) {
@@ -361,41 +369,43 @@ export default function NotificationBell() {
                     );
                   }
 
-                  // 4. SYSTEM OR ROLE UPDATE NOTIFICATION
-                  if (notif.type === 'system') {
+                  // 4. DAILY VOCAB & SYSTEM LEARNING NOTIFICATIONS (Synchronized Quizlet/LinguaLeap Card UI)
+                  if (notif.type === 'system' || notif.type === 'daily_vocab') {
                     return (
                       <div
                         key={notif.id}
                         className={`p-3 rounded-2xl transition-all mb-1 ${
-                          !notif.read ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          !notif.read ? 'bg-violet-50/50 dark:bg-violet-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
-                            <Sparkles size={15} />
+                          <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-950/80 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                            <Sparkles size={16} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-800 dark:text-slate-200 leading-snug">
-                              {notif.message || notif.collectionTitle}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-black text-violet-600 dark:text-violet-400">
+                                {notif.collectionTitle || (isVi ? 'Từ vựng thông minh hôm nay ✨' : 'Daily Vocabulary ✨')}
+                              </p>
+                              <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
                                 <Clock size={10} />
                                 {formatTime(notif.createdAt)}
                               </span>
-                              {notif.actionUrl && (
-                                <button
-                                  onClick={() => {
-                                    setIsOpen(false);
-                                    navigate(notif.actionUrl!);
-                                  }}
-                                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer ml-auto"
-                                >
-                                  <FolderOpen size={12} />
-                                  <span>{isVi ? 'Mở xem' : 'Open'}</span>
-                                </button>
-                              )}
                             </div>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">
+                              {notif.message || (isVi ? 'Bộ từ vựng mới đã sẵn sàng. Hãy ôn tập ngay!' : 'Your daily vocabulary is ready to study!')}
+                            </p>
+                            {notif.actionUrl && (
+                              <div className="mt-2.5 flex items-center gap-2">
+                                <button
+                                  onClick={() => handleStreakOrReviewAction(notif.actionUrl)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                                >
+                                  <Sparkles size={13} />
+                                  <span>{isVi ? 'Học bộ thẻ ngay' : 'Study Now'}</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

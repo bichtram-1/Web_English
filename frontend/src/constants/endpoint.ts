@@ -41,4 +41,10 @@ export const ENDPOINTS = {
   // Stats
   STATS_SUMMARY: '/api/v1/stats/summary',
   STATS_LEADERBOARD: '/api/v1/stats/leaderboard',
+
+  // AI
+  AI_ANALYZE_TEXT: '/api/v1/ai/analyze-text',
+  AI_EXPLAIN_WORD: '/api/v1/ai/explain-word',
+  AI_STATUS: '/api/v1/ai/status',
+  AI_TUTOR_CHAT: '/api/v1/ai/tutor-chat',
 };

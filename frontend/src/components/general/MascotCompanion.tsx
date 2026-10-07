@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Gamepad2,
   GripHorizontal,
+  Bot,
 } from 'lucide-react';
 import useSpeech from '../../hooks/useSpeech';
 import { useWallpaper } from '../../contexts/WallpaperContext';
@@ -186,30 +187,35 @@ export default function MascotCompanion() {
             {/* Quick Action Shortcuts inside mascot */}
             <div
               onPointerDown={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800"
+              className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800"
             >
               <button
                 onClick={() => navigate(ROUTES.GAMES)}
-                className="flex-1 py-1 px-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                className="py-1 px-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                title={isVi ? 'Trò chơi rèn luyện từ vựng tiếng Anh' : 'Vocabulary arcade games'}
               >
-                <Gamepad2 size={11} />
-                <span>{isVi ? 'Trò Chơi' : 'Arcade'}</span>
+                <Gamepad2 size={11} className="shrink-0" />
+                <span className="truncate">{isVi ? 'Trò Chơi' : 'Arcade'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-ai-tutor'));
+                }}
+                className="py-1 px-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/60 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                title={isVi ? 'Khảo sát CEFR & Chat cùng Gia sư AI' : 'CEFR Assessment & AI Tutor Chat'}
+              >
+                <Bot size={11} className="shrink-0" />
+                <span className="truncate">AI Tutor</span>
               </button>
 
               <button
                 onClick={() => setWallpaperModalOpen(true)}
-                className="flex-1 py-1 px-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                className="py-1 px-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                title={isVi ? 'Tùy chỉnh hình nền học tập' : 'Customize study wallpaper'}
               >
-                <Image size={11} />
-                <span>{isVi ? 'Hình Nền' : 'Wallpaper'}</span>
-              </button>
-
-              <button
-                onClick={() => setQuoteIndex((prev) => (prev + 1) % quotes.length)}
-                className="py-1 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-[10px] flex items-center justify-center gap-0.5 transition-all cursor-pointer"
-              >
-                <span>{isVi ? 'Khác' : 'Next'}</span>
-                <ChevronRight size={11} />
+                <Image size={11} className="shrink-0" />
+                <span className="truncate">{isVi ? 'Hình Nền' : 'Wallpaper'}</span>
               </button>
             </div>
           </motion.div>

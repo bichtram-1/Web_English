@@ -1,0 +1,118 @@
+{
+  "name": "LinguaLeap - SRS Review & Streak Maintenance Reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Evening Trigger (20:00 PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/api/v1/automation/n8n/srs-due",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-n8n-token",
+              "value": "lingualeap_n8n_secret_token_2026"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Fetch Due Learners (LinguaLeap API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter users who haven't completed study today and have an active streak to protect\nconst response = $input.first().json;\nconst learners = response.data || [];\nconst dueLearners = learners.filter(u => u.needsReview === true);\n\nreturn [{\n  json: {\n    totalDue: dueLearners.length,\n    learners: dueLearners,\n    alertMessage: \"🔥 Cảnh báo nguy cơ đứt chuỗi Streak! Hãy dành 3 phút ôn lại các từ vựng hôm nay trước 24:00 đêm!\"\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Filter Inactive Learners",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/automation/n8n/broadcast-reminder",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-token",
+              "value": "lingualeap_n8n_secret_token_2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"streak_reminder\"\n}"
+      },
+      "id": "4",
+      "name": "Broadcast In-App Notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Evening Trigger (20:00 PM)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Due Learners (LinguaLeap API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Due Learners (LinguaLeap API)": {
+      "main": [
+        [
+          {
+            "node": "Filter Inactive Learners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Inactive Learners": {
+      "main": [
+        [
+          {
+            "node": "Broadcast In-App Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

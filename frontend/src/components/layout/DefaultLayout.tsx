@@ -6,6 +6,7 @@ import MobileBottomNav from '../general/MobileBottomNav';
 import Loading from '../shared/Loading';
 import WallpaperModal from '../general/WallpaperModal';
 import MascotCompanion from '../general/MascotCompanion';
+import FloatingAiTutor from '../general/FloatingAiTutor';
 import { useWallpaper } from '../../contexts/WallpaperContext';
 export default function DefaultLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -61,6 +62,9 @@ export default function DefaultLayout() {
 
         {/* Interactive Chicken Scholar Mascot Companion */}
         <MascotCompanion />
+
+        {/* Floating AI Tutor & CEFR Placement Assessment Widget */}
+        <FloatingAiTutor />
 
         {/* Wallpaper Customizer Modal */}
         <WallpaperModal />

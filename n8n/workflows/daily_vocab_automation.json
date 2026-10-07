@@ -1,0 +1,121 @@
+{
+  "name": "LinguaLeap - Daily Vocabulary & Deck Auto-Publishing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger (08:00 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=YOUR_GEMINI_API_KEY",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Generate 5 high-frequency academic IELTS/TOEIC vocabulary words for today in clean JSON format adhering strictly to this schema: { \\\"topic\\\": \\\"IELTS Academic & Daily Wisdom\\\", \\\"deckTitle\\\": \\\"Từ vựng hôm nay (Daily Vocab)\\\", \\\"cards\\\": [ { \\\"front\\\": \\\"word\\\", \\\"phonetic\\\": \\\"/IPA/\\\", \\\"back\\\": \\\"Nghĩa tiếng Việt ngắn gọn\\\", \\\"exampleEn\\\": \\\"English sentence\\\", \\\"exampleVi\\\": \\\"Dịch tiếng Việt\\\" } ] }. Output ONLY pure JSON.\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseMimeType\": \"application/json\",\n    \"temperature\": 0.2\n  }\n}"
+      },
+      "id": "2",
+      "name": "Gemini AI (Generate 5 Vocab Words)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract generated JSON content from Gemini API response\nconst responseText = $input.first().json.candidates[0].content.parts[0].text;\nlet parsedData;\ntry {\n  parsedData = JSON.parse(responseText.replace(/```json\\s*/gi, '').replace(/```\\s*$/gi, '').trim());\n} catch (e) {\n  parsedData = {\n    topic: \"IELTS Focus\",\n    deckTitle: \"Từ vựng thông minh hôm nay\",\n    cards: [\n      {\n        front: \"breakthrough\",\n        phonetic: \"/ˈbreɪk.θruː/\",\n        back: \"Bước đột phá, phát minh quan trọng\",\n        exampleEn: \"This discovery is a major breakthrough in science.\",\n        exampleVi: \"Phát hiện này là một bước đột phá lớn trong khoa học.\"\n      },\n      {\n        front: \"resilient\",\n        phonetic: \"/rɪˈzɪl.jənt/\",\n        back: \"Kiên cường, bền bỉ phục hồi\",\n        exampleEn: \"Students are exceptionally resilient in overcoming challenges.\",\n        exampleVi: \"Học sinh đặc biệt kiên cường trong việc vượt qua thử thách.\"\n      }\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    topic: parsedData.topic || \"IELTS Daily\",\n    deckTitle: parsedData.deckTitle || `Từ vựng hôm nay - ${new Date().toLocaleDateString('vi-VN')}`,\n    category: \"Intermediate\",\n    color: \"from-indigo-600 to-violet-600\",\n    cards: parsedData.cards || [],\n    broadcastNotification: true,\n    notificationMessage: `✨ Bộ từ vựng hôm nay \"${parsedData.deckTitle || 'Daily Vocab'}\" đã sẵn sàng! Dành 3 phút ôn luyện để giữ vững chuỗi Streak nhé!`\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Format Payload for LinguaLeap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/automation/n8n/daily-vocab",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-token",
+              "value": "lingualeap_n8n_secret_token_2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "4",
+      "name": "LinguaLeap API (Create Deck & Notify)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (08:00 AM)": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI (Generate 5 Vocab Words)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI (Generate 5 Vocab Words)": {
+      "main": [
+        [
+          {
+            "node": "Format Payload for LinguaLeap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Payload for LinguaLeap": {
+      "main": [
+        [
+          {
+            "node": "LinguaLeap API (Create Deck & Notify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -9,4 +9,6 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'super_secret_jwt_key_datn_2026_lingualeap_english',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  n8nApiKey: process.env.N8N_API_KEY || 'lingualeap_n8n_secret_token_2026',
 };

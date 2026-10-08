@@ -24,7 +24,6 @@ import {
   Copy,
   Maximize2,
   Minimize2,
-  Pin,
 } from 'lucide-react';
 import { aiApi, CefrAssessmentResult, TutorChatResponse } from '../../api/aiApi';
 import { getDeckDetailRoute } from '../../constants/routers';
@@ -194,7 +193,7 @@ export default function FloatingAiTutor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isExpanded]);
 
-  // Focus input when expand state changes
+  // Focus input when expand state changes or opened
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
@@ -513,7 +512,7 @@ export default function FloatingAiTutor() {
 
   const handleClose = () => {
     setIsOpen(false);
-    setIsExpanded(false); // Reset to compact mode on close
+    setIsExpanded(false);
   };
 
   const currentMessages = activeTab === 'assessment' ? assessmentMessages : chatMessages;
@@ -527,44 +526,36 @@ export default function FloatingAiTutor() {
         {/* Header */}
         <div
           {...(!isExpandedMode ? { onPointerDown: (e: React.PointerEvent) => dragControls.start(e) } : {})}
-          className={`px-4 py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 text-white shrink-0 flex items-center justify-between border-b border-white/10 select-none ${
+          className={`px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 text-white shrink-0 flex items-center justify-between border-b border-white/10 select-none ${
             isExpandedMode ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
           }`}
-          title={isExpandedMode ? t('tutor_fixed_badge') : t('tutor_header_drag_tip')}
+          title={!isExpandedMode ? t('tutor_header_drag_tip') : undefined}
         >
-          {/* Left: Avatar & Title & Fixed Badge */}
-          <div className="flex items-center gap-2.5">
-            {!isExpandedMode ? (
+          {/* Left: Avatar & Title (No "Cố định vị trí" text/badge!) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {!isExpandedMode && (
               <GripHorizontal
                 size={16}
                 className="text-violet-300 hover:text-white transition-colors shrink-0"
               />
-            ) : (
-              <div
-                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 text-white text-[10px] font-bold shadow-2xs"
-                title={t('tutor_shrink_tip')}
-              >
-                <Pin size={11} className="text-amber-300" />
-                <span>{t('tutor_fixed_badge')}</span>
-              </div>
             )}
-            <div className="relative w-8.5 h-8.5 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-amber-300 border border-white/20 shadow-xs shrink-0">
-              <Sparkles size={17} />
+            <div className="relative w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-amber-300 border border-white/20 shadow-xs shrink-0">
+              <Sparkles size={16} />
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-indigo-700" />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-bold tracking-tight">{t('tutor_bot_name')}</span>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-xs sm:text-sm font-bold tracking-tight truncate max-w-[90px] sm:max-w-none">{t('tutor_bot_name')}</span>
                 {userCefrLevel && (
                   <span
-                    className="px-1.5 py-0.2 rounded-md bg-white/20 text-amber-200 text-[10px] font-bold"
+                    className="px-1.5 py-0.2 rounded-md bg-white/20 text-amber-200 text-[10px] font-bold shrink-0"
                     title={t('tutor_cefr_badge_header_tip', { level: userCefrLevel })}
                   >
                     {userCefrLevel}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-violet-200 font-medium">{t('tutor_bot_subtitle')}</span>
+              <span className="text-[10px] text-violet-200 font-medium truncate max-w-[110px] sm:max-w-none">{t('tutor_bot_subtitle')}</span>
             </div>
           </div>
 
@@ -601,7 +592,7 @@ export default function FloatingAiTutor() {
             </button>
           </div>
 
-          {/* Right: Actions (stops drag propagation) */}
+          {/* Right: Actions */}
           <div
             onPointerDown={(e) => e.stopPropagation()}
             className="flex items-center gap-1"
@@ -694,8 +685,8 @@ export default function FloatingAiTutor() {
         {/* Chat Body (stops drag propagation to allow smooth scrolling and text selection) */}
         <div
           onPointerDown={(e) => e.stopPropagation()}
-          className={`flex-1 overflow-y-auto p-4 space-y-3.5 select-text divide-y divide-transparent ${
-            isExpandedMode ? 'px-6 sm:px-8 py-5 space-y-4' : ''
+          className={`flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3.5 select-text divide-y divide-transparent ${
+            isExpandedMode ? 'px-3.5 sm:px-8 py-3.5 sm:py-5 space-y-4' : ''
           }`}
         >
           {currentMessages.map((msg) => {
@@ -962,8 +953,8 @@ export default function FloatingAiTutor() {
             e.preventDefault();
             handleSendMessage();
           }}
-          className={`p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 ${
-            isExpandedMode ? 'p-3.5 px-6 sm:px-8 gap-3' : ''
+          className={`p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 ${
+            isExpandedMode ? 'p-2.5 sm:p-3.5 px-3 sm:px-8 gap-2.5 sm:gap-3' : ''
           }`}
         >
           <input
@@ -1002,7 +993,7 @@ export default function FloatingAiTutor() {
     <>
       {/* 1. COMPACT DRAGGABLE FLOATING WIDGET (Default mode) */}
       <motion.div
-        drag={!isExpanded}
+        drag
         dragControls={dragControls}
         dragListener={false}
         dragMomentum={false}
@@ -1026,7 +1017,7 @@ export default function FloatingAiTutor() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="pointer-events-auto mb-2.5 w-[94vw] sm:w-[420px] h-[580px] max-h-[75vh] flex flex-col rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-950/25 select-text"
+              className="pointer-events-auto mb-2.5 w-[94vw] sm:w-[420px] h-[580px] max-h-[72dvh] sm:max-h-[75vh] flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-950/25 select-text"
             >
               {renderChatContent(false)}
             </motion.div>
@@ -1083,11 +1074,11 @@ export default function FloatingAiTutor() {
         </div>
       </motion.div>
 
-      {/* 2. EXPANDED FIXED MODAL (Phóng to & Cố định vị trí, không cho di chuyển) */}
+      {/* 2. EXPANDED FIXED MODAL (Phóng to, giữ nguyên kích thước & chức năng, KHÔNG có text 'Cố định vị trí') */}
       <AnimatePresence>
         {isOpen && isExpanded && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-8 bg-slate-950/45 backdrop-blur-xs pointer-events-auto select-text"
+            className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 md:p-8 bg-slate-950/45 backdrop-blur-xs pointer-events-auto select-text"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setIsExpanded(false);
@@ -1099,7 +1090,7 @@ export default function FloatingAiTutor() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="w-full max-w-4xl lg:max-w-5xl h-[88vh] max-h-[860px] flex flex-col rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-950/35 select-text"
+              className="w-full max-w-4xl lg:max-w-5xl h-[92dvh] sm:h-[88vh] max-h-[92dvh] sm:max-h-[860px] flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-950/35 select-text"
             >
               {renderChatContent(true)}
             </motion.div>

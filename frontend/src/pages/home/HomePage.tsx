@@ -485,13 +485,13 @@ export default function HomePage() {
         {/* Section heading & Quizlet-style Sort Controls */}
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
-            <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" />
+            <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
             <h2
-              className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2"
+              className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <span>{activeCategory === 'All' ? t('nav_all_decks') : getCategoryLabel(activeCategory, t)}</span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/90 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/80 shadow-xs">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/90 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/80 shadow-xs shrink-0">
                 {sortedDecks.length}
               </span>
             </h2>

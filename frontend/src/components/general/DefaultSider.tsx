@@ -77,7 +77,7 @@ export default function DefaultSider({ collapsed: externalCollapsed, onToggle }:
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Layers size={18} className="shrink-0" />
-              {!collapsed && <span>{t('nav_all_decks')}</span>}
+              {!collapsed && <span className="whitespace-nowrap truncate">{t('nav_all_decks')}</span>}
             </NavLink>
 
             <NavLink

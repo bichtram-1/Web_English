@@ -22,12 +22,12 @@ export default function DefaultHeader() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors duration-200">
-        <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2">
+        <div className="max-w-[1700px] w-full mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setMobileDrawerOpen(true)}
-              className="p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl md:hidden cursor-pointer"
+              className="p-2 -ml-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl md:hidden cursor-pointer shrink-0"
               aria-label="Open menu"
             >
               <Menu size={20} />
@@ -47,7 +47,7 @@ export default function DefaultHeader() {
               </div>
               <div>
                 <span
-                  className="text-slate-900 dark:text-white text-base sm:text-lg font-black tracking-tight flex items-center gap-1.5"
+                  className="text-slate-900 dark:text-white text-base sm:text-lg font-black tracking-tight flex items-center gap-1.5 whitespace-nowrap"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {t('app_name')}
@@ -59,8 +59,8 @@ export default function DefaultHeader() {
             </Link>
           </div>
 
-          {/* Center Nav Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1">
+          {/* Center Nav Links (Desktop full screen) */}
+          <nav className="hidden xl:flex items-center gap-1">
             <NavLink
               to={ROUTES.HOME}
               className={({ isActive }) =>
@@ -134,9 +134,9 @@ export default function DefaultHeader() {
           </nav>
 
           {/* Right CTA, Language, Theme & Auth */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Language Switcher */}
-            <LanguageSelect />
+            <LanguageSelect responsive />
 
             {/* Theme Toggle (Dark/Light) */}
             <ThemeToggle />
@@ -144,7 +144,7 @@ export default function DefaultHeader() {
             {/* Notification Bell */}
             <NotificationBell />
 
-            {/* Quick Create Button (Hidden on small mobile) */}
+            {/* Quick Create Button (Adaptive on compact/split screens) */}
             <button
               onClick={() => {
                 if (!isAuthenticated) {
@@ -153,29 +153,30 @@ export default function DefaultHeader() {
                 }
                 navigate(ROUTES.CREATE_DECK);
               }}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 dark:shadow-none active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-200 dark:shadow-none active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
               style={{ fontFamily: 'var(--font-display)' }}
+              title={t('create')}
             >
               <Plus size={15} />
-              <span>{t('create')}</span>
+              <span className="hidden xl:inline">{t('create')}</span>
             </button>
 
 
             {/* User Auth */}
             {isAuthenticated && user ? (
-              <div className="flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
                 <button
                   onClick={() => {
                     setInitialLogoutConfirm(false);
                     setProfileModalOpen(true);
                   }}
                   title={isVi ? 'Xem thông tin tài khoản' : 'View profile'}
-                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 py-1 px-2 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer group active:scale-95"
+                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 py-1 px-2 rounded-xl border border-slate-200 dark:border-slate-700 transition-all cursor-pointer group active:scale-95 shrink-0"
                 >
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-left hidden lg:block">
+                  <div className="text-left hidden xl:block">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block max-w-[90px] truncate leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                       {user.name}
                     </span>
@@ -191,18 +192,18 @@ export default function DefaultHeader() {
                     setProfileModalOpen(true);
                   }}
                   title={t('logout')}
-                  className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all cursor-pointer shrink-0"
                   aria-label={t('logout')}
                 >
                   <LogOut size={16} />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 pl-1.5 border-l border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-1 pl-1.5 border-l border-slate-200 dark:border-slate-800 shrink-0">
                 <Link
                   to={ROUTES.LOGIN}
                   title={t('login')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-transparent hover:border-blue-200 dark:hover:border-blue-800/60 transition-all cursor-pointer group"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-transparent hover:border-blue-200 dark:hover:border-blue-800/60 transition-all cursor-pointer group shrink-0"
                 >
                   <LogIn size={15} className="text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                   <span className="hidden xs:inline">{t('login')}</span>

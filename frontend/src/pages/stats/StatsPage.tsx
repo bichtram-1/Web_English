@@ -26,12 +26,12 @@ export default function StatsPage() {
       <div className="flex items-center justify-between mb-8">
         <button
           onClick={() => navigate(ROUTES.HOME)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <ArrowLeft size={16} /> {t('back')}
+          <ArrowLeft size={16} /> <span>{t('back')}</span>
         </button>
-        <span className="text-xs uppercase font-bold tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900 px-3 py-1 rounded-full">
+        <span className="text-xs uppercase font-bold tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900 px-3 py-1 rounded-full whitespace-nowrap shrink-0">
           DATN Analytics Hub
         </span>
       </div>

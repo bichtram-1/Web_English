@@ -757,10 +757,10 @@ export default function CreateDeckPage() {
         <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(isEditMode && id ? getDeckDetailRoute(id) : ROUTES.HOME)}
-            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-sm font-semibold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            <ArrowLeft size={15} /> {t('back')}
+            <ArrowLeft size={15} /> <span>{t('back')}</span>
           </button>
 
           <div className="flex items-center gap-2">

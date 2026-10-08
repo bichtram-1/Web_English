@@ -299,48 +299,49 @@ export default function DeckDetailPage() {
           }}
         />
         <div className="relative max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 gap-2">
             <button
               onClick={() => navigate(ROUTES.HOME)}
-              className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-semibold transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <ArrowLeft size={15} />
-              {t('nav_all_decks')}
+              <span>{t('nav_all_decks')}</span>
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Export button */}
               <button
                 onClick={() => setIsImportExportOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
                 style={{ fontFamily: 'var(--font-display)' }}
                 title={isVi ? 'Tải về dữ liệu bộ thẻ (CSV/JSON)' : 'Export deck data (CSV/JSON)'}
               >
                 <Download size={14} />
-                <span>{isVi ? 'Tải về (Export)' : 'Export'}</span>
+                <span className="hidden sm:inline">{isVi ? 'Tải về (Export)' : 'Export'}</span>
               </button>
 
               {/* Clone deck for community users */}
               <button
                 disabled={isCloning}
                 onClick={handleCloneDeck}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm disabled:opacity-50 shrink-0"
                 style={{ fontFamily: 'var(--font-display)' }}
                 title={isVi ? 'Tạo bản sao để tự do chỉnh sửa theo ý bạn' : 'Clone this deck to your own library to edit'}
               >
                 <Copy size={14} />
-                <span>{isCloning ? (isVi ? 'Đang sao chép...' : 'Cloning...') : (isVi ? 'Sao chép bộ thẻ' : 'Clone Deck')}</span>
+                <span className="hidden sm:inline">{isCloning ? (isVi ? 'Đang sao chép...' : 'Cloning...') : (isVi ? 'Sao chép bộ thẻ' : 'Clone Deck')}</span>
               </button>
 
               {/* Add to collection button */}
               <button
                 onClick={() => setIsAddCollectionOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
                 style={{ fontFamily: 'var(--font-display)' }}
+                title={t('collection_add_to_collection')}
               >
                 <FolderPlus size={14} />
-                <span>{t('collection_add_to_collection')}</span>
+                <span className="hidden sm:inline">{t('collection_add_to_collection')}</span>
               </button>
 
 

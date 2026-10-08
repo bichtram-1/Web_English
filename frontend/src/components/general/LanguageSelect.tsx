@@ -8,9 +8,10 @@ import { STORAGE_KEYS } from '../../constants/storage';
 interface LanguageSelectProps {
   className?: string;
   mini?: boolean;
+  responsive?: boolean;
 }
 
-export default function LanguageSelect({ className = '', mini = false }: LanguageSelectProps) {
+export default function LanguageSelect({ className = '', mini = false, responsive = false }: LanguageSelectProps) {
   const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,11 @@ export default function LanguageSelect({ className = '', mini = false }: Languag
         aria-label="Select Language"
       >
         <span className="text-sm">{currentOption.flag}</span>
-        {!mini && <span className="font-bold tracking-tight">{currentOption.shortLabel}</span>}
+        {!mini && (
+          <span className={`font-bold tracking-tight ${responsive ? 'hidden xl:inline' : ''}`}>
+            {currentOption.shortLabel}
+          </span>
+        )}
         <ChevronDown
           size={13}
           className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''}`}

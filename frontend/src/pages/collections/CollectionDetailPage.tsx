@@ -298,29 +298,29 @@ export default function CollectionDetailPage() {
       </AnimatePresence>
 
       {/* Top navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => navigate(ROUTES.COLLECTIONS)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <ArrowLeft size={16} /> {t('collection_title')}
+          <ArrowLeft size={16} /> <span>{t('collection_title')}</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Permission / Status Badge */}
           {isOwner ? (
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+            <span className="text-xs font-bold px-2.5 sm:px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shrink-0">
               <Shield size={12} />
               <span>{t('invite_author_badge')}</span>
             </span>
           ) : isEditor ? (
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+            <span className="text-xs font-bold px-2.5 sm:px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1 shrink-0">
               <PenTool size={12} />
               <span>{t('invite_can_edit_badge')}</span>
             </span>
           ) : isViewer ? (
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+            <span className="text-xs font-bold px-2.5 sm:px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1 shrink-0">
               <Users size={12} />
               <span>{t('invite_readonly_badge')}</span>
             </span>
@@ -331,7 +331,7 @@ export default function CollectionDetailPage() {
             type="button"
             disabled={!canEdit}
             onClick={() => canEdit && setIsEditModalOpen(true)}
-            className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border transition-all ${
+            className={`text-xs font-bold px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1.5 border transition-all shrink-0 ${
               canEdit ? 'cursor-pointer hover:scale-105 active:scale-95 shadow-xs' : 'cursor-default'
             } ${
               collection.isPublic
@@ -342,7 +342,7 @@ export default function CollectionDetailPage() {
           >
             {collection.isPublic ? <Globe size={13} /> : <Lock size={13} />}
             <span>{collection.isPublic ? t('collection_public_badge') : t('collection_private_badge')}</span>
-            {canEdit && <span className="text-[10px] opacity-75 underline ml-0.5">{isVi ? 'Đổi' : 'Change'}</span>}
+            {canEdit && <span className="text-[10px] opacity-75 underline ml-0.5 hidden sm:inline">{isVi ? 'Đổi' : 'Change'}</span>}
           </button>
 
           {/* 3-dots Menu with permission check */}

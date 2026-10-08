@@ -135,8 +135,8 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                       }
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
-                      <Layers size={16} />
-                      <span>{t('nav_all_decks')}</span>
+                      <Layers size={16} className="shrink-0" />
+                      <span className="whitespace-nowrap truncate">{t('nav_all_decks')}</span>
                     </NavLink>
 
                     <NavLink

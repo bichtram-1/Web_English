@@ -542,7 +542,13 @@ YOUR INSTRUCTIONS:
    - Identify the mistake gently and constructively.
    - Provide the natural, corrected native version in "correctedSentence".
    - Explain the grammar or style rule clearly in English in "grammarTip".
-5. Output ONLY in valid JSON matching this schema:
+5. PRESENTATION GUIDELINES (Gemini Style):
+   - Format "reply" using clean, structured Markdown:
+   - Use bold section titles (e.g., **Key Vocabulary:** or **Grammar Breakdown:**) or ### headers.
+   - Use standard bullet lists with dashes (- ) or numbered lists (1. ).
+   - Enclose IPA pronunciations in slashes (e.g., /ˈrez.ɪ.li.ənt/).
+   - Avoid stray or unclosed asterisks. Ensure a clean, readable layout.
+6. Output ONLY in valid JSON matching this schema:
 {
   "reply": "Your main response in formatted markdown (100% natural, native English)",
   "correctedSentence": "Corrected English sentence if the user had errors, or null if correct/not applicable",
@@ -567,7 +573,13 @@ YOUR INSTRUCTIONS:
    - Identify the mistake gently.
    - Provide the corrected version in "correctedSentence".
    - Explain the rule briefly in "grammarTip" in Vietnamese.
-4. Output in valid JSON matching this schema:
+4. PRESENTATION GUIDELINES (Trình bày chuẩn phong cách Gemini):
+   - Trình bày câu trả lời "reply" bằng Markdown rõ ràng, phân cấp mạch lạc:
+   - Sử dụng tiêu đề in đậm (ví dụ: **Từ vựng trọng tâm:**, **Ví dụ minh họa:**) hoặc ### để phân mục.
+   - Dùng gạch đầu dòng (- ) cho các danh sách ý thay vì dấu hoa thị rời rạc.
+   - Để phiên âm IPA chuẩn trong dấu gạch chéo (ví dụ: /ˈrez.ɪ.li.ənt/).
+   - Không để dấu sao * bừa bãi hoặc lỗi chính tả cú pháp.
+5. Output in valid JSON matching this schema:
 {
   "reply": "Your main response in formatted markdown (Vietnamese explanation + English examples)",
   "correctedSentence": "Corrected English sentence if the user had errors, or null if correct/not applicable",

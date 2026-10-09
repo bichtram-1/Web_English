@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Star, Image as ImageIcon } from 'lucide-react';
+import { Volume2, Star, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { cleanTtsText } from '../../hooks/useSpeech';
 import type { FlashcardItem } from '../../types/DeckType';
 
@@ -177,48 +177,73 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
           </div>
 
           <div className="w-full flex items-center justify-between pt-2 border-t border-white/10">
-            {/* Speaker button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                speakWord(card.front);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition-all cursor-pointer"
-              aria-label={`Pronounce ${card.front}`}
-            >
-              <AnimatePresence mode="wait">
-                {speaking ? (
-                  <motion.span
-                    key="wave"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    className="flex items-end gap-[3px] h-4"
-                  >
-                    {[0, 0.1, 0.2].map((delay) => (
-                      <motion.span
-                        key={delay}
-                        className="w-[3px] rounded-full bg-white"
-                        animate={{ height: ['6px', '14px', '6px'] }}
-                        transition={{ duration: 0.6, repeat: Infinity, delay, ease: 'easeInOut' }}
-                      />
-                    ))}
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="icon"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                  >
-                    <Volume2 size={15} className="text-white" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-              <span className="text-white text-xs font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
-                {speaking ? t('study_audio_playing') : t('study_audio')}
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Speaker button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  speakWord(card.front);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition-all cursor-pointer"
+                aria-label={`Pronounce ${card.front}`}
+              >
+                <AnimatePresence mode="wait">
+                  {speaking ? (
+                    <motion.span
+                      key="wave"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      className="flex items-end gap-[3px] h-4"
+                    >
+                      {[0, 0.1, 0.2].map((delay) => (
+                        <motion.span
+                          key={delay}
+                          className="w-[3px] rounded-full bg-white"
+                          animate={{ height: ['6px', '14px', '6px'] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay, ease: 'easeInOut' }}
+                        />
+                      ))}
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="icon"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                    >
+                      <Volume2 size={15} className="text-white" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <span className="text-white text-xs font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+                  {speaking ? t('study_audio_playing') : t('study_audio')}
+                </span>
+              </button>
+
+              {/* Ask AI button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(
+                    new CustomEvent('open-ai-tutor', {
+                      detail: {
+                        tab: 'chat',
+                        prompt: isVi
+                          ? `Giải thích từ "${card.front}" kèm phiên âm IPA, nghĩa và câu ví dụ minh họa`
+                          : `Explain the word "${card.front}" with IPA phonetics, definition, and example sentences`,
+                      },
+                    })
+                  );
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white transition-all cursor-pointer text-xs font-semibold"
+                title={isVi ? `Hỏi AI Tutor về "${card.front}"` : `Ask AI Tutor about "${card.front}"`}
+              >
+                <Sparkles size={13} className="text-amber-300" />
+                <span className="hidden sm:inline">{isVi ? 'Hỏi AI' : 'Ask AI'}</span>
+              </button>
+            </div>
 
             <span className="text-indigo-200 text-xs flex items-center gap-1.5 font-medium">
               <span className="flex items-center gap-0.5">
@@ -302,16 +327,40 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
           </div>
 
           <div className="w-full flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                speakWord(card.front);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 active:scale-95 transition-all cursor-pointer text-xs font-semibold"
-            >
-              <Volume2 size={14} />
-              <span>{t('study_listen_again')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  speakWord(card.front);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 active:scale-95 transition-all cursor-pointer text-xs font-semibold"
+              >
+                <Volume2 size={14} />
+                <span>{t('study_listen_again')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(
+                    new CustomEvent('open-ai-tutor', {
+                      detail: {
+                        tab: 'chat',
+                        prompt: isVi
+                          ? `Giải thích từ "${card.front}" (${card.back}) kèm phiên âm IPA, ngữ cảnh sử dụng và câu ví dụ minh họa`
+                          : `Explain the word "${card.front}" (${card.back}) with IPA phonetics, usage context, and examples`,
+                      },
+                    })
+                  );
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 dark:hover:bg-violet-900/60 text-violet-700 dark:text-violet-300 active:scale-95 transition-all cursor-pointer text-xs font-semibold"
+                title={isVi ? `Nhờ AI Tutor giải thích từ "${card.front}"` : `Ask AI Tutor about "${card.front}"`}
+              >
+                <Sparkles size={13} className="text-violet-500" />
+                <span>{isVi ? 'Hỏi AI' : 'Ask AI'}</span>
+              </button>
+            </div>
 
             <span className="text-indigo-600 dark:text-indigo-400 text-xs flex items-center gap-1.5 font-medium">
               <span className="flex items-center gap-0.5">

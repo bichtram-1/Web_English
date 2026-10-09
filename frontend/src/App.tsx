@@ -6,6 +6,7 @@ import AuthLayout from './components/layout/AuthLayout';
 import PageNotFound from './components/general/PageNotFound';
 import { AuthProvider } from './contexts/AuthContext';
 import { WallpaperProvider } from './contexts/WallpaperContext';
+import { AiTutorProvider } from './contexts/AiTutorContext';
 import { ROUTES } from './constants/routers';
 
 // Lazy loading pages following DATN enterprise architecture pattern
@@ -32,7 +33,8 @@ export default function App() {
   return (
     <AuthProvider>
       <WallpaperProvider>
-        <Router>
+        <AiTutorProvider>
+          <Router>
           <Suspense fallback={<Loading />}>
           <Routes>
             {/* Auth Routes */}
@@ -79,6 +81,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </Router>
+        </AiTutorProvider>
       </WallpaperProvider>
     </AuthProvider>
   );

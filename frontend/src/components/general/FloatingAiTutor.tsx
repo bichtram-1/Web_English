@@ -28,33 +28,61 @@ import {
 import { aiApi, CefrAssessmentResult, TutorChatResponse } from '../../api/aiApi';
 import { getDeckDetailRoute } from '../../constants/routers';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAiTutor, MessageItem, CurrentCardContext } from '../../contexts/AiTutorContext';
 import { GeminiMarkdownRenderer } from './GeminiMarkdownRenderer';
 
-interface MessageItem {
-  id: string;
-  role: 'user' | 'model';
-  content: string;
-  correctedSentence?: string;
-  grammarTip?: string;
-  isAssessmentResult?: boolean;
-  assessmentData?: CefrAssessmentResult;
-  timestamp: string;
+export type { MessageItem, CurrentCardContext };
+
+export interface FloatingAiTutorProps {
+  currentCardContext?: CurrentCardContext;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export default function FloatingAiTutor() {
+export default function FloatingAiTutor({ currentCardContext, onOpenChange }: FloatingAiTutorProps = {}) {
   const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
   const dragControls = useDragControls();
   const controls = useAnimation();
 
-  // Widget state
-  const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // Default: compact & draggable
+  // Unified global tutor state from context (persisted across navigation, routes & reloads)
+  const {
+    isOpen,
+    setIsOpen,
+    isExpanded,
+    setIsExpanded,
+    activeTab,
+    setActiveTab,
+    inputMessage,
+    setInputMessage,
+    isLoading,
+    assessmentMessages,
+    chatMessages,
+    assessmentStep,
+    userCefrLevel,
+    currentCardContext: contextCardContext,
+    setCurrentCardContext,
+    handleSendMessage,
+    handleResetAssessment,
+    handleResetChat,
+  } = useAiTutor();
+
+  // Active study context for contextual AI chips and study banner
+  const activeCardContext = currentCardContext || contextCardContext;
+
+  // Sync prop currentCardContext to global context if provided
+  useEffect(() => {
+    if (currentCardContext) {
+      setCurrentCardContext(currentCardContext);
+    }
+  }, [currentCardContext, setCurrentCardContext]);
+
+  // Sync open state with parent callback if provided
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
+
   const [isDragging, setIsDragging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'assessment' | 'chat'>('assessment');
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
@@ -137,34 +165,28 @@ export default function FloatingAiTutor() {
     }
   };
 
-  // Assessment flow state: 0 = Q1, 1 = Q2, 2 = Q3, 3 = Completed
-  const [assessmentStep, setAssessmentStep] = useState<number>(0);
-
-  // User CEFR Level: null if learner hasn't taken the test or is logged out!
-  const [userCefrLevel, setUserCefrLevel] = useState<string | null>(null);
-
-  // Sync CEFR level with authenticated user session
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setUserCefrLevel(null);
-      if (localStorage.getItem('lingualeap_user_cefr')) {
-        localStorage.removeItem('lingualeap_user_cefr');
-      }
-    } else {
-      const userKey = `lingualeap_user_cefr_${user.id}`;
-      const savedLevel = localStorage.getItem(userKey) || localStorage.getItem('lingualeap_user_cefr') || null;
-      setUserCefrLevel(savedLevel);
-    }
-  }, [isAuthenticated, user]);
-
-  // Messages per tab
-  const [assessmentMessages, setAssessmentMessages] = useState<MessageItem[]>([]);
-  const [chatMessages, setChatMessages] = useState<MessageItem[]>([]);
-
   const compactMessagesEndRef = useRef<HTMLDivElement>(null);
   const expandedMessagesEndRef = useRef<HTMLDivElement>(null);
-  const compactInputRef = useRef<HTMLInputElement>(null);
-  const expandedInputRef = useRef<HTMLInputElement>(null);
+  const compactInputRef = useRef<HTMLTextAreaElement>(null);
+  const expandedInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Adjust textarea height dynamically to support Shift+Enter multiline typing
+  const adjustTextareaHeight = (el: HTMLTextAreaElement | null, expanded: boolean) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    const minH = expanded ? 44 : 38;
+    const maxH = expanded ? 160 : 120;
+    const targetH = Math.min(Math.max(el.scrollHeight, minH), maxH);
+    el.style.height = `${targetH}px`;
+  };
+
+  useEffect(() => {
+    if (isExpanded) {
+      adjustTextareaHeight(expandedInputRef.current, true);
+    } else {
+      adjustTextareaHeight(compactInputRef.current, false);
+    }
+  }, [inputMessage, isExpanded, isOpen]);
 
   const scrollToBottom = () => {
     if (isExpanded) {
@@ -180,18 +202,20 @@ export default function FloatingAiTutor() {
     }
   }, [assessmentMessages, chatMessages, isOpen, activeTab, isExpanded]);
 
-  // Handle escape key to collapse expanded mode
+  // Handle escape key to collapse expanded mode or close floating tutor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isExpanded) {
           setIsExpanded(false);
+        } else if (isOpen) {
+          setIsOpen(false);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded]);
+  }, [isExpanded, isOpen, setIsExpanded, setIsOpen]);
 
   // Focus input when expand state changes or opened
   useEffect(() => {
@@ -205,58 +229,6 @@ export default function FloatingAiTutor() {
       }, 80);
     }
   }, [isOpen, isExpanded]);
-
-  // Initial Assessment Greeting & Initial Chat Greeting
-  useEffect(() => {
-    if (assessmentMessages.length === 0) {
-      setAssessmentMessages([
-        {
-          id: 'welcome-q1',
-          role: 'model',
-          content: t('tutor_welcome_assessment'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }
-
-    if (chatMessages.length === 0) {
-      setChatMessages([
-        {
-          id: 'chat-welcome',
-          role: 'model',
-          content: t('tutor_welcome_chat'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }
-  }, []);
-
-  // Sync greetings when user switches language if only initial messages are present
-  useEffect(() => {
-    setAssessmentMessages((prev) => {
-      if (prev.length === 1 && prev[0].id.startsWith('welcome-q1')) {
-        return [
-          {
-            ...prev[0],
-            content: t('tutor_welcome_assessment'),
-          },
-        ];
-      }
-      return prev;
-    });
-
-    setChatMessages((prev) => {
-      if (prev.length === 1 && prev[0].id === 'chat-welcome') {
-        return [
-          {
-            ...prev[0],
-            content: t('tutor_welcome_chat'),
-          },
-        ];
-      }
-      return prev;
-    });
-  }, [i18n.language, t]);
 
   // Calculate drag boundaries to ensure widget stays safely within the visible screen
   const calculateDragBounds = (openState: boolean) => {
@@ -323,11 +295,9 @@ export default function FloatingAiTutor() {
     });
   }, [controls]);
 
-  // Listen to open-ai-tutor event from Mascot Companion (Học giả Gà)
+  // Center widget on open-ai-tutor event
   useEffect(() => {
     const handleOpenEvent = () => {
-      setIsOpen(true);
-      setIsExpanded(false);
       setTimeout(() => {
         centerWidget();
       }, 50);
@@ -336,151 +306,20 @@ export default function FloatingAiTutor() {
     return () => window.removeEventListener('open-ai-tutor', handleOpenEvent);
   }, [centerWidget]);
 
-  // Handle Send Message
-  const handleSendMessage = async (customText?: string) => {
-    const textToSend = (customText || inputMessage).trim();
-    if (!textToSend || isLoading) return;
-
-    setInputMessage('');
-    const userMsgId = `user-${Date.now()}`;
-    const userTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const newUserMsg: MessageItem = {
-      id: userMsgId,
-      role: 'user',
-      content: textToSend,
-      timestamp: userTimestamp,
-    };
-
-    const currentLang: 'en' | 'vi' = i18n.language === 'en' ? 'en' : 'vi';
-
-    if (activeTab === 'assessment') {
-      const updatedMessages = [...assessmentMessages, newUserMsg];
-      setAssessmentMessages(updatedMessages);
-      setIsLoading(true);
-
-      const nextStep = assessmentStep + 1;
-
-      try {
-        const payload = {
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
-          mode: 'assessment' as const,
-          assessmentStep: nextStep,
-          lang: currentLang,
-        };
-
-        const res: TutorChatResponse = await aiApi.tutorChat(payload);
-
-        if (res.isAssessmentComplete && res.assessmentResult) {
-          // Assessment Complete!
-          setAssessmentStep(3);
-          const assessedLevel = res.assessmentResult.cefrLevel;
-          if (isAuthenticated && user?.id) {
-            setUserCefrLevel(assessedLevel);
-            localStorage.setItem(`lingualeap_user_cefr_${user.id}`, assessedLevel);
-            localStorage.setItem('lingualeap_user_cefr', assessedLevel);
-          } else {
-            setUserCefrLevel(null);
-            localStorage.removeItem('lingualeap_user_cefr');
-          }
-
-          setAssessmentMessages((prev) => [
-            ...prev,
-            {
-              id: `model-${Date.now()}`,
-              role: 'model',
-              content: res.reply,
-              isAssessmentResult: true,
-              assessmentData: res.assessmentResult,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ]);
-        } else {
-          // Next Question
-          setAssessmentStep(nextStep);
-          setAssessmentMessages((prev) => [
-            ...prev,
-            {
-              id: `model-${Date.now()}`,
-              role: 'model',
-              content: res.reply,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ]);
-        }
-      } catch (err) {
-        console.error('Tutor chat error:', err);
-        setAssessmentMessages((prev) => [
-          ...prev,
-          {
-            id: `model-err-${Date.now()}`,
-            role: 'model',
-            content: t('tutor_err_network'),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
+  // Keydown listener for multiline textarea: Enter to send, Shift+Enter for newline
+  const handleKeyDownInput = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        // Shift + Enter: keep default behaviour (insert line break)
+        return;
       }
-    } else {
-      // Free Chat Tutor
-      const updatedMessages = [...chatMessages, newUserMsg];
-      setChatMessages(updatedMessages);
-      setIsLoading(true);
-
-      try {
-        const payload = {
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
-          mode: 'chat' as const,
-          userLevel: userCefrLevel || 'Intermediate',
-          lang: currentLang,
-        };
-
-        const res: TutorChatResponse = await aiApi.tutorChat(payload);
-
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: `model-${Date.now()}`,
-            role: 'model',
-            content: res.reply,
-            correctedSentence: res.correctedSentence,
-            grammarTip: res.grammarTip,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } catch (err) {
-        console.error('Chat error:', err);
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: `model-err-${Date.now()}`,
-            role: 'model',
-            content: t('tutor_err_tutor_chat'),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
+      // If IME composition is ongoing (e.g. Vietnamese telex / accents), do not send
+      if (e.nativeEvent.isComposing) {
+        return;
       }
+      e.preventDefault();
+      handleSendMessage();
     }
-  };
-
-  const handleResetAssessment = () => {
-    setAssessmentStep(0);
-    setUserCefrLevel(null);
-    if (user?.id) {
-      localStorage.removeItem(`lingualeap_user_cefr_${user.id}`);
-    }
-    localStorage.removeItem('lingualeap_user_cefr');
-    setAssessmentMessages([
-      {
-        id: `welcome-q1-${Date.now()}`,
-        role: 'model',
-        content: t('tutor_welcome_assessment'),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
   };
 
   const handleStudyDeck = (deckId: string) => {
@@ -489,15 +328,48 @@ export default function FloatingAiTutor() {
     navigate(getDeckDetailRoute(deckId));
   };
 
-  const handleQuickAction = (actionType: 'explain' | 'grammar' | 'speak' | 'tips') => {
+  const handleQuickAction = (actionType: 'explain' | 'grammar' | 'speak' | 'tips' | 'example') => {
     if (actionType === 'explain') {
-      handleSendMessage(t('tutor_chip_vocab_prompt'));
-    } else if (actionType === 'grammar') {
-      setInputMessage(t('tutor_chip_grammar_prefix'));
-      if (isExpanded) {
-        expandedInputRef.current?.focus();
+      if (activeCardContext?.term) {
+        handleSendMessage(
+          isVi
+            ? `Giải thích từ "${activeCardContext.term}" kèm phiên âm IPA, nghĩa và câu ví dụ minh họa`
+            : `Explain the word "${activeCardContext.term}" with IPA phonetics, definition, and example sentences`
+        );
       } else {
-        compactInputRef.current?.focus();
+        handleSendMessage(t('tutor_chip_vocab_prompt'));
+      }
+    } else if (actionType === 'grammar') {
+      if (activeCardContext?.type === 'drag_drop' && activeCardContext?.term) {
+        handleSendMessage(
+          isVi
+            ? `Giải thích ngữ pháp của câu "${activeCardContext.term}" (nghĩa: "${activeCardContext.meaning || ''}")${activeCardContext.grammarRule ? `, áp dụng cấu trúc ${activeCardContext.grammarRule}` : ''}`
+            : `Explain the grammar of "${activeCardContext.term}" (meaning: "${activeCardContext.meaning || ''}")${activeCardContext.grammarRule ? `, rule: ${activeCardContext.grammarRule}` : ''}`
+        );
+      } else if (activeCardContext?.term) {
+        setInputMessage(
+          isVi
+            ? `Sửa lỗi và kiểm tra ngữ pháp câu dùng từ "${activeCardContext.term}": `
+            : `Check grammar and usage for a sentence with "${activeCardContext.term}": `
+        );
+        setTimeout(() => {
+          if (isExpanded) expandedInputRef.current?.focus();
+          else compactInputRef.current?.focus();
+        }, 50);
+      } else {
+        setInputMessage(t('tutor_chip_grammar_prefix'));
+        setTimeout(() => {
+          if (isExpanded) expandedInputRef.current?.focus();
+          else compactInputRef.current?.focus();
+        }, 50);
+      }
+    } else if (actionType === 'example') {
+      if (activeCardContext?.exampleEn) {
+        handleSendMessage(
+          isVi
+            ? `Phân tích cấu trúc ngữ pháp và từ vựng của câu ví dụ: "${activeCardContext.exampleEn}"`
+            : `Analyze the grammar and vocabulary of the example sentence: "${activeCardContext.exampleEn}"`
+        );
       }
     } else if (actionType === 'speak') {
       handleSendMessage(t('tutor_chip_speak_prompt'));
@@ -608,6 +480,17 @@ export default function FloatingAiTutor() {
               </button>
             )}
 
+            {activeTab === 'chat' && chatMessages.length > 1 && (
+              <button
+                type="button"
+                onClick={handleResetChat}
+                title={isVi ? 'Bắt đầu cuộc trò chuyện mới' : 'Start a new conversation'}
+                className="p-1.5 rounded-lg hover:bg-white/20 text-violet-200 hover:text-white transition-all cursor-pointer"
+              >
+                <RotateCcw size={15} />
+              </button>
+            )}
+
             {/* Expand / Minimize Toggle Button */}
             <button
               type="button"
@@ -679,6 +562,34 @@ export default function FloatingAiTutor() {
                 <Trophy size={11} />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Active Study Item Indicator (when studying flashcards & grammar) */}
+        {activeTab === 'chat' && activeCardContext?.term && (
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`px-3 py-1.5 bg-gradient-to-r from-violet-50/90 to-indigo-50/90 dark:from-violet-950/40 dark:to-indigo-950/40 border-b border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between gap-2 select-none shrink-0 ${
+              isExpandedMode ? 'px-8 py-2' : ''
+            }`}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Sparkles size={13} className="text-violet-600 dark:text-violet-400 shrink-0" />
+              <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+                {isVi ? (activeCardContext.type === 'drag_drop' ? 'Đang học câu:' : 'Đang học từ:') : 'Current card:'}
+              </span>
+              <span className="font-bold text-violet-700 dark:text-violet-300 truncate max-w-[130px] sm:max-w-xs text-xs">
+                {activeCardContext.term}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleQuickAction('explain')}
+              className="px-2 py-0.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-bold shrink-0 cursor-pointer transition-colors shadow-2xs"
+              title={isVi ? 'Hỏi gia sư về từ/câu này' : 'Ask AI tutor about this card'}
+            >
+              {isVi ? 'Hỏi thẻ này' : 'Ask card'}
+            </button>
           </div>
         )}
 
@@ -907,11 +818,42 @@ export default function FloatingAiTutor() {
               isExpandedMode ? 'px-6 py-2 gap-2 text-xs' : ''
             }`}
           >
+            {/* Contextual Card Chip (if currently studying a deck / card) */}
+            {activeCardContext?.term && (
+              <button
+                type="button"
+                onClick={() => handleQuickAction('explain')}
+                title={isVi ? `Hỏi về "${activeCardContext.term}"` : `Ask about "${activeCardContext.term}"`}
+                className="px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-950/80 border border-violet-300 dark:border-violet-700 hover:border-violet-500 text-violet-700 dark:text-violet-300 font-bold cursor-pointer flex items-center gap-1 transition-all shrink-0"
+              >
+                <Sparkles size={11} className="text-violet-500" />
+                <span>
+                  {isVi
+                    ? activeCardContext.type === 'drag_drop'
+                      ? 'Ngữ pháp câu này'
+                      : `Hỏi từ "${activeCardContext.term}"`
+                    : `Ask "${activeCardContext.term}"`}
+                </span>
+              </button>
+            )}
+
+            {activeCardContext?.exampleEn && (
+              <button
+                type="button"
+                onClick={() => handleQuickAction('example')}
+                title={isVi ? 'Phân tích câu ví dụ' : 'Analyze example sentence'}
+                className="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-700 hover:border-indigo-400 text-indigo-600 dark:text-indigo-300 font-medium cursor-pointer flex items-center gap-1 transition-all shrink-0"
+              >
+                <Lightbulb size={11} className="text-amber-500" />
+                <span>{isVi ? 'Phân tích câu ví dụ' : 'Analyze example'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => handleQuickAction('explain')}
               title={t('tutor_chip_vocab_tip')}
-              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all"
+              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all shrink-0"
             >
               <Search size={11} className="text-indigo-500" />
               <span>{t('tutor_chip_vocab')}</span>
@@ -920,7 +862,7 @@ export default function FloatingAiTutor() {
               type="button"
               onClick={() => handleQuickAction('grammar')}
               title={t('tutor_chip_grammar_tip')}
-              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all"
+              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all shrink-0"
             >
               <PenTool size={11} className="text-amber-500" />
               <span>{t('tutor_chip_grammar')}</span>
@@ -929,7 +871,7 @@ export default function FloatingAiTutor() {
               type="button"
               onClick={() => handleQuickAction('speak')}
               title={t('tutor_chip_speak_tip')}
-              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all"
+              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all shrink-0"
             >
               <Volume2 size={11} className="text-emerald-500" />
               <span>{t('tutor_chip_speak')}</span>
@@ -938,7 +880,7 @@ export default function FloatingAiTutor() {
               type="button"
               onClick={() => handleQuickAction('tips')}
               title={t('tutor_chip_tips_tip')}
-              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all"
+              className="px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-indigo-400 text-slate-600 dark:text-slate-300 font-medium cursor-pointer flex items-center gap-1 transition-all shrink-0"
             >
               <Lightbulb size={11} className="text-yellow-500" />
               <span>{t('tutor_chip_tips')}</span>
@@ -953,34 +895,38 @@ export default function FloatingAiTutor() {
             e.preventDefault();
             handleSendMessage();
           }}
-          className={`p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2 ${
+          className={`p-2 sm:p-2.5 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 flex items-end gap-2 ${
             isExpandedMode ? 'p-2.5 sm:p-3.5 px-3 sm:px-8 gap-2.5 sm:gap-3' : ''
           }`}
         >
-          <input
-            ref={isExpandedMode ? expandedInputRef : compactInputRef}
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder={
-              activeTab === 'assessment'
-                ? t('tutor_placeholder_assessment')
-                : t('tutor_placeholder_chat')
-            }
-            disabled={isLoading || (activeTab === 'assessment' && assessmentStep >= 3)}
-            className={`flex-1 px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 ${
-              isExpandedMode ? 'py-2.5 px-4 text-sm' : 'text-xs'
-            }`}
-          />
+          <div className="relative flex-1 flex flex-col">
+            <textarea
+              ref={isExpandedMode ? expandedInputRef : compactInputRef}
+              rows={1}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={handleKeyDownInput}
+              placeholder={
+                activeTab === 'assessment'
+                  ? t('tutor_placeholder_assessment')
+                  : t('tutor_placeholder_chat')
+              }
+              title={isVi ? 'Nhấn Shift+Enter để xuống dòng, Enter để gửi' : 'Press Shift+Enter for new line, Enter to send'}
+              disabled={isLoading || (activeTab === 'assessment' && assessmentStep >= 3)}
+              className={`w-full px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 resize-none leading-relaxed overflow-y-auto no-scrollbar ${
+                isExpandedMode ? 'py-2.5 px-4 text-sm min-h-[44px] max-h-40' : 'text-xs min-h-[38px] max-h-32'
+              }`}
+            />
+          </div>
 
           <button
             type="submit"
             disabled={!inputMessage.trim() || isLoading}
-            className={`rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer ${
+            className={`rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer mb-0.5 ${
               isExpandedMode ? 'w-10 h-10' : 'w-8.5 h-8.5'
             }`}
             aria-label={t('tutor_btn_send_tip')}
-            title={t('tutor_btn_send_tip')}
+            title={isVi ? 'Gửi tin nhắn (Enter để gửi, Shift+Enter để xuống dòng)' : 'Send message (Enter to send, Shift+Enter for new line)'}
           >
             <Send size={isExpandedMode ? 16 : 14} />
           </button>

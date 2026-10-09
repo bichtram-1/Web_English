@@ -475,7 +475,7 @@ const EnTranslation: I18nKey = {
   tutor_chip_tips_prompt: 'Share 3 effective tips for remembering English vocabulary long-term',
   tutor_placeholder_assessment: 'Type your answer in English...',
   tutor_placeholder_chat: 'Ask about vocabulary, grammar, or chat in English...',
-  tutor_btn_send_tip: 'Send message',
+  tutor_btn_send_tip: 'Send message (Enter to send, Shift+Enter for new line)',
   tutor_welcome_assessment: '👋 **CEFR Level Assessment** (3 quick questions):\n\n🎯 **Question 1/3 (Introduction & Hobbies):**\n*Could you tell me a little bit about yourself? What do you usually like to do in your free time, and why?*',
   tutor_welcome_chat: '👋 Hello! Feel free to ask me to explain vocabulary, correct grammar, or practice English conversation anytime!',
   tutor_copy_btn: 'Copy',

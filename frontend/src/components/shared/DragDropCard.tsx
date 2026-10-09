@@ -335,13 +335,36 @@ const DragDropCard = forwardRef<DragDropCardRef, DragDropCardProps>(function Dra
               <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                 <BookOpen size={14} /> {t('grammar_drag_title')}
               </span>
-              <button
-                onClick={() => setShowHint((h) => !h)}
-                className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 px-2.5 py-1 rounded-full transition-all cursor-pointer"
-              >
-                <Lightbulb size={13} />
-                {showHint ? t('grammar_hide_hint') : t('grammar_hint_btn')}
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fullSentence = card.correctOrder.join(' ');
+                    window.dispatchEvent(
+                      new CustomEvent('open-ai-tutor', {
+                        detail: {
+                          tab: 'chat',
+                          prompt: isVi
+                            ? `Giải thích ngữ pháp của câu "${fullSentence}" (nghĩa: "${card.meaning}")${card.grammarRule ? `, áp dụng cấu trúc: ${card.grammarRule}` : ''}`
+                            : `Explain the grammar of "${fullSentence}" (meaning: "${card.meaning}")${card.grammarRule ? `, rule: ${card.grammarRule}` : ''}`,
+                        },
+                      })
+                    );
+                  }}
+                  className="flex items-center gap-1 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:text-violet-800 bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 dark:hover:bg-violet-900/60 px-2.5 py-1 rounded-full transition-all cursor-pointer border border-violet-200 dark:border-violet-800/60"
+                  title={isVi ? 'Hỏi AI Tutor giải thích ngữ pháp câu này' : 'Ask AI Tutor about this grammar sentence'}
+                >
+                  <Sparkles size={12} className="text-violet-500" />
+                  <span>{isVi ? 'Hỏi AI Tutor' : 'Ask AI'}</span>
+                </button>
+                <button
+                  onClick={() => setShowHint((h) => !h)}
+                  className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 px-2.5 py-1 rounded-full transition-all cursor-pointer"
+                >
+                  <Lightbulb size={13} />
+                  {showHint ? t('grammar_hide_hint') : t('grammar_hint_btn')}
+                </button>
+              </div>
             </div>
             <p className="text-slate-800 dark:text-slate-100 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
               {card.meaning}

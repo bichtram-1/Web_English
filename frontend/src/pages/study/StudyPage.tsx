@@ -2,13 +2,15 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard, Bot, Sparkles } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
+import FloatingAiTutor from '../../components/general/FloatingAiTutor';
 import ThemeToggle from '../../components/general/ThemeToggle';
 import LanguageSelect from '../../components/general/LanguageSelect';
 import WallpaperModal from '../../components/general/WallpaperModal';
 import { useWallpaper } from '../../contexts/WallpaperContext';
+import { useAiTutor } from '../../contexts/AiTutorContext';
 import { useDoubleEscExit } from '../../hooks/useDoubleEscExit';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import studyApi from '../../api/studyApi';
@@ -95,6 +97,7 @@ export default function StudyPage() {
   const [sm2Enabled, setSm2Enabled] = useState(true);
   const [currentSM2Record, setCurrentSM2Record] = useState<SM2Record | null>(null);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const { isOpen: isAiTutorOpen, setCurrentCardContext } = useAiTutor();
 
   const flashCardRef = useRef<FlashCardRef>(null);
   const dragDropRef = useRef<DragDropCardRef>(null);
@@ -147,10 +150,13 @@ export default function StudyPage() {
   const { toastElement } = useDoubleEscExit({
     onExit: handleExit,
     isCompleted: isFinished,
-    hasActiveModal: showShortcutsModal || isWallpaperModalOpen,
+    hasActiveModal: showShortcutsModal || isWallpaperModalOpen || isAiTutorOpen,
     onCloseModal: () => {
       if (showShortcutsModal) setShowShortcutsModal(false);
       else if (isWallpaperModalOpen) setWallpaperModalOpen(false);
+      else if (isAiTutorOpen) {
+        window.dispatchEvent(new CustomEvent('close-ai-tutor'));
+      }
     },
   });
 
@@ -186,6 +192,30 @@ export default function StudyPage() {
       setIsCardFlipped(false);
     }
   }, [currentDeck, card]);
+
+  // Sync current studying card with AI Tutor context for contextual help
+  useEffect(() => {
+    if (card) {
+      setCurrentCardContext({
+        type: card.type,
+        term: card.type === 'flashcard' ? card.front : card.correctOrder.join(' '),
+        meaning: card.type === 'flashcard' ? card.back : card.meaning,
+        phonetic: card.type === 'flashcard' ? card.phonetic : undefined,
+        exampleEn: card.type === 'flashcard' ? card.exampleEn : undefined,
+        exampleVi: card.type === 'flashcard' ? card.exampleVi : undefined,
+        grammarRule: card.type === 'drag_drop' ? card.grammarRule : undefined,
+        grammarExplanation:
+          card.type === 'drag_drop'
+            ? (card.grammarExplanation || card.grammarNote)
+            : undefined,
+      });
+    } else {
+      setCurrentCardContext(null);
+    }
+    return () => {
+      setCurrentCardContext(null);
+    };
+  }, [card, setCurrentCardContext]);
 
   const activeSM2Record = useMemo(() => {
     if (currentSM2Record) return currentSM2Record;
@@ -323,7 +353,7 @@ export default function StudyPage() {
 
   // Global keyboard shortcuts (including 1, 2, 3, 4 for SM-2 ratings, and S for Star)
   useEffect(() => {
-    if (isFinished || !card) return;
+    if (isFinished || !card || isAiTutorOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -407,7 +437,7 @@ export default function StudyPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, handleRateSM2, toggleStar, isVi, showToast]);
+  }, [currentIndex, isFinished, card, goNext, goPrev, sm2Enabled, handleRateSM2, toggleStar, isVi, showToast, isAiTutorOpen]);
 
   if (loading && (!currentDeck || cards.length === 0)) return <Loading />;
 
@@ -614,6 +644,26 @@ export default function StudyPage() {
                 <span>{starredCount}</span>
               </button>
             </div>
+
+            {/* AI Tutor Chat Trigger */}
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-ai-tutor', {
+                    detail: {
+                      tab: 'chat',
+                    },
+                  })
+                );
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+              title={isVi ? 'Chat với Gia sư AI (LinguaBot)' : 'Chat with AI Tutor (LinguaBot)'}
+              aria-label="Chat with AI Tutor"
+            >
+              <Bot size={15} className="shrink-0 text-amber-300" />
+              <span className="hidden sm:inline">{isVi ? 'Gia sư AI' : 'AI Tutor'}</span>
+            </button>
 
             {/* Wallpaper, Language & Theme toggles in study mode */}
             <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
@@ -883,6 +933,11 @@ export default function StudyPage() {
                 </div>
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Chat với Gia sư AI' : 'Chat with AI Tutor'}</span>
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">{isVi ? 'Shift+Enter để xuống dòng' : 'Shift+Enter for newline'}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800/60">
                   <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Thoát ra bộ thẻ (nhấn 2 lần)' : 'Exit study (double press)'}</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs shadow-2xs">Esc + Esc</kbd>
                 </div>
@@ -905,6 +960,9 @@ export default function StudyPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Interactive AI Tutor Widget for Flashcards & Grammar Study */}
+      <FloatingAiTutor />
 
       {/* Double Esc Toast Element */}
       {toastElement}

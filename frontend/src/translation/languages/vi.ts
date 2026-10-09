@@ -473,7 +473,7 @@ const ViTranslation = {
   tutor_chip_tips_prompt: 'Chia sẻ cho mình 3 mẹo ghi nhớ từ vựng tiếng Anh lâu quên nhất',
   tutor_placeholder_assessment: 'Nhập câu trả lời bằng tiếng Anh...',
   tutor_placeholder_chat: 'Hỏi từ vựng, ngữ pháp hoặc chat tiếng Anh...',
-  tutor_btn_send_tip: 'Gửi tin nhắn',
+  tutor_btn_send_tip: 'Gửi tin nhắn (Enter để gửi, Shift+Enter để xuống dòng)',
   tutor_welcome_assessment: '👋 **Khảo sát trình độ CEFR** (3 câu hỏi ngắn):\n\n🎯 **Câu 1/3 (Giới thiệu & Sở thích):**\n*Could you tell me a little bit about yourself? What do you usually like to do in your free time, and why?*',
   tutor_welcome_chat: '👋 Chào bạn! Cần tra từ, sửa lỗi ngữ pháp hay luyện hội thoại tiếng Anh, bạn cứ nhắn mình nhé!',
   tutor_copy_btn: 'Sao chép',

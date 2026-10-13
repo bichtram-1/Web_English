@@ -5,7 +5,7 @@ import deckApi, { getStoredDecks } from '../../api/deckApi';
 import type { Deck, FlashcardItem } from '../../types/DeckType';
 import { mockDecks } from '../../data/mockData';
 import Loading from '../../components/shared/Loading';
-import { getDeckDetailRoute } from '../../constants/routers';
+import { getDeckDetailRoute, getCollectionDetailRoute } from '../../constants/routers';
 import { useStarredCards } from '../../utils/starredCards';
 import { getDeckDueCards } from '../../utils/sm2';
 
@@ -82,10 +82,18 @@ export default function WrittenPracticePage() {
 
   if (loading && !activeDeck) return <Loading />;
 
+  const handleExit = () => {
+    if (targetId.startsWith('col-')) {
+      navigate(getCollectionDetailRoute(targetId));
+    } else {
+      navigate(getDeckDetailRoute(deck.id));
+    }
+  };
+
   return (
     <WrittenPractice
       deck={activeDeck}
-      onExit={() => navigate(getDeckDetailRoute(deck.id))}
+      onExit={handleExit}
       filterMode={filterMode}
       onFilterChange={handleFilterChange}
       totalCount={rawCards.length}

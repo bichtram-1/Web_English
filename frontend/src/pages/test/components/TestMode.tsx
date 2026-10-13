@@ -93,7 +93,7 @@ function MCCard({
   isVi,
 }: {
   q: MCQuestion;
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (correct: boolean, yourAnswer?: string) => void;
   isVi: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
@@ -104,7 +104,7 @@ function MCCard({
     const isCorrect = opt === q.correct;
     if (isCorrect) playCorrectSound();
     else playIncorrectSound();
-    setTimeout(() => onAnswer(isCorrect), 700);
+    setTimeout(() => onAnswer(isCorrect, opt), 700);
   }, [chosen, q.correct, onAnswer]);
 
   useEffect(() => {
@@ -176,7 +176,7 @@ function MCCard({
   );
 }
 
-function TFCard({ q, onAnswer, isVi }: { q: TFQuestion; onAnswer: (correct: boolean) => void; isVi: boolean }) {
+function TFCard({ q, onAnswer, isVi }: { q: TFQuestion; onAnswer: (correct: boolean, yourAnswer?: string) => void; isVi: boolean }) {
   const [chosen, setChosen] = useState<boolean | null>(null);
 
   const pick = useCallback((val: boolean) => {
@@ -185,8 +185,9 @@ function TFCard({ q, onAnswer, isVi }: { q: TFQuestion; onAnswer: (correct: bool
     const isCorrect = val === q.isTrue;
     if (isCorrect) playCorrectSound();
     else playIncorrectSound();
-    setTimeout(() => onAnswer(isCorrect), 700);
-  }, [chosen, q.isTrue, onAnswer]);
+    const yourAns = val ? (isVi ? 'Đúng' : 'True') : (isVi ? 'Sai' : 'False');
+    setTimeout(() => onAnswer(isCorrect, yourAns), 700);
+  }, [chosen, q.isTrue, onAnswer, isVi]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -272,7 +273,7 @@ function TFCard({ q, onAnswer, isVi }: { q: TFQuestion; onAnswer: (correct: bool
   );
 }
 
-function WrittenCard({ q, onAnswer, isVi }: { q: WrittenQuestion; onAnswer: (correct: boolean) => void; isVi: boolean }) {
+function WrittenCard({ q, onAnswer, isVi }: { q: WrittenQuestion; onAnswer: (correct: boolean, yourAnswer?: string) => void; isVi: boolean }) {
   const [value, setValue] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [correct, setCorrect] = useState(false);
@@ -290,7 +291,7 @@ function WrittenCard({ q, onAnswer, isVi }: { q: WrittenQuestion; onAnswer: (cor
     setSubmitted(true);
     if (ok) playCorrectSound();
     else playIncorrectSound();
-    setTimeout(() => onAnswer(ok), 900);
+    setTimeout(() => onAnswer(ok, value), 900);
   };
 
   return (
@@ -372,6 +373,7 @@ function ScoreScreen({
   wrongs,
   onRestart,
   onExit,
+  onRetryWrongs,
   isVi,
 }: {
   score: number;
@@ -380,6 +382,7 @@ function ScoreScreen({
   wrongs: WrongItem[];
   onRestart: () => void;
   onExit: () => void;
+  onRetryWrongs?: () => void;
   isVi: boolean;
 }) {
   const pct = Math.round((score / total) * 100);
@@ -447,17 +450,31 @@ function ScoreScreen({
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+        {onRetryWrongs && wrongs.length > 0 && (
+          <button
+            onClick={onRetryWrongs}
+            className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-indigo-600 to-indigo-700 hover:from-rose-600 hover:to-indigo-800 text-white font-black flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 active:scale-[0.98] transition-all cursor-pointer"
+            style={{ fontFamily: 'var(--font-display)' }}
+            title={isVi ? 'Làm lại các câu sai' : 'Retry wrong questions'}
+          >
+            <RotateCcw size={16} /> {isVi ? `Làm lại câu sai (${wrongs.length})` : `Retry Missed (${wrongs.length})`}
+          </button>
+        )}
         <button
           onClick={onRestart}
-          className="flex-1 py-3.5 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer"
+          className={`py-3.5 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer ${
+            wrongs.length > 0 ? '' : 'flex-1'
+          }`}
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <RotateCcw size={16} /> {isVi ? 'Làm lại' : 'Retry'}
+          <RotateCcw size={16} /> {wrongs.length > 0 ? (isVi ? 'Làm lại tất cả' : 'Retry All') : (isVi ? 'Làm lại' : 'Retry')}
         </button>
         <button
           onClick={onExit}
-          className="flex-1 py-3.5 rounded-2xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 transition-colors cursor-pointer"
+          className={`py-3.5 rounded-2xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 transition-colors cursor-pointer ${
+            wrongs.length > 0 ? '' : 'flex-1'
+          }`}
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {isVi ? 'Trở về bộ thẻ' : 'Back to Deck'}
@@ -567,6 +584,19 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
 
   const restart = () => {
     setQuestions(buildQuestions(deck));
+    setCurrent(0);
+    setScore(0);
+    setTimeLeft(TIME_LIMIT);
+    setElapsed(0);
+    setDone(false);
+    setWrongs([]);
+    setAnswers([]);
+  };
+
+  const handleRetryWrongs = () => {
+    const wrongQuestions = questions.filter((_, idx) => answers[idx] && !answers[idx].correct);
+    if (wrongQuestions.length === 0) return;
+    setQuestions(wrongQuestions);
     setCurrent(0);
     setScore(0);
     setTimeLeft(TIME_LIMIT);
@@ -710,6 +740,7 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
                 wrongs={wrongs}
                 onRestart={restart}
                 onExit={onExit}
+                onRetryWrongs={handleRetryWrongs}
                 isVi={isVi}
               />
             ) : (
@@ -736,12 +767,12 @@ export default function TestMode({ deck, onExit }: TestModeProps) {
                   </span>
                 </div>
 
-                {q?.kind === 'mc' && <MCCard q={q} onAnswer={(ok) => handleAnswer(ok, '')} isVi={isVi} />}
-                {q?.kind === 'tf' && <TFCard q={q} onAnswer={(ok) => handleAnswer(ok, '')} isVi={isVi} />}
+                {q?.kind === 'mc' && <MCCard q={q} onAnswer={(ok, ans) => handleAnswer(ok, ans || '')} isVi={isVi} />}
+                {q?.kind === 'tf' && <TFCard q={q} onAnswer={(ok, ans) => handleAnswer(ok, ans || '')} isVi={isVi} />}
                 {q?.kind === 'written' && (
                   <WrittenCard
                     q={q}
-                    onAnswer={(ok) => handleAnswer(ok, '')}
+                    onAnswer={(ok, ans) => handleAnswer(ok, ans || '')}
                     isVi={isVi}
                   />
                 )}

@@ -5,7 +5,7 @@
 const ViTranslation = {
   // Brand & General
   app_name: 'LinguaLeap',
-  app_tag: 'DATN FE',
+  app_tag: 'BT',
   app_subtitle: 'Nền tảng học tiếng Anh thông minh với Thẻ ghi nhớ & Bài tập ngữ pháp',
   loading: 'Đang tải dữ liệu...',
   back: 'Quay lại',

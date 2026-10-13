@@ -151,7 +151,8 @@ const DragDropCard = forwardRef<DragDropCardRef, DragDropCardProps>(function Dra
   { card, onCorrect },
   ref
 ) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const [slots, setSlots] = useState<(DragDropWord | null)[]>(new Array(card.correctOrder.length).fill(null));
   const [source, setSource] = useState<DragDropWord[]>([...card.shuffled]);
   const [activeId, setActiveId] = useState<string | null>(null);

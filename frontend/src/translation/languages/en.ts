@@ -7,7 +7,7 @@ import type { I18nKey } from '../../types/I18nKeyType';
 const EnTranslation: I18nKey = {
   // Brand & General
   app_name: 'LinguaLeap',
-  app_tag: 'DATN FE',
+  app_tag: 'BT',
   app_subtitle: 'Smart English learning platform with Spaced Repetition flashcards & grammar practice',
   loading: 'Loading data...',
   back: 'Back',

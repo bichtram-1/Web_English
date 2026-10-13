@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, X, ArrowLeft, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard, Star, Brain } from 'lucide-react';
+import { CheckCircle2, X, ArrowLeft, ArrowRight, RotateCcw, PenLine, SkipForward, Image as ImageIcon, Keyboard, Star, Brain, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
@@ -9,10 +9,26 @@ import WallpaperModal from '../../../components/general/WallpaperModal';
 import { useWallpaper } from '../../../contexts/WallpaperContext';
 import LanguageSelect from '../../../components/general/LanguageSelect';
 import ThemeToggle from '../../../components/general/ThemeToggle';
+import SpeechButton from '../../../components/common/SpeechButton';
 import { isAnswerMatching, stripParentheses } from '../../../utils/answerMatch';
 import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 
-const FALLBACK_WORDS = [
+export interface WrittenWord {
+  id?: number;
+  en: string;
+  vi: string;
+  imageUrl?: string;
+}
+
+export interface WrittenWrongItem {
+  id?: number;
+  word: WrittenWord;
+  prompt: string;
+  yourAnswer: string;
+  correctAnswer: string;
+}
+
+const FALLBACK_WORDS: WrittenWord[] = [
   { id: 1, en: 'Developer', vi: 'lập trình viên' },
   { id: 2, en: 'Database', vi: 'cơ sở dữ liệu' },
   { id: 3, en: 'Framework', vi: 'bộ khung' },
@@ -192,24 +208,57 @@ function ProgressDots({
 function CompletionScreen({
   results,
   total,
+  wrongs,
+  isRetryingWrongs,
+  retryRoundNumber,
+  onRetryWrongs,
   onRestart,
   onExit,
   isVi,
 }: {
   results: (boolean | null)[];
   total: number;
+  wrongs: WrittenWrongItem[];
+  isRetryingWrongs: boolean;
+  retryRoundNumber: number;
+  onRetryWrongs: () => void;
   onRestart: () => void;
   onExit: () => void;
   isVi: boolean;
 }) {
   const correct = results.filter((r) => r === true).length;
-  const pct = Math.round((correct / total) * 100);
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 100;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (wrongs.length > 0) {
+          onRetryWrongs();
+        } else {
+          onRestart();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [wrongs.length, onRetryWrongs, onRestart]);
 
   const getGrade = () => {
-    if (pct >= 90) return { label: isVi ? 'Xuất sắc!' : 'Outstanding!', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/30', emoji: '🏆' };
+    if (wrongs.length === 0) {
+      return {
+        label: isRetryingWrongs
+          ? (isVi ? 'Đã chinh phục hết các từ sai! 🎉' : 'All missed words mastered! 🎉')
+          : (isVi ? 'Xuất sắc! Tuyệt đối 100%! 🏆' : 'Outstanding! Perfect 100%! 🏆'),
+        color: 'text-emerald-500',
+        bg: 'bg-emerald-500/10 border-emerald-500/30',
+        emoji: '🏆',
+      };
+    }
+    if (pct >= 90) return { label: isVi ? 'Xuất sắc!' : 'Outstanding!', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/30', emoji: '🌟' };
     if (pct >= 70) return { label: isVi ? 'Làm tốt lắm!' : 'Well done!', color: 'text-indigo-500', bg: 'bg-indigo-500/10 border-indigo-500/30', emoji: '⭐' };
     if (pct >= 50) return { label: isVi ? 'Khá tốt!' : 'Good effort!', color: 'text-amber-500', bg: 'bg-amber-500/10 border-amber-500/30', emoji: '💪' };
-    return { label: isVi ? 'Cần luyện thêm!' : 'Keep practicing!', color: 'text-red-500', bg: 'bg-red-500/10 border-red-500/30', emoji: '📖' };
+    return { label: isVi ? 'Cần luyện thêm!' : 'Keep practicing!', color: 'text-rose-500', bg: 'bg-rose-500/10 border-rose-500/30', emoji: '📖' };
   };
 
   const grade = getGrade();
@@ -218,10 +267,15 @@ function CompletionScreen({
     <motion.div
       initial={{ opacity: 0, scale: 0.94 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`w-full rounded-3xl border-2 backdrop-blur-md shadow-xl ${grade.bg} p-8 text-center flex flex-col gap-5`}
+      className={`w-full rounded-3xl border-2 backdrop-blur-md shadow-xl ${grade.bg} p-6 sm:p-8 text-center flex flex-col gap-5`}
     >
       <div className="text-5xl">{grade.emoji}</div>
       <div>
+        {isRetryingWrongs && (
+          <span className="inline-block text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/80 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 mb-2">
+            {isVi ? `Vòng gõ lại từ sai #${retryRoundNumber}` : `Retry Missed Round #${retryRoundNumber}`}
+          </span>
+        )}
         <p className={`text-4xl sm:text-5xl font-black mb-1 ${grade.color}`} style={{ fontFamily: 'var(--font-display)' }}>
           {pct}%
         </p>
@@ -229,6 +283,7 @@ function CompletionScreen({
           {grade.label}
         </p>
       </div>
+
       <div className="flex justify-center gap-8">
         <div>
           <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
@@ -237,23 +292,81 @@ function CompletionScreen({
           <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-bold">{isVi ? 'Đúng' : 'Correct'}</p>
         </div>
         <div>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-            {total - correct}
+          <p className={`text-2xl sm:text-3xl font-black ${wrongs.length > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`} style={{ fontFamily: 'var(--font-display)' }}>
+            {wrongs.length}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-bold">{isVi ? 'Chưa đúng' : 'Missed'}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-bold">{isVi ? 'Cần gõ lại' : 'Missed'}</p>
         </div>
       </div>
-      <div className="flex gap-3 pt-2">
+
+      {/* Danh sách các từ cần ôn lại (Giống quiz) */}
+      {wrongs.length > 0 && (
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-lg text-left">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <XCircle size={16} className="text-rose-500 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200" style={{ fontFamily: 'var(--font-display)' }}>
+                {isVi ? `Các từ cần ôn lại (${wrongs.length})` : `Words to review (${wrongs.length})`}
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400">
+              {isVi ? 'Xem lại trước khi gõ lại' : 'Review before retrying'}
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-56 overflow-y-auto">
+            {wrongs.map((w, i) => (
+              <div key={i} className="px-4 sm:px-5 py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {w.word.en && (
+                    <SpeechButton text={w.word.en} size={14} className="p-1 shrink-0" />
+                  )}
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                    {w.prompt}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs sm:text-sm shrink-0">
+                  <span className="line-through text-rose-500 font-semibold">{w.yourAnswer || (isVi ? '(để trống)' : '(blank)')}</span>
+                  <ArrowRight size={12} className="text-slate-400" />
+                  <span className="text-emerald-600 dark:text-emerald-400 font-black" style={{ fontFamily: 'var(--font-display)' }}>
+                    {w.correctAnswer}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Nút hành động */}
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-2">
+        {wrongs.length > 0 && (
+          <button
+            onClick={onRetryWrongs}
+            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-indigo-600 to-indigo-700 hover:from-rose-600 hover:to-indigo-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 active:scale-[0.98] transition-all cursor-pointer"
+            style={{ fontFamily: 'var(--font-display)' }}
+            title={isVi ? 'Gõ lại các từ chưa đúng (Enter)' : 'Retry missed words (Enter)'}
+          >
+            <RotateCcw size={16} />
+            <span>{isVi ? `Gõ lại từ sai (${wrongs.length})` : `Retry Missed Words (${wrongs.length})`}</span>
+          </button>
+        )}
+
         <button
           onClick={onRestart}
-          className="flex-1 py-3.5 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer"
+          className={`py-3.5 px-4 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer ${
+            wrongs.length > 0 ? '' : 'flex-1'
+          }`}
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          <RotateCcw size={15} /> {isVi ? 'Luyện lại' : 'Retry'}
+          <RotateCcw size={15} />
+          <span>{wrongs.length > 0 ? (isVi ? 'Luyện lại tất cả' : 'Retry All') : (isVi ? 'Luyện lại' : 'Retry')}</span>
         </button>
+
         <button
           onClick={onExit}
-          className="flex-1 py-3.5 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 cursor-pointer"
+          className={`py-3.5 px-4 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 cursor-pointer ${
+            wrongs.length > 0 ? '' : 'flex-1'
+          }`}
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {isVi ? 'Hoàn thành' : 'Done'}
@@ -292,15 +405,16 @@ export default function WrittenPractice({
   const isVi = i18n.language === 'vi';
   const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 
-  const baseWords: { id?: number; en: string; vi: string }[] = useMemo(() => {
+  const baseWords: WrittenWord[] = useMemo(() => {
     return deck
       ? deck.cards
           .filter((c): c is FlashcardItem => c.type === 'flashcard')
-          .map((c) => ({ id: c.id, en: c.front, vi: c.back }))
+          .map((c) => ({ id: c.id, en: c.front, vi: c.back, imageUrl: c.imageUrl }))
       : FALLBACK_WORDS;
   }, [deck]);
 
-  const [queue, setQueue] = useState([...baseWords]);
+  const [activeWords, setActiveWords] = useState<WrittenWord[]>([...baseWords]);
+  const [queue, setQueue] = useState<WrittenWord[]>([...baseWords]);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [skipCount, setSkipCount] = useState(0);
 
@@ -310,21 +424,26 @@ export default function WrittenPractice({
   const [status, setStatus] = useState<Status>('idle');
   const [shaking, setShaking] = useState(false);
   const [results, setResults] = useState<(boolean | null)[]>(Array(baseWords.length).fill(null));
+  const [wrongs, setWrongs] = useState<WrittenWrongItem[]>([]);
+  const [isRetryingWrongs, setIsRetryingWrongs] = useState(false);
+  const [retryRoundNumber, setRetryRoundNumber] = useState(1);
   const [done, setDone] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   // Lịch sử để có thể quay lại (Undo/Go back)
   interface HistoryStep {
-    queue: { id?: number; en: string; vi: string }[];
+    queue: WrittenWord[];
     index: number;
     answeredCount: number;
     skipCount: number;
     results: (boolean | null)[];
+    wrongs: WrittenWrongItem[];
   }
   const [history, setHistory] = useState<HistoryStep[]>([]);
 
   // Sync state whenever baseWords changes
   useEffect(() => {
+    setActiveWords([...baseWords]);
     setQueue([...baseWords]);
     setAnsweredCount(0);
     setSkipCount(0);
@@ -333,8 +452,11 @@ export default function WrittenPractice({
     setStatus('idle');
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
+    setWrongs([]);
     setDone(false);
     setHistory([]);
+    setIsRetryingWrongs(false);
+    setRetryRoundNumber(1);
   }, [baseWords]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -347,10 +469,10 @@ export default function WrittenPractice({
   const hasParenthesesNote = cleanCorrectAnswer !== correctAnswer;
 
   const activeWordIndex = useMemo(() => {
-    if (!word) return Math.min(index, Math.max(0, baseWords.length - 1));
-    const origIdx = baseWords.findIndex((w) => (w.id && word.id ? w.id === word.id : w.en === word.en));
-    return origIdx !== -1 ? origIdx : Math.min(index, Math.max(0, baseWords.length - 1));
-  }, [word, index, baseWords]);
+    if (!word) return Math.min(index, Math.max(0, activeWords.length - 1));
+    const origIdx = activeWords.findIndex((w) => (w.id && word.id ? w.id === word.id : w.en === word.en));
+    return origIdx !== -1 ? origIdx : Math.min(index, Math.max(0, activeWords.length - 1));
+  }, [word, index, activeWords]);
 
   const { toastElement } = useDoubleEscExit({
     onExit,
@@ -389,6 +511,7 @@ export default function WrittenPractice({
   const handleDirectionChange = (d: Direction) => {
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     setDirection(d);
+    setActiveWords([...baseWords]);
     setQueue([...baseWords]);
     setAnsweredCount(0);
     setSkipCount(0);
@@ -397,35 +520,38 @@ export default function WrittenPractice({
     setStatus('idle');
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
+    setWrongs([]);
     setDone(false);
     setHistory([]);
+    setIsRetryingWrongs(false);
+    setRetryRoundNumber(1);
   };
 
   const advance = useCallback(() => {
     const nextAnswered = answeredCount + 1;
     setAnsweredCount(nextAnswered);
-    if (nextAnswered >= baseWords.length) {
+    if (nextAnswered >= activeWords.length) {
       setDone(true);
       const correctCount = results.filter((r) => r === true).length;
       studyApi.submitSession({
         deckId: deck?.id || 'unknown',
         mode: 'written',
-        cardsStudied: baseWords.length,
-        correctCount: correctCount || baseWords.length,
+        cardsStudied: activeWords.length,
+        correctCount: correctCount || activeWords.length,
         timeSpentSeconds: 60,
       }).catch(console.error);
     } else {
-      setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results }]);
+      setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results, wrongs }]);
       setIndex((i) => i + 1);
       setInput('');
       setStatus('idle');
     }
-  }, [answeredCount, baseWords.length, deck?.id, results, queue, index, skipCount]);
+  }, [answeredCount, activeWords.length, deck?.id, results, queue, index, skipCount, wrongs]);
 
   const skip = useCallback(() => {
     if (status === 'correct' || status === 'force-retype') return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
-    setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results }]);
+    setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results, wrongs }]);
     setQueue((q) => {
       const current = q[index];
       if (!current) return q;
@@ -436,7 +562,7 @@ export default function WrittenPractice({
     setInput('');
     setStatus('idle');
     setShaking(false);
-  }, [status, index, queue, answeredCount, skipCount, results]);
+  }, [status, index, queue, answeredCount, skipCount, results, wrongs]);
 
   const goBack = useCallback(() => {
     if (status === 'correct') return;
@@ -444,6 +570,7 @@ export default function WrittenPractice({
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
 
     const prevStep = history[history.length - 1];
+    if (!prevStep) return;
     setHistory((h) => h.slice(0, -1));
 
     setQueue(prevStep.queue);
@@ -451,6 +578,7 @@ export default function WrittenPractice({
     setAnsweredCount(prevStep.answeredCount);
     setSkipCount(prevStep.skipCount);
     setResults(prevStep.results);
+    setWrongs(prevStep.wrongs);
     setInput('');
     setStatus('idle');
     setShaking(false);
@@ -479,7 +607,7 @@ export default function WrittenPractice({
       setStatus('correct');
       setResults((prev) => {
         const next = [...prev];
-        const origIdx = baseWords.findIndex((w) => w.en === word?.en);
+        const origIdx = activeWords.findIndex((w) => (w.id && word?.id ? w.id === word.id : w.en === word?.en));
         if (origIdx !== -1) next[origIdx] = true;
         return next;
       });
@@ -489,18 +617,37 @@ export default function WrittenPractice({
       setStatus('incorrect');
       setShaking(true);
       setTimeout(() => setShaking(false), 500);
+
+      // Ghi nhận từ gõ sai để hỗ trợ "Gõ lại từ sai (giống quiz)"
+      setWrongs((prev) => {
+        if (!word) return prev;
+        const exists = prev.some((w) => (w.id && word.id ? w.id === word.id : w.word.en === word.en));
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            id: word.id,
+            word,
+            prompt,
+            yourAnswer: trimmed || (isVi ? '(để trống)' : '(blank)'),
+            correctAnswer: cleanCorrectAnswer,
+          },
+        ];
+      });
+
       setResults((prev) => {
         const next = [...prev];
-        const origIdx = baseWords.findIndex((w) => w.en === word?.en);
+        const origIdx = activeWords.findIndex((w) => (w.id && word?.id ? w.id === word.id : w.en === word?.en));
         if (origIdx !== -1 && next[origIdx] !== true) next[origIdx] = false;
         return next;
       });
+
       setTimeout(() => {
         setStatus('force-retype');
         setInput('');
       }, 1200);
     }
-  }, [input, status, correctAnswer, advance, baseWords, word]);
+  }, [input, status, correctAnswer, advance, activeWords, word, prompt, isVi, cleanCorrectAnswer]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -519,8 +666,30 @@ export default function WrittenPractice({
     }
   };
 
-  const restart = () => {
+  const handleRetryWrongs = useCallback(() => {
+    if (wrongs.length === 0) return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+
+    const missedWords = wrongs.map((w) => w.word);
+    setActiveWords(missedWords);
+    setQueue([...missedWords]);
+    setAnsweredCount(0);
+    setSkipCount(0);
+    setIndex(0);
+    setInput('');
+    setStatus('idle');
+    setShaking(false);
+    setResults(Array(missedWords.length).fill(null));
+    setWrongs([]);
+    setDone(false);
+    setHistory([]);
+    setIsRetryingWrongs(true);
+    setRetryRoundNumber((r) => r + 1);
+  }, [wrongs]);
+
+  const restart = useCallback(() => {
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    setActiveWords([...baseWords]);
     setQueue([...baseWords]);
     setAnsweredCount(0);
     setSkipCount(0);
@@ -529,9 +698,12 @@ export default function WrittenPractice({
     setStatus('idle');
     setShaking(false);
     setResults(Array(baseWords.length).fill(null));
+    setWrongs([]);
     setDone(false);
     setHistory([]);
-  };
+    setIsRetryingWrongs(false);
+    setRetryRoundNumber(1);
+  }, [baseWords]);
 
   const inputStyle = (() => {
     if (status === 'correct') return 'border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-100 focus:border-emerald-500';
@@ -586,20 +758,39 @@ export default function WrittenPractice({
               <X size={16} />
               <span className="hidden sm:inline">{isVi ? 'Thoát' : 'Exit'}</span>
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <PenLine size={16} className="text-indigo-500 dark:text-indigo-400" />
               <span className="text-sm font-black text-slate-800 dark:text-slate-200" style={{ fontFamily: 'var(--font-display)' }}>
                 {isVi ? 'Luyện gõ chính tả' : 'Written Practice'}
               </span>
+              {isRetryingWrongs && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                  <RotateCcw size={11} />
+                  <span>{isVi ? `Gõ lại từ sai (${activeWords.length})` : `Retrying Missed (${activeWords.length})`}</span>
+                </span>
+              )}
+              {isRetryingWrongs && (
+                <button
+                  type="button"
+                  onClick={restart}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-1"
+                  title={isVi ? 'Quay lại luyện tất cả các từ trong bộ thẻ' : 'Return to studying all cards'}
+                >
+                  {isVi ? '← Trở về tất cả từ' : '← Back to all words'}
+                </button>
+              )}
             </div>
 
             {/* Filter Pills in Written Practice */}
             {onFilterChange && (
               <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
                 <button
-                  onClick={() => onFilterChange('all')}
+                  onClick={() => {
+                    setIsRetryingWrongs(false);
+                    onFilterChange('all');
+                  }}
                   className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                    filterMode === 'all'
+                    filterMode === 'all' && !isRetryingWrongs
                       ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
@@ -608,21 +799,27 @@ export default function WrittenPractice({
                   {isVi ? 'Tất cả' : 'All'} ({totalCount ?? baseWords.length})
                 </button>
                 <button
-                  onClick={() => onFilterChange('due')}
+                  onClick={() => {
+                    setIsRetryingWrongs(false);
+                    onFilterChange('due');
+                  }}
                   className={`flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                    filterMode === 'due'
+                    filterMode === 'due' && !isRetryingWrongs
                       ? 'bg-indigo-600 text-white shadow-xs font-black'
                       : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
                   }`}
                   title={isVi ? 'Chỉ luyện các từ đến hạn hôm nay (SRS)' : 'Due today'}
                 >
-                  <Brain size={11} className={filterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
+                  <Brain size={11} className={filterMode === 'due' && !isRetryingWrongs ? 'text-indigo-200' : 'text-indigo-500'} />
                   <span>{isVi ? 'Cần ôn' : 'Due'} ({dueCount ?? 0})</span>
                 </button>
                 <button
-                  onClick={() => onFilterChange('starred')}
+                  onClick={() => {
+                    setIsRetryingWrongs(false);
+                    onFilterChange('starred');
+                  }}
                   className={`flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                    filterMode === 'starred'
+                    filterMode === 'starred' && !isRetryingWrongs
                       ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
                       : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
                   }`}
@@ -641,7 +838,7 @@ export default function WrittenPractice({
                 </span>
               )}
               <span className="text-sm font-bold text-slate-500 dark:text-slate-400" style={{ fontFamily: 'var(--font-display)' }}>
-                {Math.min(answeredCount + 1, baseWords.length)}/{baseWords.length}
+                {Math.min(answeredCount + 1, activeWords.length)}/{activeWords.length}
               </span>
 
               {/* Wallpaper, Shortcuts & Theme controls */}
@@ -678,7 +875,7 @@ export default function WrittenPractice({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <ModeToggle value={direction} onChange={handleDirectionChange} />
               <ProgressDots
-                total={baseWords.length}
+                total={activeWords.length}
                 current={activeWordIndex}
                 results={results}
                 answeredCount={answeredCount}
@@ -691,18 +888,12 @@ export default function WrittenPractice({
               {done ? (
                 <CompletionScreen
                   results={results}
-                  total={baseWords.length}
-                  onRestart={() => {
-                    setQueue([...baseWords]);
-                    setAnsweredCount(0);
-                    setSkipCount(0);
-                    setIndex(0);
-                    setInput('');
-                    setStatus('idle');
-                    setShaking(false);
-                    setResults(Array(baseWords.length).fill(null));
-                    setDone(false);
-                  }}
+                  total={activeWords.length}
+                  wrongs={wrongs}
+                  isRetryingWrongs={isRetryingWrongs}
+                  retryRoundNumber={retryRoundNumber}
+                  onRetryWrongs={handleRetryWrongs}
+                  onRestart={restart}
                   onExit={onExit}
                   isVi={isVi}
                 />
@@ -719,6 +910,17 @@ export default function WrittenPractice({
                   className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden"
                 >
                   <div className="px-7 pt-8 pb-6 text-center border-b border-slate-100 dark:border-slate-800/80 relative">
+                    {word?.imageUrl && (
+                      <div className="flex justify-center mb-3.5">
+                        <img
+                          src={word.imageUrl}
+                          alt={word.en}
+                          onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                          className="h-28 sm:h-36 w-auto max-w-full object-cover rounded-2xl shadow-md border border-indigo-100 dark:border-slate-800"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
                     {word?.id && isStarred && onToggleStar && (
                       <button
                         type="button"
@@ -733,6 +935,13 @@ export default function WrittenPractice({
                         <Star size={18} className={isStarred(word.id) ? 'fill-amber-500 text-amber-500' : ''} />
                       </button>
                     )}
+                    {isRetryingWrongs && (
+                      <div className="mb-2">
+                        <span className="inline-block text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                          {isVi ? `⚡ Gõ lại từ chưa đúng (Vòng ${retryRoundNumber})` : `⚡ Retrying missed word (Round ${retryRoundNumber})`}
+                        </span>
+                      </div>
+                    )}
                     <p
                       className="text-xs font-bold uppercase tracking-widest mb-3"
                       style={{
@@ -742,17 +951,22 @@ export default function WrittenPractice({
                     >
                       {direction === 'en-to-vi' ? (isVi ? 'Tiếng Anh → Tiếng Việt' : 'English → Vietnamese') : (isVi ? 'Tiếng Việt → Tiếng Anh' : 'Vietnamese → English')}
                     </p>
-                    <p
-                      className="text-slate-900 dark:text-white leading-tight"
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontWeight: 900,
-                        fontSize: 'clamp(1.8rem, 5vw, 2.6rem)',
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {prompt}
-                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <p
+                        className="text-slate-900 dark:text-white leading-tight"
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 900,
+                          fontSize: 'clamp(1.8rem, 5vw, 2.6rem)',
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {prompt}
+                      </p>
+                      {word?.en && (
+                        <SpeechButton text={word.en} size={20} className="hover:scale-110" />
+                      )}
+                    </div>
                   </div>
 
                   <div className="px-7 py-6 flex flex-col gap-4">

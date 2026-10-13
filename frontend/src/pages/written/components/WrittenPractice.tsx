@@ -273,7 +273,7 @@ function CompletionScreen({
       <div>
         {isRetryingWrongs && (
           <span className="inline-block text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/80 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 mb-2">
-            {isVi ? `Vòng gõ lại từ sai #${retryRoundNumber}` : `Retry Missed Round #${retryRoundNumber}`}
+            {isVi ? `Vòng ôn lại từ sai #${retryRoundNumber}` : `Missed Words Round #${retryRoundNumber}`}
           </span>
         )}
         <p className={`text-4xl sm:text-5xl font-black mb-1 ${grade.color}`} style={{ fontFamily: 'var(--font-display)' }}>
@@ -302,21 +302,21 @@ function CompletionScreen({
       {/* Danh sách các từ cần ôn lại (Giống quiz) */}
       {wrongs.length > 0 && (
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-lg text-left">
-          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <XCircle size={16} className="text-rose-500 shrink-0" />
               <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200" style={{ fontFamily: 'var(--font-display)' }}>
                 {isVi ? `Các từ cần ôn lại (${wrongs.length})` : `Words to review (${wrongs.length})`}
               </span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-400">
+            <span className="text-[11px] font-semibold text-slate-400 hidden xs:inline">
               {isVi ? 'Xem lại trước khi gõ lại' : 'Review before retrying'}
             </span>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-56 overflow-y-auto">
             {wrongs.map((w, i) => (
-              <div key={i} className="px-4 sm:px-5 py-2.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div key={i} className="px-3.5 sm:px-5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
+                <div className="flex items-center gap-2 min-w-0">
                   {w.word.en && (
                     <SpeechButton text={w.word.en} size={14} className="p-1 shrink-0" />
                   )}
@@ -324,9 +324,9 @@ function CompletionScreen({
                     {w.prompt}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs sm:text-sm shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs sm:text-sm pl-6 sm:pl-0">
                   <span className="line-through text-rose-500 font-semibold">{w.yourAnswer || (isVi ? '(để trống)' : '(blank)')}</span>
-                  <ArrowRight size={12} className="text-slate-400" />
+                  <ArrowRight size={12} className="text-slate-400 shrink-0" />
                   <span className="text-emerald-600 dark:text-emerald-400 font-black" style={{ fontFamily: 'var(--font-display)' }}>
                     {w.correctAnswer}
                   </span>
@@ -342,7 +342,7 @@ function CompletionScreen({
         {wrongs.length > 0 && (
           <button
             onClick={onRetryWrongs}
-            className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-indigo-600 to-indigo-700 hover:from-rose-600 hover:to-indigo-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 active:scale-[0.98] transition-all cursor-pointer"
+            className="flex-1 py-3 sm:py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-indigo-600 to-indigo-700 hover:from-rose-600 hover:to-indigo-800 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 active:scale-[0.98] transition-all cursor-pointer"
             style={{ fontFamily: 'var(--font-display)' }}
             title={isVi ? 'Gõ lại các từ chưa đúng (Enter)' : 'Retry missed words (Enter)'}
           >
@@ -353,7 +353,7 @@ function CompletionScreen({
 
         <button
           onClick={onRestart}
-          className={`py-3.5 px-4 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer ${
+          className={`py-3 sm:py-3.5 px-4 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer ${
             wrongs.length > 0 ? '' : 'flex-1'
           }`}
           style={{ fontFamily: 'var(--font-display)' }}
@@ -364,7 +364,7 @@ function CompletionScreen({
 
         <button
           onClick={onExit}
-          className={`py-3.5 px-4 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 cursor-pointer ${
+          className={`py-3 sm:py-3.5 px-4 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 cursor-pointer ${
             wrongs.length > 0 ? '' : 'flex-1'
           }`}
           style={{ fontFamily: 'var(--font-display)' }}
@@ -654,9 +654,11 @@ export default function WrittenPractice({
       e.preventDefault();
       submit();
     }
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      skip();
+    if ((e.key === 'ArrowRight' && input === '') || (e.altKey && e.key === 'ArrowRight')) {
+      if (status !== 'correct' && status !== 'force-retype') {
+        e.preventDefault();
+        skip();
+      }
     }
     if ((e.key === 'ArrowLeft' && input === '') || (e.altKey && e.key === 'ArrowLeft')) {
       if (history.length > 0 && status !== 'correct') {
@@ -706,9 +708,9 @@ export default function WrittenPractice({
   }, [baseWords]);
 
   const inputStyle = (() => {
-    if (status === 'correct') return 'border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-100 focus:border-emerald-500';
-    if (status === 'incorrect') return 'border-red-500 bg-red-50/90 dark:bg-red-950/80 text-red-900 dark:text-red-100 focus:border-red-500';
-    if (status === 'force-retype') return 'border-blue-500 bg-blue-50/90 dark:bg-blue-950/80 text-blue-900 dark:text-blue-100 focus:border-blue-500';
+    if (status === 'correct') return 'border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-100 focus:border-emerald-500 ring-2 ring-emerald-500/20';
+    if (status === 'incorrect') return 'border-rose-500 bg-rose-50/90 dark:bg-rose-950/80 text-rose-900 dark:text-rose-100 focus:border-rose-500 ring-2 ring-rose-500/20';
+    if (status === 'force-retype') return 'border-blue-500 bg-blue-50/90 dark:bg-blue-950/80 text-blue-900 dark:text-blue-100 focus:border-blue-500 ring-2 ring-blue-500/20';
     return 'border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white focus:border-indigo-500';
   })();
 
@@ -758,25 +760,33 @@ export default function WrittenPractice({
               <X size={16} />
               <span className="hidden sm:inline">{isVi ? 'Thoát' : 'Exit'}</span>
             </button>
-            <div className="flex items-center gap-2 flex-wrap">
-              <PenLine size={16} className="text-indigo-500 dark:text-indigo-400" />
-              <span className="text-sm font-black text-slate-800 dark:text-slate-200" style={{ fontFamily: 'var(--font-display)' }}>
-                {isVi ? 'Luyện gõ chính tả' : 'Written Practice'}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <PenLine size={16} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
+              <span className="text-sm font-black text-slate-800 dark:text-slate-200 hidden xs:inline" style={{ fontFamily: 'var(--font-display)' }}>
+                {isVi ? 'Luyện gõ' : 'Written'}
+              </span>
+              <span className="text-sm font-black text-slate-800 dark:text-slate-200 hidden sm:inline" style={{ fontFamily: 'var(--font-display)' }}>
+                {isVi ? 'chính tả' : 'Practice'}
               </span>
               {isRetryingWrongs && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
                   <RotateCcw size={11} />
-                  <span>{isVi ? `Gõ lại từ sai (${activeWords.length})` : `Retrying Missed (${activeWords.length})`}</span>
+                  <span>
+                    <span className="hidden sm:inline">{isVi ? 'Gõ lại từ sai' : 'Retrying Missed'}</span>
+                    <span className="sm:hidden">{isVi ? 'Từ sai' : 'Missed'}</span>
+                    {' '}({activeWords.length})
+                  </span>
                 </span>
               )}
               {isRetryingWrongs && (
                 <button
                   type="button"
                   onClick={restart}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-1"
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-0.5 sm:ml-1"
                   title={isVi ? 'Quay lại luyện tất cả các từ trong bộ thẻ' : 'Return to studying all cards'}
                 >
-                  {isVi ? '← Trở về tất cả từ' : '← Back to all words'}
+                  <span className="hidden sm:inline">{isVi ? '← Trở về tất cả từ' : '← Back to all words'}</span>
+                  <span className="sm:hidden">{isVi ? '← Tất cả' : '← All'}</span>
                 </button>
               )}
             </div>
@@ -832,11 +842,6 @@ export default function WrittenPractice({
             )}
 
             <div className="flex items-center gap-2">
-              {skipCount > 0 && (
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full" style={{ fontFamily: 'var(--font-display)' }}>
-                  {skipCount} {isVi ? 'bỏ qua' : 'skipped'}
-                </span>
-              )}
               <span className="text-sm font-bold text-slate-500 dark:text-slate-400" style={{ fontFamily: 'var(--font-display)' }}>
                 {Math.min(answeredCount + 1, activeWords.length)}/{activeWords.length}
               </span>
@@ -869,8 +874,8 @@ export default function WrittenPractice({
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
-          <div className="max-w-2xl w-full flex flex-col gap-6">
+        <main className="flex-1 flex flex-col items-center justify-center px-3 sm:px-6 py-4 sm:py-8">
+          <div className="max-w-2xl w-full flex flex-col gap-5 sm:gap-6">
             {/* Top controls: ModeToggle & Progress */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <ModeToggle value={direction} onChange={handleDirectionChange} />
@@ -909,7 +914,7 @@ export default function WrittenPractice({
                   }}
                   className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden"
                 >
-                  <div className="px-7 pt-8 pb-6 text-center border-b border-slate-100 dark:border-slate-800/80 relative">
+                  <div className="px-4 sm:px-7 pt-5 sm:pt-8 pb-4 sm:pb-6 text-center border-b border-slate-100 dark:border-slate-800/80 relative">
                     {word?.imageUrl && (
                       <div className="flex justify-center mb-3.5">
                         <img
@@ -938,7 +943,7 @@ export default function WrittenPractice({
                     {isRetryingWrongs && (
                       <div className="mb-2">
                         <span className="inline-block text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
-                          {isVi ? `⚡ Gõ lại từ chưa đúng (Vòng ${retryRoundNumber})` : `⚡ Retrying missed word (Round ${retryRoundNumber})`}
+                          {isVi ? `⚡ Ôn lại từ sai • Vòng ${retryRoundNumber}` : `⚡ Missed word • Round ${retryRoundNumber}`}
                         </span>
                       </div>
                     )}
@@ -957,7 +962,7 @@ export default function WrittenPractice({
                         style={{
                           fontFamily: 'var(--font-display)',
                           fontWeight: 900,
-                          fontSize: 'clamp(1.8rem, 5vw, 2.6rem)',
+                          fontSize: 'clamp(1.6rem, 5vw, 2.6rem)',
                           letterSpacing: '-0.02em',
                         }}
                       >
@@ -969,32 +974,49 @@ export default function WrittenPractice({
                     </div>
                   </div>
 
-                  <div className="px-7 py-6 flex flex-col gap-4">
+                  <div className="px-4 sm:px-7 py-4 sm:py-6 flex flex-col gap-3.5 sm:gap-4">
                     <AnimatePresence>
                       {status === 'force-retype' && (
                         <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
+                          initial={{ opacity: 0, y: -4, height: 0 }}
+                          animate={{ opacity: 1, y: 0, height: 'auto' }}
+                          exit={{ opacity: 0, y: -4, height: 0 }}
+                          transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="bg-blue-50/90 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-                            <ArrowRight size={16} className="text-blue-500 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide mb-0.5">
-                                {isVi ? 'Gõ lại từ này để ghi nhớ sâu:' : 'Type this to continue:'}
-                              </p>
-                              <p
-                                className="text-blue-700 dark:text-blue-300 font-black text-base sm:text-lg"
+                          <div className="bg-gradient-to-r from-blue-50/95 via-indigo-50/90 to-blue-50/95 dark:from-blue-950/60 dark:via-indigo-950/50 dark:to-blue-950/60 border border-blue-200/90 dark:border-blue-800/80 rounded-2xl p-3 sm:p-3.5 shadow-xs">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="flex h-2 w-2 relative shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                </span>
+                                <p className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider truncate">
+                                  {isVi ? 'Đáp án đúng • Gõ lại để nhớ:' : 'Correct answer • Retype to continue:'}
+                                </p>
+                              </div>
+                              {/* Audio button for the correct word if English */}
+                              {(direction === 'vi-to-en' ? cleanCorrectAnswer : word?.en) && (
+                                <SpeechButton
+                                  text={direction === 'vi-to-en' ? cleanCorrectAnswer : word?.en ?? ''}
+                                  size={13}
+                                  className="p-1 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 shrink-0"
+                                />
+                              )}
+                            </div>
+
+                            <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 pl-3.5">
+                              <span
+                                className="text-blue-700 dark:text-blue-300 font-black text-base sm:text-lg tracking-tight"
                                 style={{ fontFamily: 'var(--font-display)' }}
                               >
                                 {cleanCorrectAnswer}
-                                {hasParenthesesNote && (
-                                  <span className="block text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {isVi ? `(hoặc gõ đầy đủ: ${correctAnswer})` : `(or full phrase: ${correctAnswer})`}
-                                  </span>
-                                )}
-                              </p>
+                              </span>
+                              {hasParenthesesNote && (
+                                <span className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">
+                                  {isVi ? `(hoặc: ${correctAnswer})` : `(or: ${correctAnswer})`}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -1019,12 +1041,14 @@ export default function WrittenPractice({
                           disabled={status === 'correct'}
                           placeholder={
                             status === 'force-retype'
-                              ? `${isVi ? 'Gõ:' : 'Type:'} ${cleanCorrectAnswer}`
+                              ? cleanCorrectAnswer.length > 22
+                                ? (isVi ? 'Gõ lại từ đúng ở trên…' : 'Type the correct answer above…')
+                                : `${isVi ? 'Gõ lại:' : 'Type:'} ${cleanCorrectAnswer}`
                               : direction === 'en-to-vi'
                               ? (isVi ? 'Nghĩa tiếng Việt…' : 'Vietnamese meaning…')
                               : (isVi ? 'Từ tiếng Anh…' : 'English word…')
                           }
-                          className={`w-full px-5 py-4 pr-12 rounded-2xl border-2 font-semibold text-base outline-none transition-all duration-200 shadow-md ${inputStyle}`}
+                          className={`w-full px-4 sm:px-5 py-3.5 sm:py-4 pr-11 sm:pr-12 rounded-2xl border-2 font-semibold text-base outline-none transition-all duration-200 shadow-md ${inputStyle}`}
                           style={{ fontFamily: 'var(--font-display)' }}
                           autoComplete="off"
                           autoCorrect="off"
@@ -1060,11 +1084,11 @@ export default function WrittenPractice({
                       onClick={submit}
                       disabled={status === 'correct' || !input.trim()}
                       className={`
-                        w-full py-4 rounded-2xl font-black text-base transition-all duration-200 active:scale-[0.98]
-                        disabled:cursor-not-allowed cursor-pointer
+                        w-full py-3.5 sm:py-4 rounded-2xl font-black text-sm sm:text-base transition-all duration-200 active:scale-[0.98]
+                        disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2
                         ${
                           status === 'correct'
-                            ? 'bg-emerald-500 text-white disabled:opacity-100'
+                            ? 'bg-emerald-500 text-white disabled:opacity-100 shadow-lg shadow-emerald-500/25'
                             : status === 'force-retype'
                             ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 hover:bg-blue-700 disabled:opacity-40'
                             : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 disabled:opacity-40 disabled:shadow-none'
@@ -1072,17 +1096,26 @@ export default function WrittenPractice({
                       `}
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
-                      {status === 'correct'
-                        ? (isVi ? '✓ Chính xác — đang chuyển câu…' : '✓ Correct — loading next…')
-                        : status === 'force-retype'
-                        ? (isVi ? 'Xác nhận & Tiếp tục' : 'Confirm & Continue')
-                        : (isVi ? 'Kiểm tra' : 'Submit')}
+                      {status === 'correct' ? (
+                        <span>{isVi ? '✓ Chính xác — đang chuyển câu…' : '✓ Correct — loading next…'}</span>
+                      ) : status === 'force-retype' ? (
+                        <>
+                          <span>{isVi ? 'Xác nhận & Tiếp tục' : 'Confirm & Continue'}</span>
+                          <ArrowRight size={16} />
+                        </>
+                      ) : (
+                        <span>{isVi ? 'Kiểm tra' : 'Submit'}</span>
+                      )}
                     </button>
 
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between pt-0.5 sm:pt-1">
                       <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                        <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-xs font-mono">Enter</kbd>
-                        {' '}{isVi ? 'để gửi' : 'to submit'}
+                        <kbd className="hidden sm:inline-block bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded text-xs font-mono mr-1">Enter</kbd>
+                        <span>
+                          {status === 'force-retype'
+                            ? (isVi ? 'để xác nhận' : 'to confirm')
+                            : (isVi ? 'để gửi' : 'to submit')}
+                        </span>
                       </p>
 
                       <div className="flex items-center gap-2 sm:gap-3">
@@ -1090,17 +1123,17 @@ export default function WrittenPractice({
                           <button
                             type="button"
                             onClick={goBack}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
+                            className="flex items-center gap-1 sm:gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
                             style={{ fontFamily: 'var(--font-display)' }}
                             tabIndex={-1}
                             title={isVi ? 'Quay lại từ trước (phím ← khi ô trống)' : 'Back to previous word (←)'}
                           >
                             <ArrowLeft
-                              size={14}
+                              size={13}
                               className="group-hover:-translate-x-0.5 transition-transform"
                             />
                             <span>{isVi ? 'Quay lại' : 'Back'}</span>
-                            <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">←</kbd>
+                            <kbd className="hidden sm:inline-block bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">←</kbd>
                           </button>
                         )}
 
@@ -1108,17 +1141,17 @@ export default function WrittenPractice({
                           <button
                             type="button"
                             onClick={skip}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
+                            className="flex items-center gap-1 sm:gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors group cursor-pointer"
                             style={{ fontFamily: 'var(--font-display)' }}
                             tabIndex={-1}
-                            title={isVi ? 'Nhấn phím → để bỏ qua' : 'Press → to skip'}
+                            title={isVi ? 'Nhấn phím → (khi ô trống) để bỏ qua' : 'Press → (when empty) to skip'}
                           >
                             <SkipForward
-                              size={14}
+                              size={13}
                               className="group-hover:translate-x-0.5 transition-transform"
                             />
-                            <span>{isVi ? 'Tạm thời bỏ qua' : 'Skip for now'}</span>
-                            <kbd className="bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">→</kbd>
+                            <span>{isVi ? 'Bỏ qua' : 'Skip'}</span>
+                            <kbd className="hidden sm:inline-block bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[10px] font-mono group-hover:text-slate-600 dark:group-hover:text-slate-300">→</kbd>
                           </button>
                         )}
                       </div>
@@ -1170,7 +1203,7 @@ export default function WrittenPractice({
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-600 dark:text-slate-300">{isVi ? 'Bỏ qua từ này' : 'Skip current word'}</span>
-                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→</kbd>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200">→ (khi ô trống)</kbd>
                 </div>
 
                 <div className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800">

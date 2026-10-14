@@ -33,7 +33,7 @@ export default function NotificationBell() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleStreakOrReviewAction = (actionUrl?: string) => {
+  const handleStreakOrReviewAction = (actionUrl?: string, type?: 'streak_reminder' | 'review_reminder') => {
     setIsOpen(false);
     if (actionUrl) {
       // Normalize legacy /study/:id to valid /deck/:id to prevent 404
@@ -49,7 +49,11 @@ export default function NotificationBell() {
     }
     const recent = getRecentViewedDecks();
     if (recent.length > 0 && recent[0].id) {
-      navigate(getStudyRoute(recent[0].id));
+      if (type === 'review_reminder') {
+        navigate(`${getStudyRoute(recent[0].id)}?due=true`);
+      } else {
+        navigate(getDeckDetailRoute(recent[0].id));
+      }
     } else {
       navigate(ROUTES.HOME);
     }
@@ -264,7 +268,7 @@ export default function NotificationBell() {
                             </p>
                             <div className="mt-2.5 flex items-center gap-2">
                               <button
-                                onClick={() => handleStreakOrReviewAction(notif.actionUrl)}
+                                onClick={() => handleStreakOrReviewAction(notif.actionUrl, 'streak_reminder')}
                                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                               >
                                 <Flame size={13} />
@@ -305,7 +309,7 @@ export default function NotificationBell() {
                             </p>
                             <div className="mt-2.5 flex items-center gap-2">
                               <button
-                                onClick={() => handleStreakOrReviewAction(notif.actionUrl)}
+                                onClick={() => handleStreakOrReviewAction(notif.actionUrl, 'review_reminder')}
                                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                               >
                                 <Zap size={13} />

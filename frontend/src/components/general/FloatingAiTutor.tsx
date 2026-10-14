@@ -25,9 +25,7 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
-import { aiApi, CefrAssessmentResult, TutorChatResponse } from '../../api/aiApi';
 import { getDeckDetailRoute } from '../../constants/routers';
-import { useAuth } from '../../contexts/AuthContext';
 import { useAiTutor, MessageItem, CurrentCardContext } from '../../contexts/AiTutorContext';
 import { GeminiMarkdownRenderer } from './GeminiMarkdownRenderer';
 

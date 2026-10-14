@@ -6,7 +6,6 @@ import {
   Volume2,
   X,
   Image,
-  ChevronRight,
   Gamepad2,
   GripHorizontal,
   Bot,
@@ -84,7 +83,6 @@ export default function MascotCompanion() {
   const [isDragging, setIsDragging] = useState(false);
   const [isBubbleOpen, setIsBubbleOpen] = useState(true);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [hasInteracted, setHasInteracted] = useState(false);
 
   const currentQuote = quotes[quoteIndex] || quotes[0]!;
 
@@ -106,7 +104,6 @@ export default function MascotCompanion() {
 
   const handleMascotClick = () => {
     playCorrectSound();
-    setHasInteracted(true);
     setQuoteIndex((prev) => (prev + 1) % quotes.length);
     setIsBubbleOpen(true);
   };

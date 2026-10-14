@@ -19,7 +19,6 @@ import {
   Shield,
   Award,
   Eye,
-  Info,
   Lock,
   Star,
   Brain,
@@ -34,7 +33,6 @@ import {
   calculateSM2,
   saveSM2Record,
   getDeckSRSStats,
-  getAllSM2Records,
   getDeckDueCards,
 } from '../../../utils/sm2';
 import { useStarredCards } from '../../../utils/starredCards';
@@ -1631,7 +1629,7 @@ export const generateGardenEntityByIndex = (index: number): GardenEntity => {
 // --- 🎨 RENDER INDIVIDUAL LIVING GARDEN ELEMENT WITH REAL HIGH-ART SPRITES ---
 function renderGardenItem(
   item: GardenEntity,
-  onInspect: (info: GardenEntity) => void,
+  _onInspect: (info: GardenEntity) => void,
   _isExpanded?: boolean,
   _biome?: BiomeConfig,
   dragProps?: {

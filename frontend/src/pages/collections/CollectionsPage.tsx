@@ -32,7 +32,7 @@ export default function CollectionsPage() {
   const isVi = i18n.language === 'vi';
   const { user, isAuthenticated } = useAuth();
   const { decks } = useDecks();
-  const { collections, loading, createCollection, updateCollection, deleteCollection } = useCollections();
+  const { collections, createCollection, updateCollection, deleteCollection } = useCollections();
 
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'public' | 'my' | 'shared' | 'private'>('public');

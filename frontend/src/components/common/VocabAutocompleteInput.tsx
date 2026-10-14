@@ -26,7 +26,6 @@ export default function VocabAutocompleteInput({
   const [suggestions, setSuggestions] = useState<VocabSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [isLoadingOnline, setIsLoadingOnline] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +49,6 @@ export default function VocabAutocompleteInput({
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(async () => {
         try {
-          setIsLoadingOnline(true);
           const res = await fetch(`https://api.datamuse.com/sug?s=${encodeURIComponent(query.trim())}&max=4`);
           if (res.ok) {
             const data = await res.json();
@@ -84,8 +82,6 @@ export default function VocabAutocompleteInput({
           }
         } catch (e) {
           // Ignore network errors
-        } finally {
-          setIsLoadingOnline(false);
         }
       }, 300);
     }

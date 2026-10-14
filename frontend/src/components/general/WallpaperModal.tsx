@@ -17,7 +17,7 @@ import {
 } from '../../contexts/WallpaperContext';
 
 export default function WallpaperModal() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const {
     config,

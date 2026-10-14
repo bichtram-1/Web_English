@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { STORAGE_KEYS } from '../constants/storage';
 
 let rawBaseUrl = (import.meta.env.VITE_API_URL || '').trim();

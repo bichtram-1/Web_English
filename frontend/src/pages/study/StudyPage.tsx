@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard, Bot, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard, Bot } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import FloatingAiTutor from '../../components/general/FloatingAiTutor';
@@ -86,15 +86,14 @@ export default function StudyPage() {
   const [filterMode, setFilterMode] = useState<StudyFilterMode>(initialFilterMode);
   const [extraReviewCards, setExtraReviewCards] = useState<CardItem[]>([]);
 
-  const { starredIds, starredCount, isStarred, toggleStar } = useStarredCards(targetId);
+  const { starredCount, isStarred, toggleStar } = useStarredCards(targetId);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionProgress, setSessionProgress] = useState<{ cardId: number; completed: boolean }[]>([]);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const [direction, setDirection] = useState(1);
   const [isFinished, setIsFinished] = useState(false);
-  const [isCardFlipped, setIsCardFlipped] = useState(false);
-  const [sm2Enabled, setSm2Enabled] = useState(true);
+  const [sm2Enabled] = useState(true);
   const [currentSM2Record, setCurrentSM2Record] = useState<SM2Record | null>(null);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const { isOpen: isAiTutorOpen, setCurrentCardContext } = useAiTutor();
@@ -189,7 +188,6 @@ export default function StudyPage() {
     if (currentDeck && card) {
       const rec = getCardSM2Record(card.id, currentDeck.id);
       setCurrentSM2Record(rec);
-      setIsCardFlipped(false);
     }
   }, [currentDeck, card]);
 
@@ -230,7 +228,6 @@ export default function StudyPage() {
   }, []);
 
   const markProgress = useCallback((cardId: number) => {
-    setIsCardFlipped(true);
     setSessionProgress((prev) => {
       if (prev.find((p) => p.cardId === cardId)) return prev;
       const next = [...prev, { cardId, completed: true }];
@@ -747,7 +744,6 @@ export default function StudyPage() {
                     );
                   }}
                   onFlipped={(flipped) => {
-                    setIsCardFlipped(flipped);
                     if (flipped) {
                       markProgress(card.id);
                     }

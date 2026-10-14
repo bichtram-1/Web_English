@@ -25,8 +25,6 @@ import {
   getWrittenRoute,
   getTreasureRoute,
 } from '../../constants/routers';
-import type { Deck } from '../../types/DeckType';
-
 interface GameItem {
   id: string;
   titleVi: string;
@@ -41,7 +39,7 @@ interface GameItem {
 }
 
 export default function ArcadeGamesPage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const navigate = useNavigate();
   const { decks } = useDecks();

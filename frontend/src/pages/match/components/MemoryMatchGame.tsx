@@ -26,8 +26,6 @@ import {
   playMismatchSound,
   playComboSound,
   playWinFanfare,
-  isSoundEnabled,
-  toggleSound,
 } from '../../../utils/soundEffects';
 
 export interface MemoryMatchGameProps {
@@ -80,10 +78,8 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
   const [matchedCount, setMatchedCount] = useState(0);
   const [turns, setTurns] = useState(0);
   const [combo, setCombo] = useState(0);
-  const [maxCombo, setMaxCombo] = useState(0);
   const [score, setScore] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
-  const [soundActive, setSoundActive] = useState(() => isSoundEnabled());
   const [autoPronounce, setAutoPronounce] = useState(true);
   const [seconds, setSeconds] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
@@ -148,7 +144,6 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
       setMatchedCount(0);
       setTurns(0);
       setCombo(0);
-      setMaxCombo(0);
       setScore(0);
       setSeconds(0);
       setIsLocked(true); // Locked while memorizing
@@ -249,7 +244,6 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
         // MATCH SUCCESS
         const newCombo = combo + 1;
         setCombo(newCombo);
-        setMaxCombo((prev) => Math.max(prev, newCombo));
 
         const basePoints = 100;
         const comboBonus = (newCombo - 1) * 35;
@@ -301,10 +295,6 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
     }
   };
 
-  const handleToggleSound = () => {
-    const next = toggleSound();
-    setSoundActive(next);
-  };
 
   const formatTime = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);

@@ -109,7 +109,6 @@ export default function TextTranslateExtractPage() {
   const [isAiResult, setIsAiResult] = useState(false);
   const [explainModalData, setExplainModalData] = useState<AiExplainResponse | null>(null);
   const [isExplainingWord, setIsExplainingWord] = useState(false);
-  const [explainingWordTarget, setExplainingWordTarget] = useState<string>('');
 
   // Client-side instant caches (0ms response on repeat queries or previous words)
   const clientExplainCache = useRef<Map<string, AiExplainResponse>>(new Map());
@@ -223,7 +222,6 @@ export default function TextTranslateExtractPage() {
   };
 
   const handleExplainWordWithAi = async (item: ExtractedVocabItem) => {
-    setExplainingWordTarget(item.word);
     const wordKey = item.word.toLowerCase();
 
     // ⚡ Client-side instant cache check (0ms)

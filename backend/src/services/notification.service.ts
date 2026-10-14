@@ -28,7 +28,9 @@ const ensureNotificationTable = async () => {
     `);
     await prisma.$executeRawUnsafe(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message TEXT;`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS "actionUrl" TEXT;`).catch(() => {});
-    await prisma.$executeRawUnsafe(`UPDATE notifications SET "actionUrl" = '/' WHERE "actionUrl" = '/decks';`).catch(() => {});
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_recipient_email ON notifications (LOWER("recipientEmail"));`).catch(() => {});
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_recipient_userid ON notifications ("recipientUserId");`).catch(() => {});
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_created_at ON notifications ("createdAt" DESC);`).catch(() => {});
     tableChecked = true;
   } catch (err) {
     try {
@@ -50,6 +52,9 @@ const ensureNotificationTable = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_recipient_email ON notifications (LOWER(recipientEmail));`).catch(() => {});
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_recipient_userid ON notifications (recipientUserId);`).catch(() => {});
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_notif_created_at ON notifications (createdAt DESC);`).catch(() => {});
       tableChecked = true;
     } catch (e2) {
       console.warn('[NotificationService] ensureNotificationTable error:', e2);
@@ -79,8 +84,12 @@ export class NotificationService {
     await ensureNotificationTable();
     const emailLower = email.toLowerCase().trim();
 
-    // Streak and SRS review reminders are managed by the n8n Automation Engine
-    // (n8n/workflows/srs_streak_reminder.json) to eliminate duplicate mock rows and ensure clean database state.
+    // Ensure learner receives at most 1 intelligent streak reminder per day if study not completed today
+    try {
+      await this.ensureDailyStudyReminders(userId, emailLower);
+    } catch (reminderErr) {
+      console.warn('[NotificationService] ensureDailyStudyReminders error:', reminderErr);
+    }
 
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(
@@ -107,75 +116,73 @@ export class NotificationService {
   }
 
   /**
-   * Generates Quizlet-style Streak and SRS Review Reminders (max 1 per type per day)
+   * Generates intelligent Streak reminder (max 1 per user per day, only if study not completed today)
    */
   private static async ensureDailyStudyReminders(userId: string, emailLower: string) {
     const todayStr = new Date().toISOString().slice(0, 10);
     const streakNotifId = `notif-streak-${userId}-${todayStr}`;
-    const srsNotifId = `notif-srs-${userId}-${todayStr}`;
 
-    // Get user stats
+    // Get user stats & check if already studied today
     let streakDays = 1;
-    let totalCards = 0;
+    let lastStudyDate: Date | null = null;
     try {
       const stats = await prisma.userStats.findUnique({ where: { userId } });
       if (stats) {
         streakDays = stats.streakDays || 1;
-        totalCards = stats.totalCardsStudied || 0;
+        lastStudyDate = stats.lastStudyDate ? new Date(stats.lastStudyDate) : null;
       }
     } catch {}
 
-    // Find most recent deckId studied by user if available
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const alreadyStudiedToday = lastStudyDate && lastStudyDate >= startOfToday;
+
+    // Skip reminder if already completed a study session today
+    if (alreadyStudiedToday) return;
+
+    // Find most recent deck studied by user
     let recentDeckId: string | undefined;
+    let recentDeckTitle: string | undefined;
     try {
       const recentSession = await prisma.studySession.findFirst({
         where: { userId },
         orderBy: { completedAt: 'desc' },
+        include: {
+          deck: {
+            select: { id: true, title: true },
+          },
+        },
       });
-      if (recentSession?.deckId) {
-        recentDeckId = recentSession.deckId;
+      if (recentSession?.deck) {
+        recentDeckId = recentSession.deck.id;
+        recentDeckTitle = recentSession.deck.title;
       }
     } catch {}
 
-    const studyUrl = recentDeckId ? `/deck/${recentDeckId}/study` : '/';
+    const studyUrl = recentDeckId ? `/deck/${recentDeckId}` : '/';
+    const deckHint = recentDeckTitle ? ` trong bộ thẻ "${recentDeckTitle}"` : '';
 
-    // 1. Streak Reminder
     try {
       const existingStreak: any[] = await prisma.$queryRawUnsafe(
         `SELECT id FROM notifications WHERE id = $1 LIMIT 1`,
         streakNotifId
       );
       if (!existingStreak || existingStreak.length === 0) {
+        const isBrokenStreak = streakDays <= 1;
+        const message = isBrokenStreak
+          ? `🔥 Khởi động chuỗi học tập hôm nay! Dành 3 phút ôn luyện${deckHint} để thắp lại ngọn lửa Streak nhé!`
+          : `🔥 Duy trì chuỗi học tập! Bạn đang có chuỗi ${streakDays} ngày liên tiếp. Hãy học ít nhất 1 bài flashcard${deckHint} hôm nay để không bị đứt chuỗi nhé!`;
+
         await this.createNotification({
           recipientEmail: emailLower,
           recipientUserId: userId,
           senderName: 'LinguaLeap Coach 🔥',
           senderEmail: 'coach@lingualeap.edu.vn',
           type: 'streak_reminder',
-          collectionTitle: `Chuỗi học tập ${streakDays} ngày`,
-          message: `Duy trì chuỗi học tập! Bạn đang có chuỗi ${streakDays} ngày liên tiếp. Hãy học ít nhất 1 bài flashcard hôm nay để không bị đứt chuỗi nhé!`,
+          collectionTitle: isBrokenStreak ? 'Khởi động chuỗi Streak 🔥' : `Chuỗi học tập ${streakDays} ngày`,
+          message,
           actionUrl: studyUrl,
         }, streakNotifId);
-      }
-    } catch {}
-
-    // 2. Review Reminder (SRS - Spaced Repetition)
-    try {
-      const existingSrs: any[] = await prisma.$queryRawUnsafe(
-        `SELECT id FROM notifications WHERE id = $1 LIMIT 1`,
-        srsNotifId
-      );
-      if (!existingSrs || existingSrs.length === 0) {
-        await this.createNotification({
-          recipientEmail: emailLower,
-          recipientUserId: userId,
-          senderName: 'LinguaLeap SRS 🧠',
-          senderEmail: 'srs@lingualeap.edu.vn',
-          type: 'review_reminder',
-          collectionTitle: 'Cần ôn từ vựng sắp quên',
-          message: 'Các từ vựng bạn đã học đang chuẩn bị bước vào vùng quên. Hãy dành 3-5 phút ôn tập ngay để củng cố trí nhớ dài hạn!',
-          actionUrl: studyUrl,
-        }, srsNotifId);
       }
     } catch {}
   }

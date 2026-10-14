@@ -16,7 +16,6 @@ import {
   Coins,
   Crown,
   Lock,
-  Unlock,
   Keyboard,
 } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
@@ -87,7 +86,7 @@ export default function TreasureHuntGame({
   title,
   onExit,
 }: TreasureHuntGameProps) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { speak } = useSpeech();
 
@@ -113,7 +112,6 @@ export default function TreasureHuntGame({
 
   // Scoring & Stats
   const [gold, setGold] = useState(0);
-  const [score, setScore] = useState(0);
   const [chestsUnlocked, setChestsUnlocked] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -171,7 +169,6 @@ export default function TreasureHuntGame({
     setMeaningIsWrong(false);
     setShowHint(false);
     setGold(0);
-    setScore(0);
     setChestsUnlocked(0);
     setSeconds(0);
     setIsCompleted(false);
@@ -220,7 +217,6 @@ export default function TreasureHuntGame({
       playCorrectSound();
       setMeaningIsWrong(false);
       setGold((g) => g + 50);
-      setScore((s) => s + 100);
 
       // Transition to Phase 2 (Letter placement) after short delay
       setTimeout(() => {
@@ -313,7 +309,6 @@ export default function TreasureHuntGame({
       setPhase('chest_opened');
       setChestsUnlocked((c) => c + 1);
       setGold((g) => g + 150);
-      setScore((s) => s + 250);
     } else {
       // Wrong spelling
       playIncorrectSound();

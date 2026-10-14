@@ -1476,7 +1476,7 @@ export function detectDeckLevel(items: ExtractedVocabItem[]): {
 /**
  * Automatically suggests a descriptive, relevant title for the generated deck
  */
-export function generateSmartDeckTitle(items: ExtractedVocabItem[], inputText: string): string {
+export function generateSmartDeckTitle(items: ExtractedVocabItem[], _inputText?: string): string {
   const selected = items.filter((i) => i.selected);
   const targetItems = selected.length > 0 ? selected : items;
   const count = targetItems.length;

@@ -35,7 +35,7 @@ import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckSortDropdown from '../../components/shared/DeckSortDropdown';
 import { isCollectionCreator, canEditCollection, canViewCollection, canEditDeck } from '../../utils/permission';
-import type { Deck, DeckCollection, CollaboratorRole } from '../../types/DeckType';
+import type { DeckCollection, CollaboratorRole } from '../../types/DeckType';
 
 export default function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();

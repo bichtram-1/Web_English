@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FolderPlus, Check, Plus, Lock, Globe } from 'lucide-react';
 import { useCollections } from '../../hooks/useCollections';
-import { useAuth } from '../../hooks/useAuth';
 import type { Deck } from '../../types/DeckType';
 
 interface AddToCollectionModalProps {
@@ -14,7 +13,6 @@ interface AddToCollectionModalProps {
 
 export default function AddToCollectionModal({ deck, isOpen, onClose }: AddToCollectionModalProps) {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useAuth();
   const { collections, addDeckToCollection, removeDeckFromCollection, createCollection } = useCollections();
 
   const [isCreatingNew, setIsCreatingNew] = useState(false);

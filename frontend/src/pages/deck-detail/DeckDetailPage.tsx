@@ -97,7 +97,7 @@ export default function DeckDetailPage() {
   };
 
   const targetDeckId = id || '';
-  const { starredIds, starredCount, isStarred, toggleStar, starAll, unstarAll } = useStarredCards(targetDeckId);
+  const { starredCount, isStarred, toggleStar, starAll, unstarAll } = useStarredCards(targetDeckId);
   const [starredOnlyFilter, setStarredOnlyFilter] = useState(false);
 
   const srsStats = useMemo(() => {

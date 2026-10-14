@@ -401,7 +401,7 @@ export default function WrittenPractice({
   isStarred,
   onToggleStar,
 }: WrittenPracticeProps) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 

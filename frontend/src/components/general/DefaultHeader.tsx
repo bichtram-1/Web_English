@@ -12,7 +12,7 @@ import NotificationBell from './NotificationBell';
 
 export default function DefaultHeader() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);

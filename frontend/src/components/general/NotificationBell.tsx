@@ -30,7 +30,6 @@ export default function NotificationBell() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
-  const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

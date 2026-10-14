@@ -21,7 +21,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { decks } = useDecks();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { setIsModalOpen: setWallpaperModalOpen } = useWallpaper();
   const navigate = useNavigate();
   const visibleDecks = decks.filter((deck) => canViewDeck(deck, user));

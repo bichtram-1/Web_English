@@ -49,14 +49,17 @@ export class StudyService {
       const newAvgAccuracy =
         (currentStats.averageAccuracy * currentStats.sessionsCompleted + accuracy) / newSessionsCompleted;
 
-      // Check streak
+      // Check streak (Calendar-day based accuracy)
       const lastDate = new Date(currentStats.lastStudyDate);
       const today = new Date();
-      const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      const startOfLast = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()).getTime();
+      const diffCalendarDays = Math.round((startOfToday - startOfLast) / (1000 * 3600 * 24));
+
       let streakDays = currentStats.streakDays;
-      if (diffDays === 1) {
+      if (diffCalendarDays === 1) {
         streakDays += 1;
-      } else if (diffDays > 1) {
+      } else if (diffCalendarDays > 1) {
         streakDays = 1;
       }
 

@@ -13,7 +13,6 @@ import {
   PenTool,
   Link2,
   Bell,
-  Sparkles,
   Send,
 } from 'lucide-react';
 import collectionApi from '../../api/collectionApi';

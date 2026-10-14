@@ -83,9 +83,6 @@ function buildQuestions(deck: Deck): Question[] {
   return shuffle(questions);
 }
 
-function normalise(s: string) {
-  return s.trim().toLowerCase().replace(/[^a-z0-9\s]/g, '');
-}
 
 function MCCard({
   q,
@@ -492,7 +489,7 @@ interface TestModeProps {
 }
 
 export default function TestMode({ deck, onExit }: TestModeProps) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 

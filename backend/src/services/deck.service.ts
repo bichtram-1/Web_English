@@ -37,7 +37,7 @@ const mapCardFromDb = (card: any): CardItem => {
 };
 
 const mapDeckFromDb = (d: any): Deck => {
-  const cards: CardItem[] = (d.cards || []).map(mapCardFromDb);
+  const cards: CardItem[] = Array.isArray(d.cards) ? d.cards.map(mapCardFromDb) : [];
   let userRatings: Record<string, number> | undefined;
   if (d.userRatingsJson) {
     try {
@@ -47,13 +47,22 @@ const mapDeckFromDb = (d: any): Deck => {
     }
   }
 
+  const computedItemCount =
+    typeof d._count?.cards === 'number'
+      ? d._count.cards
+      : cards.length > 0
+      ? cards.length
+      : typeof d.itemCount === 'number'
+      ? d.itemCount
+      : 0;
+
   return {
     id: d.id,
     title: d.title,
     description: d.description || '',
     creator: d.creatorName || (d.creator ? d.creator.name : 'LinguaTeam'),
     creatorId: d.creatorId || undefined,
-    itemCount: cards.length || d.itemCount || 0,
+    itemCount: computedItemCount,
     category: d.category,
     color: d.color,
     isPublic: d.isPublic,
@@ -105,6 +114,7 @@ export class DeckService {
     creatorId?: string;
     currentUserId?: string;
     currentUserRole?: string;
+    summary?: boolean;
   }): Promise<Deck[]> {
     const where: any = {};
 
@@ -155,14 +165,21 @@ export class DeckService {
       }
     }
 
+    const includeQuery: any = {
+      creator: true,
+    };
+
+    if (options?.summary) {
+      includeQuery._count = { select: { cards: true } };
+    } else {
+      includeQuery.cards = {
+        orderBy: { orderIndex: 'asc' },
+      };
+    }
+
     const decks = await prisma.deck.findMany({
       where,
-      include: {
-        cards: {
-          orderBy: { orderIndex: 'asc' },
-        },
-        creator: true,
-      },
+      include: includeQuery,
       orderBy: { createdAt: 'desc' },
     });
 

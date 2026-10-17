@@ -506,15 +506,16 @@ export const collectionApi = {
     const col = await collectionApi.getCollectionById(collectionId);
     if (!col) return undefined;
 
-    const allDecks = await deckApi.getDecks();
-    const includedDecks = allDecks.filter((d) => col.deckIds.includes(d.id));
+    const includedDecks = (
+      await Promise.all(col.deckIds.map((deckId) => deckApi.getDeckById(deckId)))
+    ).filter(Boolean) as Deck[];
 
     // Combine all cards and re-index them
     const combinedCards: CardItem[] = [];
     let cardIdx = 1;
 
     includedDecks.forEach((deck) => {
-      deck.cards.forEach((card) => {
+      (deck.cards || []).forEach((card) => {
         combinedCards.push({
           ...card,
           id: cardIdx++,

@@ -65,11 +65,15 @@ export const notifyDecksChanged = (deck?: Deck) => {
 };
 
 export const deckApi = {
-  getDecks: async (params?: { search?: string; category?: string }): Promise<Deck[]> => {
+  getDecks: async (params?: { search?: string; category?: string; summary?: boolean; includeCards?: boolean }): Promise<Deck[]> => {
     let result: Deck[] = [];
     try {
+      const queryParams: any = { ...params };
+      if (queryParams.summary === undefined && !queryParams.includeCards) {
+        queryParams.summary = true;
+      }
       const res = (await axiosInstance.get(ENDPOINTS.DECKS, {
-        params,
+        params: queryParams,
       })) as any;
       if (Array.isArray(res) && res.length > 0) {
         result = res;
@@ -81,15 +85,22 @@ export const deckApi = {
         const cachedDecks = getStoredDecks();
         const merged = result.map((d) => {
           const cached = cachedDecks.find((c) => c.id === d.id);
-          if (cached && (!d.ratingCount || d.ratingCount === 0) && cached.ratingCount && cached.ratingCount > 0) {
-            return {
-              ...d,
-              rating: cached.rating,
-              ratingCount: cached.ratingCount,
-              userRatings: cached.userRatings,
-            };
-          }
-          return d;
+          const preservedCards = d.cards && d.cards.length > 0 ? d.cards : (cached?.cards || []);
+          const preservedRating =
+            cached && (!d.ratingCount || d.ratingCount === 0) && cached.ratingCount && cached.ratingCount > 0
+              ? {
+                  rating: cached.rating,
+                  ratingCount: cached.ratingCount,
+                  userRatings: cached.userRatings,
+                }
+              : {};
+
+          return {
+            ...d,
+            cards: preservedCards,
+            itemCount: d.itemCount || (preservedCards.length > 0 ? preservedCards.length : cached?.itemCount || 0),
+            ...preservedRating,
+          };
         });
         saveDecksToStorage(merged);
         result = merged;
@@ -194,6 +205,19 @@ export const deckApi = {
       const currentUser = getCurrentUserFromStorage();
       if (!canViewDeck(found, currentUser)) {
         return undefined;
+      }
+
+      // If full cards are present, update cache so offline & global study can use it
+      if (found.cards && found.cards.length > 0) {
+        try {
+          const decks = getStoredDecks();
+          const existing = decks.find((d) => d.id === found!.id);
+          if (existing) {
+            saveDecksToStorage(decks.map((d) => (d.id === found!.id ? { ...d, ...found, cards: found!.cards } : d)));
+          } else {
+            saveDecksToStorage([found, ...decks]);
+          }
+        } catch {}
       }
     }
 

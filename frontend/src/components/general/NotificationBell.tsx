@@ -36,6 +36,10 @@ export default function NotificationBell() {
   const handleStreakOrReviewAction = (actionUrl?: string, type?: 'streak_reminder' | 'review_reminder') => {
     setIsOpen(false);
     if (actionUrl) {
+      if (actionUrl === '/study/srs-due') {
+        navigate(ROUTES.GLOBAL_SRS_STUDY);
+        return;
+      }
       // Normalize legacy /study/:id to valid /deck/:id to prevent 404
       if (actionUrl.startsWith('/study/')) {
         const deckId = actionUrl.replace('/study/', '');
@@ -47,13 +51,13 @@ export default function NotificationBell() {
         return;
       }
     }
+    if (type === 'review_reminder') {
+      navigate(ROUTES.GLOBAL_SRS_STUDY);
+      return;
+    }
     const recent = getRecentViewedDecks();
     if (recent.length > 0 && recent[0].id) {
-      if (type === 'review_reminder') {
-        navigate(`${getStudyRoute(recent[0].id)}?due=true`);
-      } else {
-        navigate(getDeckDetailRoute(recent[0].id));
-      }
+      navigate(getDeckDetailRoute(recent[0].id));
     } else {
       navigate(ROUTES.HOME);
     }
@@ -89,7 +93,88 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  if (!isAuthenticated || !user) return null;
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          title={isVi ? 'Nhắc nhở thông minh & Chuỗi Streak' : 'Smart Reminders & Streak'}
+          className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+            isOpen
+              ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400'
+              : 'bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+          }`}
+          aria-label="Toggle notifications"
+        >
+          <Bell size={17} />
+          {/* Teaser pulse dot */}
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+          </span>
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 mt-2 w-80 sm:w-88 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl z-50 p-5 flex flex-col text-left"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+                  <Brain size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                    {isVi ? 'Nhắc nhở thông minh & Streak 🔥' : 'Smart Reminders & Streak 🔥'}
+                  </h3>
+                  <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">
+                    {isVi ? 'Spaced Repetition (Lặp lại ngắt quãng)' : 'Spaced Repetition Algorithm'}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                {isVi
+                  ? 'Hệ thống tự động tính toán thời điểm vàng từ vựng sắp quên để nhắc bạn ôn tập đúng lúc, bảo toàn trí nhớ dài hạn và giữ vững ngọn lửa Streak mỗi ngày!'
+                  : 'The system calculates the optimal time right before words decay from memory to remind you to review, keeping your streak alive!'}
+              </p>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate(ROUTES.LOGIN);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Sparkles size={14} />
+                  <span>{isVi ? 'Đăng nhập / Đăng ký để kích hoạt' : 'Sign In / Register to Activate'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate(ROUTES.GLOBAL_SRS_STUDY);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Flame size={13} className="text-amber-500" />
+                  <span>{isVi ? 'Trải nghiệm thử Tổng ôn ngay (Khách)' : 'Try Global Review (Guest)'}</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

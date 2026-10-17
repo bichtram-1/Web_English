@@ -5,7 +5,14 @@ import { mockDecks } from '../data/mockData';
 
 export const DECKS_CHANGED_EVENT = 'lingualeap_decks_changed';
 
+let memoryDecksCache: Deck[] | null = null;
+let inFlightFetch: Promise<Deck[]> | null = null;
+let lastFetchTimestamp = 0;
+const CACHE_TTL_MS = 60000; // 60s cache
+
 export function notifyDecksChanged(updatedDeck?: Deck) {
+  memoryDecksCache = null;
+  lastFetchTimestamp = 0;
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(DECKS_CHANGED_EVENT, { detail: updatedDeck }));
   }
@@ -13,24 +20,47 @@ export function notifyDecksChanged(updatedDeck?: Deck) {
 
 export function useDecks() {
   const [decks, setDecks] = useState<Deck[]>(() => {
+    if (memoryDecksCache && memoryDecksCache.length > 0) return memoryDecksCache;
     try {
       const stored = getStoredDecks();
-      if (Array.isArray(stored) && stored.length > 0) return stored;
+      if (Array.isArray(stored) && stored.length > 0) {
+        memoryDecksCache = stored;
+        return stored;
+      }
     } catch {}
     return mockDecks;
   });
   const [loading, setLoading] = useState<boolean>(false);
 
-  const fetchDecks = useCallback(async () => {
+  const fetchDecks = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && memoryDecksCache && now - lastFetchTimestamp < CACHE_TTL_MS) {
+      setDecks(memoryDecksCache);
+      setLoading(false);
+      return;
+    }
+
+    if (!inFlightFetch) {
+      inFlightFetch = deckApi.getDecks()
+        .then((data) => {
+          const valid = Array.isArray(data) && data.length > 0 ? data : mockDecks;
+          memoryDecksCache = valid;
+          lastFetchTimestamp = Date.now();
+          return valid;
+        })
+        .catch((e) => {
+          console.warn('Fallback to mockDecks:', e);
+          return mockDecks;
+        })
+        .finally(() => {
+          inFlightFetch = null;
+        });
+    }
+
     try {
-      const data = await deckApi.getDecks();
-      if (Array.isArray(data) && data.length > 0) {
-        setDecks(data);
-      } else {
-        setDecks(mockDecks);
-      }
-    } catch (e) {
-      console.warn('Fallback to mockDecks:', e);
+      const result = await inFlightFetch;
+      setDecks(result);
+    } catch {
       setDecks(mockDecks);
     } finally {
       setLoading(false);

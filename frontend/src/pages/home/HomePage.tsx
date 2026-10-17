@@ -1,7 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, BookOpen, Sparkles, Users, ChevronRight, Plus, FolderOpen, Lock, Gamepad2, Play, Languages } from 'lucide-react';
+import {
+  Search,
+  BookOpen,
+  Sparkles,
+  Users,
+  ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Minus,
+  FolderOpen,
+  Lock,
+  Gamepad2,
+  Play,
+  Languages,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDecks } from '../../hooks/useDecks';
 import { mockDecks } from '../../data/mockData';
@@ -55,9 +71,9 @@ function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.05, ease: [0.23, 1, 0.32, 1] }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
       className="group bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 overflow-hidden shadow-md dark:shadow-xl dark:shadow-black/70 hover:shadow-2xl dark:hover:shadow-indigo-500/20 hover:-translate-y-1.5 dark:hover:border-indigo-500/60 dark:hover:ring-indigo-400/40 transition-all duration-300 cursor-pointer flex flex-col relative"
       onClick={() => onStudy(deck)}
     >
@@ -152,8 +168,24 @@ export default function HomePage() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<DeckSortOption>('recent');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(24);
+  const [inputVal, setInputVal] = useState<string>('24');
   const [deckToDelete, setDeckToDelete] = useState<Deck | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const gridSectionRef = useRef<HTMLDivElement>(null);
+
+  // Keep inputVal in sync with pageSize
+  useEffect(() => {
+    if (pageSize < 1000) {
+      setInputVal(pageSize.toString());
+    }
+  }, [pageSize]);
+
+  // Reset page to 1 whenever search, category, sort, or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeCategory, sortBy, pageSize]);
 
   const handleConfirmDelete = async () => {
     if (!deckToDelete) return;
@@ -176,18 +208,91 @@ export default function HomePage() {
     return list.filter((d) => canViewDeck(d, user));
   }, [decks, user]);
 
-  const filtered = visibleDecks.filter((d) => {
-    const matchSearch =
-      d.title.toLowerCase().includes(search.toLowerCase()) ||
-      d.creator.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === 'All' || d.category?.toLowerCase() === activeCategory.toLowerCase();
-    return matchSearch && matchCat;
-  });
+  const filtered = useMemo(() => {
+    return visibleDecks.filter((d) => {
+      const matchSearch =
+        d.title.toLowerCase().includes(search.toLowerCase()) ||
+        d.creator.toLowerCase().includes(search.toLowerCase());
+      const matchCat = activeCategory === 'All' || d.category?.toLowerCase() === activeCategory.toLowerCase();
+      return matchSearch && matchCat;
+    });
+  }, [visibleDecks, search, activeCategory]);
 
   // Quizlet-style sorting by recent items or alphabetical title
   const sortedDecks = useMemo(() => {
     return sortDecks(filtered, sortBy);
   }, [filtered, sortBy]);
+
+  const isAll = pageSize >= 1000;
+  const totalItems = sortedDecks.length;
+  const totalPages = isAll ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const startIndex = isAll ? 0 : (safeCurrentPage - 1) * pageSize;
+  const endIndex = isAll ? totalItems : Math.min(startIndex + pageSize, totalItems);
+
+  const pagedDecks = useMemo(() => {
+    if (isAll) return sortedDecks;
+    return sortedDecks.slice(startIndex, endIndex);
+  }, [sortedDecks, startIndex, endIndex, isAll]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === safeCurrentPage) return;
+    setCurrentPage(newPage);
+    if (gridSectionRef.current) {
+      gridSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    if (safeCurrentPage <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push('...');
+      pages.push(totalPages);
+    } else if (safeCurrentPage >= totalPages - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('...');
+      pages.push(safeCurrentPage - 1);
+      pages.push(safeCurrentPage);
+      pages.push(safeCurrentPage + 1);
+      pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const PRESET_STEPS = [6, 12, 24, 48, 1000];
+
+  const handleIncreasePageSize = () => {
+    if (isAll) return;
+    const next = PRESET_STEPS.find((s) => s > pageSize);
+    if (next !== undefined) {
+      setPageSize(next);
+    } else {
+      setPageSize(1000);
+    }
+  };
+
+  const handleDecreasePageSize = () => {
+    if (isAll) {
+      setPageSize(48);
+      return;
+    }
+    const prev = [...PRESET_STEPS].reverse().find((s) => s < pageSize);
+    if (prev !== undefined) {
+      setPageSize(prev);
+    } else {
+      setPageSize(Math.max(1, pageSize - 1));
+    }
+  };
 
   const handleStudy = (deck: Deck) => {
     recordViewedDeck(deck);
@@ -483,7 +588,7 @@ export default function HomePage() {
         </div>
 
         {/* Section heading & Quizlet-style Sort Controls */}
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div ref={gridSectionRef} className="flex items-center justify-between mb-5 flex-wrap gap-3 scroll-mt-20">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 shadow-sm">
             <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
             <h2
@@ -492,7 +597,7 @@ export default function HomePage() {
             >
               <span>{activeCategory === 'All' ? t('nav_all_decks') : getCategoryLabel(activeCategory, t)}</span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/90 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/80 shadow-xs shrink-0">
-                {sortedDecks.length}
+                {totalItems}
               </span>
             </h2>
           </div>
@@ -502,8 +607,8 @@ export default function HomePage() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 pb-12">
-          {sortedDecks.map((deck, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 pb-28 sm:pb-32">
+          {pagedDecks.map((deck, i) => (
             <DeckCard
               key={deck.id}
               deck={deck}
@@ -512,7 +617,7 @@ export default function HomePage() {
               index={i}
             />
           ))}
-          {sortedDecks.length === 0 && (
+          {totalItems === 0 && (
             <div className="col-span-full flex flex-col items-center py-16 text-slate-400 dark:text-slate-500">
               <BookOpen size={40} className="mb-3 opacity-30" />
               <p className="font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -521,6 +626,212 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Fixed Floating Pagination Bar (Always accessible without scrolling down, perfectly aligned in one row) */}
+        {totalItems > 0 && (
+          <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100vw-1.5rem)] transition-all duration-300">
+            <div className="pointer-events-auto inline-flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-950/15 dark:shadow-black/60 text-xs">
+              
+              {/* Page Navigation Controls: Responsive layout */}
+              {!isAll && totalPages > 1 && (
+                <>
+                  {/* Mobile Compact View (< 640px): [ < ] 2 / 7 [ > ] */}
+                  <div className="flex sm:hidden items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safeCurrentPage - 1)}
+                      disabled={safeCurrentPage === 1}
+                      className="w-8 h-8 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-xs cursor-pointer active:scale-95"
+                      title={isVi ? 'Trang trước' : 'Previous page'}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={15} />
+                    </button>
+
+                    <div className="px-2 py-1 text-xs font-black text-slate-800 dark:text-slate-100 select-none whitespace-nowrap">
+                      <span>{safeCurrentPage}</span>
+                      <span className="text-slate-400 font-semibold mx-1">/</span>
+                      <span className="text-slate-500 dark:text-slate-400">{totalPages}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safeCurrentPage + 1)}
+                      disabled={safeCurrentPage === totalPages}
+                      className="w-8 h-8 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-xs cursor-pointer active:scale-95"
+                      title={isVi ? 'Trang sau' : 'Next page'}
+                      aria-label="Next page"
+                    >
+                      <ChevronRight size={15} />
+                    </button>
+
+                    <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0" />
+                  </div>
+
+                  {/* Desktop / Tablet View (>= 640px): << < 1 2 3 ... 7 > >> */}
+                  <div className="hidden sm:flex items-center gap-1">
+                    {/* First Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(1)}
+                      disabled={safeCurrentPage === 1}
+                      className="p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 cursor-pointer shadow-xs active:scale-95"
+                      title={isVi ? 'Trang đầu' : 'First page'}
+                      aria-label="First page"
+                    >
+                      <ChevronsLeft size={14} />
+                    </button>
+
+                    {/* Prev Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safeCurrentPage - 1)}
+                      disabled={safeCurrentPage === 1}
+                      className="p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 cursor-pointer shadow-xs active:scale-95"
+                      title={isVi ? 'Trang trước' : 'Previous page'}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+
+                    {/* Number Buttons */}
+                    <div className="flex items-center gap-1 mx-0.5">
+                      {getPageNumbers().map((pageNum, idx) => {
+                        if (pageNum === '...') {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-1.5 text-slate-400 font-bold select-none text-[11px]">
+                              ...
+                            </span>
+                          );
+                        }
+                        const num = Number(pageNum);
+                        const isActive = num === safeCurrentPage;
+                        return (
+                          <button
+                            key={`page-${num}`}
+                            type="button"
+                            onClick={() => handlePageChange(num)}
+                            className={`min-w-[30px] sm:min-w-[34px] h-[30px] sm:h-[34px] px-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+                              isActive
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-105'
+                                : 'border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 shadow-xs'
+                            }`}
+                            style={{ fontFamily: 'var(--font-display)' }}
+                          >
+                            {num}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safeCurrentPage + 1)}
+                      disabled={safeCurrentPage === totalPages}
+                      className="p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 cursor-pointer shadow-xs active:scale-95"
+                      title={isVi ? 'Trang sau' : 'Next page'}
+                      aria-label="Next page"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+
+                    {/* Last Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={safeCurrentPage === totalPages}
+                      className="p-1.5 sm:p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-slate-600 dark:text-slate-300 cursor-pointer shadow-xs active:scale-95"
+                      title={isVi ? 'Trang cuối' : 'Last page'}
+                      aria-label="Last page"
+                    >
+                      <ChevronsRight size={14} />
+                    </button>
+
+                    {/* Vertical Divider separating page numbers and stepper */}
+                    <div className="w-px h-5 sm:h-6 bg-slate-200 dark:bg-slate-700 mx-1 sm:mx-1.5 shrink-0" />
+                  </div>
+                </>
+              )}
+
+              {/* Single Stepper Box: [-] [ 24 / 1 ] [+] (Thẳng hàng với nút trang) */}
+              <div className="inline-flex items-center gap-0.5 shrink-0">
+                {/* Decrement Button (-) */}
+                <button
+                  type="button"
+                  onClick={handleDecreasePageSize}
+                  disabled={pageSize <= 1 && !isAll}
+                  className="w-7 sm:w-8 h-7 sm:h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  title={isVi ? 'Giảm số lượng trên 1 trang' : 'Decrease count per page'}
+                  aria-label="Decrease items per page"
+                >
+                  <Minus size={13} />
+                </button>
+
+                {/* Center Display / Input Area with fixed uneditable / 1 */}
+                <div className="flex items-center justify-center px-2 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 min-w-[64px] sm:min-w-[70px]">
+                  {isAll ? (
+                    <button
+                      type="button"
+                      onClick={() => setPageSize(48)}
+                      className="font-black text-xs text-indigo-600 dark:text-indigo-400 cursor-pointer select-none hover:underline"
+                      title={isVi ? 'Bấm để chọn số lượng cụ thể' : 'Click to set specific count'}
+                    >
+                      {isVi ? 'Tất cả' : 'All'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="text"
+                        value={inputVal}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, '');
+                          setInputVal(raw);
+                          const num = parseInt(raw, 10);
+                          if (!isNaN(num) && num > 0) {
+                            setPageSize(Math.min(num, 300));
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!inputVal || parseInt(inputVal, 10) <= 0) {
+                            setInputVal(pageSize.toString());
+                          } else {
+                            setInputVal(pageSize.toString());
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        className="w-7 text-right font-black text-xs text-indigo-600 dark:text-indigo-400 bg-transparent focus:outline-none p-0 select-text"
+                        title={isVi ? 'Nhập số lượng bộ thẻ' : 'Enter deck count'}
+                        maxLength={3}
+                      />
+                      {/* Fixed uneditable / 1 */}
+                      <span className="font-black text-xs text-slate-500 dark:text-slate-400 select-none pointer-events-none pl-0.5">
+                        / 1
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Increment Button (+) */}
+                <button
+                  type="button"
+                  onClick={handleIncreasePageSize}
+                  disabled={isAll}
+                  className="w-7 sm:w-8 h-7 sm:h-8 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  title={isVi ? 'Tăng số lượng trên 1 trang' : 'Increase count per page'}
+                  aria-label="Increase items per page"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Deck Confirmation Modal */}

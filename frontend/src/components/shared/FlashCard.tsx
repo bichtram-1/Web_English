@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Star, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { cleanTtsText } from '../../hooks/useSpeech';
+import { optimizeImageUrl } from '../../utils/imageCompressor';
 import type { FlashcardItem } from '../../types/DeckType';
 
 export interface FlashCardRef {
@@ -301,7 +302,7 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
                 className="relative mb-2 sm:mb-2.5 shrink-0 group/cardimg"
               >
                 <img
-                  src={card.imageUrl}
+                  src={optimizeImageUrl(card.imageUrl, { width: 480, quality: 75 })}
                   alt={card.back || card.front}
                   onError={() => setImageError(true)}
                   className="h-20 sm:h-28 md:h-32 lg:h-36 max-h-[140px] w-auto max-w-[240px] sm:max-w-[320px] md:max-w-[380px] object-cover rounded-2xl shadow-md border border-indigo-100 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 transition-transform duration-200 group-hover/cardimg:scale-105"

@@ -21,7 +21,7 @@ export default function DefaultHeader() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors duration-200">
+      <header className="fixed top-0 left-0 right-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 sm:bg-white/90 sm:dark:bg-slate-900/90 backdrop-blur-sm sm:backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors duration-200">
         <div className="max-w-[1700px] w-full mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             {/* Mobile Hamburger Button */}

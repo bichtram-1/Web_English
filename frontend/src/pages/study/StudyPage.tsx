@@ -1,8 +1,24 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, X, Zap, Trophy, Brain, Lock, Star, Image as ImageIcon, Keyboard, Bot } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  X,
+  Zap,
+  Trophy,
+  Brain,
+  Lock,
+  Star,
+  Image as ImageIcon,
+  Keyboard,
+  Bot,
+  Flame,
+  Sparkles,
+  BookOpen,
+  CheckCircle2,
+} from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
 import FloatingAiTutor from '../../components/general/FloatingAiTutor';
@@ -27,8 +43,12 @@ import {
   saveSM2Record,
   getSM2RatingOptions,
   getDeckDueCards,
+  getGlobalDueCards,
+  getGlobalSRSBatch,
+  SRS_BATCH_SIZE,
   type SM2Rating,
   type SM2Record,
+  type GlobalDueCardItem,
 } from '../../utils/sm2';
 import { playMatchSound, playMismatchSound } from '../../utils/soundEffects';
 
@@ -51,8 +71,13 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   );
 }
 
-export default function StudyPage() {
+interface StudyPageProps {
+  isGlobalSrs?: boolean;
+}
+
+export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPageProps = {}) {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -60,9 +85,20 @@ export default function StudyPage() {
   const isVi = i18n.language === 'vi';
   const { config: wallpaperConfig, setIsModalOpen: setWallpaperModalOpen, isModalOpen: isWallpaperModalOpen } = useWallpaper();
 
-  const targetId = id || 'basic-comm';
+  const isGlobalSrs = Boolean(propIsGlobalSrs || location.pathname === ROUTES.GLOBAL_SRS_STUDY || id === 'srs-due');
+  const [batchIndex, setBatchIndex] = useState(0);
+
+  const targetId = isGlobalSrs ? 'srs-due' : (id || 'basic-comm');
+
+  const allDecks = useMemo(() => getStoredDecks(), []);
+  const globalDueCards = useMemo(() => (isGlobalSrs ? getGlobalDueCards(allDecks) : []), [isGlobalSrs, allDecks]);
+  const batchInfo = useMemo(
+    () => (isGlobalSrs ? getGlobalSRSBatch(globalDueCards, batchIndex, SRS_BATCH_SIZE) : null),
+    [isGlobalSrs, globalDueCards, batchIndex]
+  );
 
   const [deck, setDeck] = useState<Deck | null>(() => {
+    if (isGlobalSrs) return null;
     const directMock = mockDecks.find((d) => d.id === targetId);
     if (directMock) return directMock;
     const stored = getStoredDecks().find((d) => d.id === targetId);
@@ -70,6 +106,7 @@ export default function StudyPage() {
     return null;
   });
   const [loading, setLoading] = useState<boolean>(() => {
+    if (isGlobalSrs) return false;
     const directMock = mockDecks.find((d) => d.id === targetId);
     if (directMock) return false;
     const stored = getStoredDecks().find((d) => d.id === targetId);
@@ -104,15 +141,33 @@ export default function StudyPage() {
   const toastTimerRef = useRef<any>(null);
 
   const currentDeck = useMemo(() => {
+    if (isGlobalSrs) {
+      const batchCards = batchInfo ? batchInfo.batchCards : [];
+      return {
+        id: 'srs-due',
+        title: isVi ? `Tổng ôn Spaced Repetition (Đợt ${batchIndex + 1})` : `Global SRS Review (Batch ${batchIndex + 1})`,
+        category: 'Spaced Repetition',
+        color: 'from-indigo-600 via-violet-600 to-purple-600',
+        creator: 'LinguaLeap AI 🧠',
+        itemCount: batchCards.length,
+        cards: batchCards as any,
+      } as unknown as Deck;
+    }
     if (deck && deck.cards && deck.cards.length > 0) return deck;
     const mock = mockDecks.find((d) => d.id === targetId);
     if (mock) return mock;
     const stored = getStoredDecks().find((d) => d.id === targetId);
     if (stored && stored.cards && stored.cards.length > 0) return stored;
     return null;
-  }, [deck, targetId]);
+  }, [isGlobalSrs, batchInfo, isVi, batchIndex, deck, targetId]);
 
-  const rawCards = currentDeck?.cards || [];
+  const rawCards = useMemo(() => {
+    if (isGlobalSrs) {
+      return (batchInfo?.batchCards as unknown as CardItem[]) || [];
+    }
+    return currentDeck?.cards || [];
+  }, [isGlobalSrs, batchInfo, currentDeck]);
+
   const starredCards = useMemo(
     () => rawCards.filter((c) => isStarred(c.id)),
     [rawCards, isStarred]
@@ -123,6 +178,9 @@ export default function StudyPage() {
   );
 
   const baseCards = useMemo(() => {
+    if (isGlobalSrs) {
+      return rawCards;
+    }
     if (filterMode === 'starred') {
       return starredCards.length > 0 ? starredCards : rawCards;
     }
@@ -130,7 +188,7 @@ export default function StudyPage() {
       return dueCards.length > 0 ? dueCards : rawCards;
     }
     return rawCards;
-  }, [filterMode, starredCards, dueCards, rawCards]);
+  }, [isGlobalSrs, filterMode, starredCards, dueCards, rawCards]);
 
   const cards = useMemo(() => {
     return [...baseCards, ...extraReviewCards];
@@ -139,12 +197,14 @@ export default function StudyPage() {
   const card = cards[currentIndex] || cards[0];
 
   const handleExit = useCallback(() => {
-    if (currentDeck?.id?.startsWith('col-')) {
+    if (isGlobalSrs) {
+      navigate(ROUTES.HOME);
+    } else if (currentDeck?.id?.startsWith('col-')) {
       navigate(getCollectionDetailRoute(currentDeck.id));
     } else {
       navigate(getDeckDetailRoute(targetId));
     }
-  }, [currentDeck?.id, targetId, navigate]);
+  }, [isGlobalSrs, currentDeck?.id, targetId, navigate]);
 
   const { toastElement } = useDoubleEscExit({
     onExit: handleExit,
@@ -160,6 +220,10 @@ export default function StudyPage() {
   });
 
   useEffect(() => {
+    if (isGlobalSrs) {
+      setLoading(false);
+      return;
+    }
     if (!id) {
       setLoading(false);
       return;
@@ -181,12 +245,13 @@ export default function StudyPage() {
         setLoading(false);
         startTimeRef.current = Date.now();
       });
-  }, [id]);
+  }, [id, isGlobalSrs]);
 
   // Refresh SM2 record when current card changes
   useEffect(() => {
     if (currentDeck && card) {
-      const rec = getCardSM2Record(card.id, currentDeck.id);
+      const targetDeckId = (card as any)?.deckId || currentDeck.id;
+      const rec = getCardSM2Record(card.id, targetDeckId);
       setCurrentSM2Record(rec);
     }
   }, [currentDeck, card]);
@@ -217,7 +282,8 @@ export default function StudyPage() {
 
   const activeSM2Record = useMemo(() => {
     if (currentSM2Record) return currentSM2Record;
-    if (currentDeck && card) return getCardSM2Record(card.id, currentDeck.id);
+    const targetDeckId = (card as any)?.deckId || currentDeck?.id;
+    if (currentDeck && card && targetDeckId) return getCardSM2Record(card.id, targetDeckId);
     return null;
   }, [currentSM2Record, currentDeck, card]);
 
@@ -244,7 +310,7 @@ export default function StudyPage() {
     const durationSeconds = Math.max(5, Math.floor((Date.now() - startTimeRef.current) / 1000));
     try {
       await studyApi.submitSession({
-        deckId: currentDeck.id,
+        deckId: isGlobalSrs ? (card as any)?.deckId || 'global-srs' : currentDeck.id,
         mode: 'flashcard',
         cardsStudied: cards.length,
         correctCount: sessionProgress.length || cards.length,
@@ -254,7 +320,7 @@ export default function StudyPage() {
     } catch (e) {
       console.error('Error submitting study session:', e);
     }
-  }, [currentDeck, cards.length, sessionProgress.length, showToast, t]);
+  }, [currentDeck, isGlobalSrs, card, cards.length, sessionProgress.length, showToast, t]);
 
   const goNext = useCallback(() => {
     if (currentIndex < cards.length - 1) {
@@ -275,7 +341,8 @@ export default function StudyPage() {
   // Handle SM-2 Quality Rating
   const handleRateSM2 = useCallback(
     (rating: SM2Rating) => {
-      const record = currentSM2Record || (card && currentDeck ? getCardSM2Record(card.id, currentDeck.id) : null);
+      const targetDeckId = (card as any)?.deckId || currentDeck?.id;
+      const record = currentSM2Record || (card && targetDeckId ? getCardSM2Record(card.id, targetDeckId) : null);
       if (!currentDeck || !card || !record) return;
 
       const updated = calculateSM2(record, rating);
@@ -464,6 +531,51 @@ export default function StudyPage() {
     );
   }
 
+  if (isGlobalSrs && globalDueCards.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-8 text-center shadow-xl"
+        >
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-5 shadow-lg shadow-emerald-500/10">
+            <Trophy size={42} />
+          </div>
+          <h2
+            className="text-2xl font-black text-slate-900 dark:text-white mb-2"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {isVi ? 'Không có từ nào cần ôn hôm nay 🎉' : 'All Caught Up! 🎉'}
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+            {isVi
+              ? 'Tuyệt vời! Tất cả các từ vựng bạn đã học đều đang trong thời gian ghi nhớ an toàn theo thuật toán Spaced Repetition.'
+              : 'Awesome! All cards you have studied are safely stored in long-term memory according to the Spaced Repetition schedule.'}
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate(ROUTES.HOME)}
+              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Flame size={18} className="text-amber-300" />
+              <span>{isVi ? 'Khám phá bài học mới để giữ Streak' : 'Explore new lessons to keep Streak'}</span>
+            </button>
+            <button
+              onClick={() => navigate(ROUTES.COLLECTIONS)}
+              className="w-full py-3 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <BookOpen size={16} />
+              <span>{isVi ? 'Xem thư viện tất cả bộ thẻ' : 'View all decks'}</span>
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!currentDeck || cards.length === 0) {
     return (
       <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center">
@@ -485,6 +597,88 @@ export default function StudyPage() {
   const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0;
 
   if (isFinished) {
+    if (isGlobalSrs && batchInfo) {
+      const remainingDue = batchInfo.remainingAfterBatch;
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-2xl text-center"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={36} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+              {isVi ? `Đã hoàn thành Đợt ${batchIndex + 1}! 🎉` : `Batch ${batchIndex + 1} Completed! 🎉`}
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              {remainingDue > 0
+                ? isVi
+                  ? `Bạn đã ôn tập xong ${cards.length} từ. Hiện tại bạn còn ${remainingDue} từ vựng khác trong hàng đợi ôn hôm nay.`
+                  : `You reviewed ${cards.length} cards. You still have ${remainingDue} cards waiting in your daily queue.`
+                : isVi
+                ? 'Xuất sắc! Bạn đã dọn sạch toàn bộ từ vựng cần ôn hôm nay. Trí nhớ dài hạn đã được củng cố vững chắc.'
+                : 'Outstanding! You have cleared all due cards today. Your long-term memory is solidly reinforced.'}
+            </p>
+
+            <div className="bg-slate-50 dark:bg-slate-800/70 rounded-2xl p-4 mb-6 flex justify-around text-center border border-slate-100 dark:border-slate-700/60">
+              <div>
+                <div className="text-xl font-black text-indigo-600 dark:text-indigo-400">{cards.length}</div>
+                <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{t('study_cards_studied')}</div>
+              </div>
+              <div>
+                <div className="text-xl font-black text-amber-500">+{cards.length * 10}</div>
+                <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{t('study_xp_earned')}</div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {remainingDue > 0 ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setBatchIndex((prev) => prev + 1);
+                      setCurrentIndex(0);
+                      setIsFinished(false);
+                      setSessionProgress([]);
+                      setExtraReviewCards([]);
+                      startTimeRef.current = Date.now();
+                    }}
+                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    <Sparkles size={18} className="text-amber-300" />
+                    <span>
+                      {isVi
+                        ? `🚀 Ôn tiếp 30 từ nữa (Còn ${remainingDue} từ)`
+                        : `🚀 Review next batch (Remaining: ${remainingDue})`}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => navigate(ROUTES.HOME)}
+                    className="w-full py-3 px-5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Trophy size={16} className="text-amber-500" />
+                    <span>{isVi ? 'Hoàn thành nhiệm vụ hôm nay (Nghỉ ngơi)' : 'Finish for today (Take a rest)'}</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => navigate(ROUTES.HOME)}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md shadow-emerald-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Flame size={18} className="text-amber-300" />
+                  <span>{isVi ? '🔥 Quay về trang chủ & Giữ Streak' : '🔥 Return Home & Keep Streak'}</span>
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
         <motion.div
@@ -519,6 +713,7 @@ export default function StudyPage() {
                 setCurrentIndex(0);
                 setIsFinished(false);
                 setSessionProgress([]);
+                setExtraReviewCards([]);
                 startTimeRef.current = Date.now();
               }}
               className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
@@ -574,7 +769,7 @@ export default function StudyPage() {
 
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="sticky top-0 z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
+        <header className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 sm:bg-white/85 sm:dark:bg-slate-900/85 backdrop-blur-sm sm:backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
           <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
             <button
               onClick={handleExit}
@@ -603,44 +798,51 @@ export default function StudyPage() {
               {currentIndex + 1} / {cards.length}
             </span>
 
-            {/* Filter Pill Selector: All / Due (SRS) / Starred */}
-            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
-              <button
-                onClick={() => handleSelectFilterMode('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterMode === 'all'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-                title={isVi ? 'Học tất cả thẻ' : 'Study all cards'}
-              >
-                {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
-              </button>
-              <button
-                onClick={() => handleSelectFilterMode('due')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterMode === 'due'
-                    ? 'bg-indigo-600 text-white shadow-xs font-black'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
-                }`}
-                title={isVi ? 'Chỉ ôn các từ đến hạn hôm nay theo phương pháp lặp lại ngắt quãng (SRS)' : 'Study cards due today (SRS)'}
-              >
-                <Brain size={12} className={filterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
-                <span>{isVi ? 'Cần ôn' : 'Due'} ({dueCards.length})</span>
-              </button>
-              <button
-                onClick={() => handleSelectFilterMode('starred')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterMode === 'starred'
-                    ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
-                }`}
-                title={isVi ? 'Chỉ ôn các từ đã đánh dấu sao' : 'Study only starred cards'}
-              >
-                <Star size={12} className={filterMode === 'starred' || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
-                <span>{starredCount}</span>
-              </button>
-            </div>
+            {/* Filter Pill Selector or Global SRS Batch Info */}
+            {isGlobalSrs ? (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
+                <Brain size={13} className="text-indigo-500" />
+                <span>{isVi ? `Đợt ${batchIndex + 1} · Còn ${globalDueCards.length} từ` : `Batch ${batchIndex + 1} · Due: ${globalDueCards.length}`}</span>
+              </div>
+            ) : (
+              <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
+                <button
+                  onClick={() => handleSelectFilterMode('all')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title={isVi ? 'Học tất cả thẻ' : 'Study all cards'}
+                >
+                  {isVi ? 'Tất cả' : 'All'} ({rawCards.length})
+                </button>
+                <button
+                  onClick={() => handleSelectFilterMode('due')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'due'
+                      ? 'bg-indigo-600 text-white shadow-xs font-black'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                  }`}
+                  title={isVi ? 'Chỉ ôn các từ đến hạn hôm nay theo phương pháp lặp lại ngắt quãng (SRS)' : 'Study cards due today (SRS)'}
+                >
+                  <Brain size={12} className={filterMode === 'due' ? 'text-indigo-200' : 'text-indigo-500'} />
+                  <span>{isVi ? 'Cần ôn' : 'Due'} ({dueCards.length})</span>
+                </button>
+                <button
+                  onClick={() => handleSelectFilterMode('starred')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    filterMode === 'starred'
+                      ? 'bg-amber-400 text-amber-950 font-black shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-amber-500'
+                  }`}
+                  title={isVi ? 'Chỉ ôn các từ đã đánh dấu sao' : 'Study only starred cards'}
+                >
+                  <Star size={12} className={filterMode === 'starred' || starredCount > 0 ? 'fill-amber-500 text-amber-500' : ''} />
+                  <span>{starredCount}</span>
+                </button>
+              </div>
+            )}
 
             {/* AI Tutor Chat Trigger */}
             <button
@@ -695,12 +897,17 @@ export default function StudyPage() {
               className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {currentDeck.title}
+              {isGlobalSrs && (card as any)?.deckTitle ? `Bộ: ${(card as any).deckTitle}` : currentDeck.title}
             </span>
             <span className="text-slate-300 dark:text-slate-700">·</span>
             <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
               {card.type === 'flashcard' ? t('study_card_flashcard') : t('study_card_grammar')}
             </span>
+            {isGlobalSrs && (card as any)?.isUrgent && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-bold ml-1">
+                ⚡ Cần củng cố gấp
+              </span>
+            )}
           </div>
 
         {filterMode === 'starred' && (
@@ -712,10 +919,40 @@ export default function StudyPage() {
         {filterMode === 'due' && (
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold shadow-2xs">
             <Brain size={13} className="text-indigo-500" />
-            <span>{isVi ? `Chế độ học: ${dueCards.length} từ cần ôn hôm nay (SRS)` : `Due mode: ${dueCards.length} cards (SRS)`}</span>
+            <span>
+              {dueCards.length > 0
+                ? isVi
+                  ? `Chế độ học: ${dueCards.length} từ cần ôn hôm nay (SRS)`
+                  : `Due mode: ${dueCards.length} cards (SRS)`
+                : isVi
+                ? 'Bộ này chưa có từ cần ôn · Đang xem tất cả thẻ'
+                : 'No cards due in this deck · Showing all'}
+            </span>
           </div>
         )}
       </div>
+
+      {/* Helpful banner when due mode has 0 cards in this specific deck */}
+      {filterMode === 'due' && dueCards.length === 0 && (
+        <div className="max-w-2xl w-full mx-auto px-4 mt-2">
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-500 shrink-0" />
+              <span>
+                {isVi
+                  ? 'Bộ thẻ này không có từ nào đến hạn cần ôn. Bạn có thể sang phòng Tổng ôn để cứu các từ ở bài học khác!'
+                  : 'No cards are due in this deck right now. You can jump to Global Review to catch up on other decks!'}
+              </span>
+            </div>
+            <button
+              onClick={() => navigate(ROUTES.GLOBAL_SRS_STUDY)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold whitespace-nowrap shadow-xs cursor-pointer"
+            >
+              {isVi ? 'Tổng ôn toàn hệ thống 🧠' : 'Global Review 🧠'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Card area */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-6">

@@ -160,7 +160,7 @@ export class NotificationService {
     } catch {}
 
     const studyUrl = recentDeckId ? `/deck/${recentDeckId}` : '/';
-    const reviewUrl = recentDeckId ? `/deck/${recentDeckId}/study?due=true` : '/';
+    const reviewUrl = '/study/srs-due';
     const deckHint = recentDeckTitle ? ` trong bộ thẻ "${recentDeckTitle}"` : '';
 
     try {
@@ -189,7 +189,7 @@ export class NotificationService {
 
     // 2. Review Reminder (SRS Spaced Repetition - when user has studied in past and needs review today)
     const srsNotifId = `notif-srs-${userId}-${todayStr}`;
-    if (lastStudyDate && recentDeckId) {
+    if (lastStudyDate) {
       try {
         const existingSrs: any[] = await prisma.$queryRawUnsafe(
           `SELECT id, "actionUrl" FROM notifications WHERE id = $1 LIMIT 1`,
@@ -203,10 +203,10 @@ export class NotificationService {
             senderEmail: 'srs@lingualeap.edu.vn',
             type: 'review_reminder',
             collectionTitle: 'Cần ôn từ vựng sắp quên 🧠',
-            message: `Các từ vựng bạn đã học trong bộ "${recentDeckTitle || 'Flashcard'}" đang chuẩn bị bước vào vùng quên. Hãy dành 3-5 phút ôn tập ngay để củng cố trí nhớ dài hạn!`,
+            message: `Hệ thống đã chọn lọc các từ vựng đến hạn ôn tập từ các bài học của bạn theo phương pháp Spaced Repetition. Dành 3-5 phút lật 30 thẻ để củng cố trí nhớ dài hạn nhé!`,
             actionUrl: reviewUrl,
           }, srsNotifId);
-        } else if (existingSrs[0]?.actionUrl && !existingSrs[0].actionUrl.includes('/study')) {
+        } else if (existingSrs[0]?.actionUrl && existingSrs[0].actionUrl !== '/study/srs-due') {
           await prisma.$executeRawUnsafe(
             `UPDATE notifications SET "actionUrl" = $1 WHERE id = $2`,
             reviewUrl,

@@ -307,3 +307,131 @@ export function getDeckDueCards<T extends { id: number }>(deckId: string, cards:
     return new Date(rec.nextReviewDate) <= now;
   });
 }
+
+export const SRS_BATCH_SIZE = 30;
+
+export interface GlobalDueCardItem {
+  id: number;
+  type: 'flashcard' | 'drag_drop';
+  front: string;
+  back: string;
+  phonetic?: string;
+  exampleEn?: string;
+  exampleVi?: string;
+  imageUrl?: string;
+  deckId: string;
+  deckTitle: string;
+  deckCategory?: string;
+  deckColor?: string;
+  sm2Record?: SM2Record;
+  isUrgent?: boolean; // Last rating was 1 (Again) or 2 (Hard)
+  urgencyScore: number;
+}
+
+/**
+ * Collect all cards due for SRS review across all studied decks.
+ * Prioritizes:
+ * 1. Cards with recent Hard/Again ratings (emergency rescue)
+ * 2. Cards overdue the longest (highest memory decay risk)
+ * 3. Due cards from recently studied decks
+ */
+export function getGlobalDueCards(
+  allDecks: { id: string; title: string; category?: string; color?: string; cards: any[] }[]
+): GlobalDueCardItem[] {
+  if (typeof window === 'undefined') return [];
+  const records = getAllSM2Records();
+  const now = new Date();
+  const nowTime = now.getTime();
+
+  const dueItems: GlobalDueCardItem[] = [];
+
+  for (const deck of allDecks) {
+    if (!deck.cards || deck.cards.length === 0) continue;
+    for (const card of deck.cards) {
+      if (!card || card.type !== 'flashcard') continue;
+
+      const key = `${deck.id}_${card.id}`;
+      const rec = records[key];
+
+      let isDue = false;
+      let isUrgent = false;
+      let urgencyScore = 0;
+
+      if (rec && rec.lastStudiedDate) {
+        const nextTime = new Date(rec.nextReviewDate).getTime();
+        if (nextTime <= nowTime) {
+          isDue = true;
+          const lastQuality =
+            Array.isArray(rec.qualityHistory) && rec.qualityHistory.length > 0
+              ? rec.qualityHistory[rec.qualityHistory.length - 1]
+              : null;
+
+          if (lastQuality === 1 || lastQuality === 2) {
+            isUrgent = true;
+            // Highest priority: struggled cards from previous session
+            urgencyScore = 100000000 + (nowTime - nextTime);
+          } else {
+            // Standard overdue cards sorted by decay duration
+            urgencyScore = 1000000 + (nowTime - nextTime);
+          }
+        }
+      } else {
+        // If the user has studied this deck before, untackled cards count as new review opportunities
+        const hasStudiedInDeck = Object.keys(records).some((k) => k.startsWith(`${deck.id}_`));
+        if (hasStudiedInDeck) {
+          isDue = true;
+          urgencyScore = 100;
+        }
+      }
+
+      if (isDue) {
+        dueItems.push({
+          id: card.id,
+          type: card.type,
+          front: card.front || '',
+          back: card.back || '',
+          phonetic: card.phonetic,
+          exampleEn: card.exampleEn,
+          exampleVi: card.exampleVi,
+          imageUrl: card.imageUrl,
+          deckId: deck.id,
+          deckTitle: deck.title,
+          deckCategory: deck.category,
+          deckColor: deck.color,
+          sm2Record: rec,
+          isUrgent,
+          urgencyScore,
+        });
+      }
+    }
+  }
+
+  // Sort: Highest urgency first (Urgent hard/again cards first, then overdue)
+  dueItems.sort((a, b) => b.urgencyScore - a.urgencyScore);
+  return dueItems;
+}
+
+/**
+ * Slices the global due cards into batches of max 30 cards
+ */
+export function getGlobalSRSBatch(
+  allDueCards: GlobalDueCardItem[],
+  batchIndex: number = 0,
+  batchSize: number = SRS_BATCH_SIZE
+) {
+  const totalDue = allDueCards.length;
+  const start = batchIndex * batchSize;
+  const batchCards = allDueCards.slice(start, start + batchSize);
+  const remainingAfterBatch = Math.max(0, totalDue - (start + batchCards.length));
+  const totalBatches = Math.max(1, Math.ceil(totalDue / batchSize));
+
+  return {
+    batchCards,
+    totalDue,
+    remainingAfterBatch,
+    batchIndex,
+    totalBatches,
+    hasMore: remainingAfterBatch > 0,
+  };
+}
+

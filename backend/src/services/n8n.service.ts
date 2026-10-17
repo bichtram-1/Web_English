@@ -281,23 +281,28 @@ export class N8nService {
       }
 
       const activeDeck = await this.getUserActiveDeck(user.id);
-      const actionUrl = dto.actionUrl || (activeDeck ? `/deck/${activeDeck.id}` : '/');
+      const isReview = type === 'review_reminder';
+      const actionUrl = dto.actionUrl || (isReview ? '/study/srs-due' : (activeDeck ? `/deck/${activeDeck.id}` : '/'));
 
       let message = dto.message;
       if (!message) {
-        message = activeDeck
-          ? `🔥 Bạn còn bài học chưa hoàn thành trong bộ thẻ "${activeDeck.title}"! Dành 3 phút ôn luyện để duy trì chuỗi Streak nhé!`
-          : '🔥 Hãy dành 3 phút hôm nay ôn luyện từ vựng để duy trì chuỗi Streak học tập nhé!';
+        if (isReview) {
+          message = '🧠 Các từ vựng bạn đã học đang bước vào vùng quên! Hãy dành 3-5 phút lật 30 thẻ ôn tập Spaced Repetition nhé!';
+        } else {
+          message = activeDeck
+            ? `🔥 Bạn còn bài học chưa hoàn thành trong bộ thẻ "${activeDeck.title}"! Dành 3 phút ôn luyện để duy trì chuỗi Streak nhé!`
+            : '🔥 Hãy dành 3 phút hôm nay ôn luyện từ vựng để duy trì chuỗi Streak học tập nhé!';
+        }
       } else if (activeDeck) {
         message = message.replace('{deckTitle}', activeDeck.title);
       }
 
-      const collectionTitle = dto.title || (activeDeck ? activeDeck.title : 'Nhắc nhở học tập');
+      const collectionTitle = dto.title || (isReview ? 'Cần ôn từ vựng sắp quên 🧠' : (activeDeck ? activeDeck.title : 'Nhắc nhở học tập'));
 
       await NotificationService.createNotification({
         recipientEmail: user.email,
         recipientUserId: user.id,
-        senderName: 'LinguaBot 🤖',
+        senderName: isReview ? 'LinguaLeap SRS 🧠' : 'LinguaBot 🤖',
         senderEmail: 'automation@lingualeap.edu.vn',
         type,
         collectionTitle,
@@ -323,25 +328,31 @@ export class N8nService {
       take: 100,
     });
 
+    const isReview = type === 'review_reminder';
+
     for (const user of users) {
       const activeDeck = await this.getUserActiveDeck(user.id);
-      const actionUrl = dto.actionUrl || (activeDeck ? `/deck/${activeDeck.id}` : '/');
+      const actionUrl = dto.actionUrl || (isReview ? '/study/srs-due' : (activeDeck ? `/deck/${activeDeck.id}` : '/'));
 
       let userMsg = dto.message;
       if (!userMsg) {
-        userMsg = activeDeck
-          ? `🔥 Bạn còn bài học chưa hoàn thành trong bộ thẻ "${activeDeck.title}"! Dành 3 phút ôn luyện để duy trì chuỗi Streak nhé!`
-          : '🔥 Hãy dành 3 phút hôm nay ôn luyện từ vựng để duy trì chuỗi Streak học tập nhé!';
+        if (isReview) {
+          userMsg = '🧠 Các từ vựng bạn đã học đang bước vào vùng quên! Hãy dành 3-5 phút lật 30 thẻ ôn tập Spaced Repetition nhé!';
+        } else {
+          userMsg = activeDeck
+            ? `🔥 Bạn còn bài học chưa hoàn thành trong bộ thẻ "${activeDeck.title}"! Dành 3 phút ôn luyện để duy trì chuỗi Streak nhé!`
+            : '🔥 Hãy dành 3 phút hôm nay ôn luyện từ vựng để duy trì chuỗi Streak học tập nhé!';
+        }
       } else if (activeDeck) {
         userMsg = userMsg.replace('{deckTitle}', activeDeck.title);
       }
 
-      const collectionTitle = dto.title || (activeDeck ? activeDeck.title : 'Nhắc nhở chuỗi Streak 🔥');
+      const collectionTitle = dto.title || (isReview ? 'Cần ôn từ vựng sắp quên 🧠' : (activeDeck ? activeDeck.title : 'Nhắc nhở chuỗi Streak 🔥'));
 
       await NotificationService.createNotification({
         recipientEmail: user.email,
         recipientUserId: user.id,
-        senderName: 'LinguaBot 🤖',
+        senderName: isReview ? 'LinguaLeap SRS 🧠' : 'LinguaBot 🤖',
         senderEmail: 'automation@lingualeap.edu.vn',
         type,
         collectionTitle,

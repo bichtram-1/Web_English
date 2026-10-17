@@ -27,6 +27,7 @@ export const ROUTES = {
   TRANSLATE: '/translate',
   TRANSLATE_EXTRACT: '/tools/translate-extract',
   EDIT_DECK: '/deck/:id/edit',
+  GLOBAL_SRS_STUDY: '/study/srs-due',
 } as const;
 
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];
@@ -37,6 +38,7 @@ export const getCollectionDetailRoute = (id: string) => `/collections/${id}`;
 export const getCollectionStudyRoute = (id: string) => `/collections/${id}/study`;
 export const getCollectionWrittenRoute = (id: string) => `/collections/${id}/written`;
 export const getStudyRoute = (id: string) => `/deck/${id}/study`;
+export const getGlobalSrsRoute = () => ROUTES.GLOBAL_SRS_STUDY;
 export const getTestRoute = (id: string) => `/deck/${id}/test`;
 export const getMinigameRoute = (id: string) => `/deck/${id}/shooter`;
 export const getShooterRoute = (id: string) => `/deck/${id}/shooter`;

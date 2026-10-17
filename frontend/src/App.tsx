@@ -61,6 +61,7 @@ export default function App() {
             {/* Immersive Learning Modes */}
             <Route element={<AuthLayout />}>
               <Route path={ROUTES.STUDY} element={<StudyPage />} />
+              <Route path={ROUTES.GLOBAL_SRS_STUDY} element={<StudyPage isGlobalSrs />} />
               <Route path={ROUTES.COLLECTION_STUDY} element={<StudyPage />} />
               <Route path={ROUTES.COLLECTION_WRITTEN} element={<WrittenPracticePage />} />
               <Route path={ROUTES.TEST} element={<TestPage />} />

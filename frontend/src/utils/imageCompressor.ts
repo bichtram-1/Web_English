@@ -87,3 +87,58 @@ export function compressImageFile(
     reader.readAsDataURL(file);
   });
 }
+
+export interface OptimizeUrlOptions {
+  width?: number;
+  quality?: number;
+  format?: 'auto' | 'webp' | 'avif' | 'jpg';
+  fit?: 'crop' | 'max' | 'fill';
+}
+
+/**
+ * Automatically transforms remote image URLs (Unsplash, Pexels)
+ * with CDN query parameters for optimal width, WebP compression, and fast loading.
+ */
+export function optimizeImageUrl(url?: string, options: OptimizeUrlOptions = {}): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  const {
+    width = 640,
+    quality = 80,
+    format = 'auto',
+    fit = 'crop',
+  } = options;
+
+  // Optimize Unsplash images
+  if (trimmed.includes('images.unsplash.com')) {
+    try {
+      const urlObj = new URL(trimmed);
+      urlObj.searchParams.set('auto', format === 'auto' ? 'format' : format);
+      urlObj.searchParams.set('fit', fit);
+      urlObj.searchParams.set('w', width.toString());
+      urlObj.searchParams.set('q', quality.toString());
+      return urlObj.toString();
+    } catch {
+      const [base] = trimmed.split('?');
+      return `${base}?auto=format&fit=crop&w=${width}&q=${quality}`;
+    }
+  }
+
+  // Optimize Pexels images
+  if (trimmed.includes('images.pexels.com')) {
+    try {
+      const urlObj = new URL(trimmed);
+      urlObj.searchParams.set('auto', 'compress');
+      urlObj.searchParams.set('cs', 'tinysrgb');
+      urlObj.searchParams.set('w', width.toString());
+      return urlObj.toString();
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+

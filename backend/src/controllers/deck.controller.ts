@@ -6,13 +6,15 @@ import { AppError } from '../utils/appError';
 export class DeckController {
   static async getAllDecks(req: Request, res: Response, next: NextFunction) {
     try {
-      const { search, category, creatorId } = req.query;
+      const { search, category, creatorId, summary } = req.query;
+      const isSummary = summary === 'true' || summary === '1';
       const decks = await DeckService.getAllDecks({
         search: search as string,
         category: category as string,
         creatorId: creatorId as string,
         currentUserId: req.user?.userId,
         currentUserRole: req.user?.role,
+        summary: isSummary,
       });
       return ApiResponseHandler.success(res, decks, 'Lấy danh sách bộ thẻ thành công', 200, {
         total: decks.length,

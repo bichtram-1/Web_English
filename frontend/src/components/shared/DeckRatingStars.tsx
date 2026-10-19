@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Star, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { formatCompactNumber, formatFullNumber } from '../../utils/formatNumber';
 
 interface DeckRatingStarsProps {
   rating?: number;
@@ -84,7 +85,7 @@ export default function DeckRatingStars({
     return (
       <div
         className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 select-none"
-        title={`${displayRating.toFixed(1)} / 5.0 (${ratingCount || 0} ${isVi ? 'lượt đánh giá' : 'reviews'})`}
+        title={`${displayRating.toFixed(1)} / 5.0 (${formatFullNumber(ratingCount || 0)} ${isVi ? 'lượt đánh giá' : 'reviews'})`}
       >
         <div className="flex items-center gap-0.5 text-amber-400">
           {[1, 2, 3, 4, 5].map((s) => {
@@ -109,8 +110,11 @@ export default function DeckRatingStars({
           {displayRating.toFixed(1)}
         </span>
         {showCount && ratingCount !== undefined && ratingCount > 0 && (
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-            ({ratingCount})
+          <span
+            className="text-[10px] text-slate-400 dark:text-slate-500 font-medium"
+            title={`${formatFullNumber(ratingCount)} ${isVi ? 'lượt đánh giá' : 'reviews'}`}
+          >
+            ({formatCompactNumber(ratingCount)})
           </span>
         )}
       </div>
@@ -129,8 +133,11 @@ export default function DeckRatingStars({
         {hasRatings ? (
           <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
             {displayRating.toFixed(1)} / 5.0{' '}
-            <span className="text-slate-400 font-normal">
-              ({ratingCount} {isVi ? 'đánh giá' : 'reviews'})
+            <span
+              className="text-slate-400 font-normal cursor-help"
+              title={`${formatFullNumber(ratingCount || 0)} ${isVi ? 'lượt đánh giá' : 'reviews'}`}
+            >
+              ({formatCompactNumber(ratingCount)} {isVi ? 'đánh giá' : 'reviews'})
             </span>
           </span>
         ) : (

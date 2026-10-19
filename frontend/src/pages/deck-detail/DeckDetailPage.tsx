@@ -41,6 +41,7 @@ import { generateFriendlyId } from '../../utils/slugify';
 import { getCategoryLabel } from '../home/HomePage';
 import { useStarredCards } from '../../utils/starredCards';
 import { getDeckSRSStats } from '../../utils/sm2';
+import { formatCompactNumber, formatFullNumber } from '../../utils/formatNumber';
 
 import {
   ROUTES,
@@ -413,7 +414,10 @@ export default function DeckDetailPage() {
 
             {/* Stats pills */}
             <div className="flex gap-3 mt-5 flex-wrap">
-              <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">
+              <div
+                className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center"
+                title={deck.ratingCount && deck.ratingCount > 0 ? `${formatFullNumber(deck.ratingCount)} ${isVi ? 'lượt đánh giá' : 'reviews'}` : undefined}
+              >
                 <div
                   className="text-white text-xl font-black flex items-center justify-center gap-1"
                   style={{ fontFamily: 'var(--font-display)' }}
@@ -422,7 +426,7 @@ export default function DeckDetailPage() {
                   <span>{deck.ratingCount && deck.ratingCount > 0 ? (deck.rating ? deck.rating.toFixed(1) : '5.0') : (isVi ? 'Mới' : 'New')}</span>
                 </div>
                 <div className="text-white/80 text-xs font-semibold">
-                  {deck.ratingCount && deck.ratingCount > 0 ? `${deck.ratingCount} ${isVi ? 'đánh giá' : 'reviews'}` : (isVi ? 'Chưa có đánh giá' : 'No ratings yet')}
+                  {deck.ratingCount && deck.ratingCount > 0 ? `${formatCompactNumber(deck.ratingCount)} ${isVi ? 'đánh giá' : 'reviews'}` : (isVi ? 'Chưa có đánh giá' : 'No ratings yet')}
                 </div>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-center">

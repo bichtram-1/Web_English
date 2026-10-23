@@ -169,7 +169,17 @@ export class NotificationService {
         streakNotifId
       );
       if (!existingStreak || existingStreak.length === 0) {
-        const isBrokenStreak = streakDays <= 1;
+        let isBrokenStreak = streakDays <= 1;
+        if (lastStudyDate) {
+          const startOfLast = new Date(lastStudyDate.getFullYear(), lastStudyDate.getMonth(), lastStudyDate.getDate()).getTime();
+          const diffCalendarDays = Math.round((startOfToday.getTime() - startOfLast) / (1000 * 3600 * 24));
+          if (diffCalendarDays > 1) {
+            isBrokenStreak = true;
+          }
+        } else {
+          isBrokenStreak = true;
+        }
+
         const message = isBrokenStreak
           ? `🔥 Khởi động chuỗi học tập hôm nay! Dành 3 phút ôn luyện${deckHint} để thắp lại ngọn lửa Streak nhé!`
           : `🔥 Duy trì chuỗi học tập! Bạn đang có chuỗi ${streakDays} ngày liên tiếp. Hãy học ít nhất 1 bài flashcard${deckHint} hôm nay để không bị đứt chuỗi nhé!`;

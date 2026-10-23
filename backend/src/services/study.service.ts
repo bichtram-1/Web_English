@@ -157,13 +157,27 @@ export class StudyService {
       };
     }
 
+    let activeStreak = stats.streakDays;
+    if (stats.lastStudyDate) {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const lastDate = new Date(stats.lastStudyDate);
+      const startOfLast = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()).getTime();
+      const diffCalendarDays = Math.round((startOfToday - startOfLast) / (1000 * 3600 * 24));
+      if (diffCalendarDays > 1) {
+        activeStreak = 0;
+      }
+    } else {
+      activeStreak = 0;
+    }
+
     return {
       userId: stats.userId,
       totalCardsStudied: stats.totalCardsStudied,
       totalStudyTimeSeconds: stats.totalStudyTimeSeconds,
       totalXp: stats.totalXp,
-      streakDays: stats.streakDays,
-      lastStudyDate: stats.lastStudyDate.toISOString(),
+      streakDays: activeStreak,
+      lastStudyDate: stats.lastStudyDate ? stats.lastStudyDate.toISOString() : new Date().toISOString(),
       sessionsCompleted: stats.sessionsCompleted,
       averageAccuracy: Math.round(stats.averageAccuracy),
     };

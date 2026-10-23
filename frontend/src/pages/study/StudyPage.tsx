@@ -51,6 +51,14 @@ import {
   type GlobalDueCardItem,
 } from '../../utils/sm2';
 import { playMatchSound, playMismatchSound } from '../../utils/soundEffects';
+import SrsModeSwitchMenu, { type SrsStudyMode } from './components/SrsModeSwitchMenu';
+import SrsModeKickoffModal from './components/SrsModeKickoffModal';
+import SrsMatchPairs from './components/SrsMatchPairs';
+import WrittenPractice from '../written/components/WrittenPractice';
+import type { FlashcardItem } from '../../types/DeckType';
+
+const SRS_PREF_KEY = 'lingualeap_srs_study_mode';
+const SRS_REMEMBER_KEY = 'lingualeap_srs_remember_mode';
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
@@ -87,6 +95,28 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
   const isGlobalSrs = Boolean(propIsGlobalSrs || location.pathname === ROUTES.GLOBAL_SRS_STUDY || id === 'srs-due');
   const [batchIndex, setBatchIndex] = useState(0);
+
+  const [srsMode, setSrsMode] = useState<SrsStudyMode>(() => {
+    if (typeof window === 'undefined') return 'flashcard';
+    return (localStorage.getItem(SRS_PREF_KEY) as SrsStudyMode) || 'flashcard';
+  });
+
+  const [isKickoffOpen, setIsKickoffOpen] = useState<boolean>(() => {
+    if (!isGlobalSrs || typeof window === 'undefined') return false;
+    const remember = localStorage.getItem(SRS_REMEMBER_KEY);
+    return remember !== 'true';
+  });
+
+  const handleSelectSrsMode = useCallback((mode: SrsStudyMode, rememberChoice: boolean = true) => {
+    setSrsMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SRS_PREF_KEY, mode);
+      if (rememberChoice) {
+        localStorage.setItem(SRS_REMEMBER_KEY, 'true');
+      }
+    }
+    setIsKickoffOpen(false);
+  }, []);
 
   const targetId = isGlobalSrs ? 'srs-due' : (id || 'basic-comm');
 
@@ -193,6 +223,12 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
   const cards = useMemo(() => {
     return [...baseCards, ...extraReviewCards];
   }, [baseCards, extraReviewCards]);
+
+  const uncompletedCards = useMemo(() => {
+    return (rawCards as FlashcardItem[]).filter(
+      (c) => !sessionProgress.some((p) => p.cardId === c.id)
+    );
+  }, [rawCards, sessionProgress]);
 
   const card = cards[currentIndex] || cards[0];
 
@@ -311,7 +347,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
     try {
       await studyApi.submitSession({
         deckId: isGlobalSrs ? (card as any)?.deckId || 'global-srs' : currentDeck.id,
-        mode: 'flashcard',
+        mode: (isGlobalSrs ? (srsMode === 'match' ? 'match' : srsMode === 'written' ? 'written' : 'flashcard') : 'flashcard') as any,
         cardsStudied: cards.length,
         correctCount: sessionProgress.length || cards.length,
         timeSpentSeconds: durationSeconds,
@@ -320,7 +356,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
     } catch (e) {
       console.error('Error submitting study session:', e);
     }
-  }, [currentDeck, isGlobalSrs, card, cards.length, sessionProgress.length, showToast, t]);
+  }, [currentDeck, isGlobalSrs, card, cards.length, sessionProgress.length, showToast, t, srsMode]);
 
   const goNext = useCallback(() => {
     if (currentIndex < cards.length - 1) {
@@ -340,15 +376,16 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
   // Handle SM-2 Quality Rating
   const handleRateSM2 = useCallback(
-    (rating: SM2Rating) => {
-      const targetDeckId = (card as any)?.deckId || currentDeck?.id;
-      const record = currentSM2Record || (card && targetDeckId ? getCardSM2Record(card.id, targetDeckId) : null);
-      if (!currentDeck || !card || !record) return;
+    (rating: SM2Rating, targetCardId?: number) => {
+      const activeCard = targetCardId ? cards.find((c) => c.id === targetCardId) || card : card;
+      const targetDeckId = (activeCard as any)?.deckId || currentDeck?.id;
+      const record = activeCard && targetDeckId ? getCardSM2Record(activeCard.id, targetDeckId) : null;
+      if (!currentDeck || !activeCard || !record) return;
 
       const updated = calculateSM2(record, rating);
       saveSM2Record(updated);
       setCurrentSM2Record(updated);
-      markProgress(card.id);
+      markProgress(activeCard.id);
 
       if (rating >= 3) {
         playMatchSound();
@@ -358,33 +395,36 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
       if (rating === 1) {
         // Re-queue card to be reviewed again at the end of current session (< 10 mins)
-        setExtraReviewCards((prev) => [...prev, card]);
+        setExtraReviewCards((prev) => [...prev, activeCard]);
       }
 
-      const days = updated.interval;
-      const intervalMsg =
-        rating === 1
-          ? isVi
-            ? 'Đã ghi nhận: Thẻ sẽ quay lại ở cuối buổi học (< 10 phút)'
-            : 'Marked: Card will reappear at end of session (< 10 mins)'
-          : rating === 2
-          ? isVi
-            ? 'Đã ghi nhận: Khó nhớ (ôn lại vào ngày mai)'
-            : 'Marked: Hard recall (review tomorrow)'
-          : days <= 1
-          ? isVi
-            ? 'Đã nhớ tốt · Ôn lại vào ngày mai'
-            : 'Good recall · Next review tomorrow'
-          : isVi
-          ? `Lên lịch ôn tập sau ${days} ngày`
-          : `Scheduled review in ${days} days`;
-      showToast(intervalMsg);
+      // If we are in flashcard mode, auto advance
+      if (!targetCardId) {
+        const days = updated.interval;
+        const intervalMsg =
+          rating === 1
+            ? isVi
+              ? 'Đã ghi nhận: Thẻ sẽ quay lại ở cuối buổi học (< 10 phút)'
+              : 'Marked: Card will reappear at end of session (< 10 mins)'
+            : rating === 2
+            ? isVi
+              ? 'Đã ghi nhận: Khó nhớ (ôn lại vào ngày mai)'
+              : 'Marked: Hard recall (review tomorrow)'
+            : days <= 1
+            ? isVi
+              ? 'Đã nhớ tốt · Ôn lại vào ngày mai'
+              : 'Good recall · Next review tomorrow'
+            : isVi
+            ? `Lên lịch ôn tập sau ${days} ngày`
+            : `Scheduled review in ${days} days`;
+        showToast(intervalMsg);
 
-      setTimeout(() => {
-        goNext();
-      }, 350);
+        setTimeout(() => {
+          goNext();
+        }, 350);
+      }
     },
-    [currentDeck, card, currentSM2Record, markProgress, showToast, goNext, isVi]
+    [currentDeck, card, cards, markProgress, showToast, goNext, isVi]
   );
 
   const handleSelectFilterMode = useCallback(
@@ -587,6 +627,70 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
           {t('back')}
         </button>
       </div>
+    );
+  }
+
+  if (isGlobalSrs && srsMode === 'match' && !isFinished) {
+    return (
+      <>
+        <SrsMatchPairs
+          cards={uncompletedCards.length > 0 ? uncompletedCards : (rawCards as FlashcardItem[])}
+          onCardRated={(cardId, rating) => handleRateSM2(rating, cardId)}
+          onBatchFinish={handleFinish}
+          onExit={handleExit}
+          customTopActions={
+            <SrsModeSwitchMenu
+              currentMode={srsMode}
+              onSelectMode={(mode) => handleSelectSrsMode(mode, false)}
+            />
+          }
+          srsProgressText={`${sessionProgress.length}/${rawCards.length}`}
+          totalBatchCount={rawCards.length}
+          completedCount={sessionProgress.length}
+        />
+        <SrsModeKickoffModal
+          isOpen={isKickoffOpen}
+          dueCount={globalDueCards.length}
+          defaultMode={srsMode}
+          onSelectMode={handleSelectSrsMode}
+        />
+      </>
+    );
+  }
+
+  if (isGlobalSrs && srsMode === 'written' && !isFinished) {
+    return (
+      <>
+        <WrittenPractice
+          deck={
+            {
+              id: 'srs-due-written',
+              title: isVi ? `Tổng ôn Spaced Repetition (Đợt ${batchIndex + 1})` : `Global SRS Review (Batch ${batchIndex + 1})`,
+              category: 'Spaced Repetition',
+              cards: uncompletedCards.length > 0 ? uncompletedCards : (rawCards as any[]),
+              itemCount: (uncompletedCards.length > 0 ? uncompletedCards : rawCards).length,
+            } as unknown as Deck
+          }
+          onExit={handleExit}
+          onCardRated={(cardId, rating) => handleRateSM2(rating, cardId)}
+          onSrsBatchFinish={handleFinish}
+          customTopActions={
+            <SrsModeSwitchMenu
+              currentMode={srsMode}
+              onSelectMode={(mode) => handleSelectSrsMode(mode, false)}
+            />
+          }
+          srsProgressText={`${sessionProgress.length}/${rawCards.length}`}
+          totalCount={rawCards.length}
+          dueCount={uncompletedCards.length}
+        />
+        <SrsModeKickoffModal
+          isOpen={isKickoffOpen}
+          dueCount={globalDueCards.length}
+          defaultMode={srsMode}
+          onSelectMode={handleSelectSrsMode}
+        />
+      </>
     );
   }
 
@@ -800,9 +904,15 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
             {/* Filter Pill Selector or Global SRS Batch Info */}
             {isGlobalSrs ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
-                <Brain size={13} className="text-indigo-500" />
-                <span>{isVi ? `Đợt ${batchIndex + 1} · Còn ${globalDueCards.length} từ` : `Batch ${batchIndex + 1} · Due: ${globalDueCards.length}`}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200/80 dark:border-indigo-800/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
+                  <Brain size={13} className="text-indigo-500" />
+                  <span>{isVi ? `Đợt ${batchIndex + 1} · Còn ${globalDueCards.length} từ` : `Batch ${batchIndex + 1} · Due: ${globalDueCards.length}`}</span>
+                </div>
+                <SrsModeSwitchMenu
+                  currentMode={srsMode}
+                  onSelectMode={(mode) => handleSelectSrsMode(mode, false)}
+                />
               </div>
             ) : (
               <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-bold shrink-0">
@@ -1199,6 +1309,14 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
       {/* Double Esc Toast Element */}
       {toastElement}
+
+      {/* SRS Mode Kickoff Selection Modal */}
+      <SrsModeKickoffModal
+        isOpen={isKickoffOpen}
+        dueCount={globalDueCards.length}
+        defaultMode={srsMode}
+        onSelectMode={handleSelectSrsMode}
+      />
     </div>
   </div>
 );

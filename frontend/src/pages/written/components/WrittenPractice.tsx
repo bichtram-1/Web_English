@@ -388,6 +388,11 @@ interface WrittenPracticeProps {
   starredCount?: number;
   isStarred?: (cardId: number) => boolean;
   onToggleStar?: (cardId: number) => void;
+  onCardRated?: (cardId: number, rating: 1 | 2 | 3 | 5) => void;
+  onSrsBatchFinish?: () => void;
+  customTopActions?: React.ReactNode;
+  initialDirection?: Direction;
+  srsProgressText?: string;
 }
 
 export default function WrittenPractice({
@@ -400,6 +405,11 @@ export default function WrittenPractice({
   starredCount,
   isStarred,
   onToggleStar,
+  onCardRated,
+  onSrsBatchFinish,
+  customTopActions,
+  initialDirection = 'vi-to-en',
+  srsProgressText,
 }: WrittenPracticeProps) {
   const { i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -418,7 +428,7 @@ export default function WrittenPractice({
   const [answeredCount, setAnsweredCount] = useState(0);
   const [skipCount, setSkipCount] = useState(0);
 
-  const [direction, setDirection] = useState<Direction>('en-to-vi');
+  const [direction, setDirection] = useState<Direction>(initialDirection);
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -533,20 +543,24 @@ export default function WrittenPractice({
     if (nextAnswered >= activeWords.length) {
       setDone(true);
       const correctCount = results.filter((r) => r === true).length;
-      studyApi.submitSession({
-        deckId: deck?.id || 'unknown',
-        mode: 'written',
-        cardsStudied: activeWords.length,
-        correctCount: correctCount || activeWords.length,
-        timeSpentSeconds: 60,
-      }).catch(console.error);
+      if (onSrsBatchFinish) {
+        onSrsBatchFinish();
+      } else {
+        studyApi.submitSession({
+          deckId: deck?.id || 'unknown',
+          mode: 'written',
+          cardsStudied: activeWords.length,
+          correctCount: correctCount || activeWords.length,
+          timeSpentSeconds: 60,
+        }).catch(console.error);
+      }
     } else {
       setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results, wrongs }]);
       setIndex((i) => i + 1);
       setInput('');
       setStatus('idle');
     }
-  }, [answeredCount, activeWords.length, deck?.id, results, queue, index, skipCount, wrongs]);
+  }, [answeredCount, activeWords.length, deck?.id, results, queue, index, skipCount, wrongs, onSrsBatchFinish]);
 
   const skip = useCallback(() => {
     if (status === 'correct' || status === 'force-retype') return;
@@ -605,6 +619,9 @@ export default function WrittenPractice({
     if (isAnswerMatching(trimmed, correctAnswer)) {
       playCorrectSound();
       setStatus('correct');
+      if (word?.id && onCardRated) {
+        onCardRated(word.id, 3);
+      }
       setResults((prev) => {
         const next = [...prev];
         const origIdx = activeWords.findIndex((w) => (w.id && word?.id ? w.id === word.id : w.en === word?.en));
@@ -616,6 +633,9 @@ export default function WrittenPractice({
       playIncorrectSound();
       setStatus('incorrect');
       setShaking(true);
+      if (word?.id && onCardRated) {
+        onCardRated(word.id, 1);
+      }
       setTimeout(() => setShaking(false), 500);
 
       // Ghi nhận từ gõ sai để hỗ trợ "Gõ lại từ sai (giống quiz)"
@@ -647,7 +667,7 @@ export default function WrittenPractice({
         setInput('');
       }, 1200);
     }
-  }, [input, status, correctAnswer, advance, activeWords, word, prompt, isVi, cleanCorrectAnswer]);
+  }, [input, status, correctAnswer, advance, activeWords, word, prompt, isVi, cleanCorrectAnswer, onCardRated]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -842,8 +862,9 @@ export default function WrittenPractice({
             )}
 
             <div className="flex items-center gap-2">
+              {customTopActions}
               <span className="text-sm font-bold text-slate-500 dark:text-slate-400" style={{ fontFamily: 'var(--font-display)' }}>
-                {Math.min(answeredCount + 1, activeWords.length)}/{activeWords.length}
+                {srsProgressText || `${Math.min(answeredCount + 1, activeWords.length)}/${activeWords.length}`}
               </span>
 
               {/* Wallpaper, Shortcuts & Theme controls */}

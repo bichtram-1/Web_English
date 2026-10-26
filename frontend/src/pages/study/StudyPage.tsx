@@ -230,6 +230,16 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
     );
   }, [rawCards, sessionProgress]);
 
+  const srsWrittenDeck = useMemo(() => {
+    return {
+      id: `srs-due-written-${batchIndex}`,
+      title: isVi ? `Tổng ôn Spaced Repetition (Đợt ${batchIndex + 1})` : `Global SRS Review (Batch ${batchIndex + 1})`,
+      category: 'Spaced Repetition',
+      cards: rawCards as any[],
+      itemCount: rawCards.length,
+    } as unknown as Deck;
+  }, [batchIndex, isVi, rawCards]);
+
   const card = cards[currentIndex] || cards[0];
 
   const handleExit = useCallback(() => {
@@ -662,15 +672,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
     return (
       <>
         <WrittenPractice
-          deck={
-            {
-              id: 'srs-due-written',
-              title: isVi ? `Tổng ôn Spaced Repetition (Đợt ${batchIndex + 1})` : `Global SRS Review (Batch ${batchIndex + 1})`,
-              category: 'Spaced Repetition',
-              cards: uncompletedCards.length > 0 ? uncompletedCards : (rawCards as any[]),
-              itemCount: (uncompletedCards.length > 0 ? uncompletedCards : rawCards).length,
-            } as unknown as Deck
-          }
+          deck={srsWrittenDeck}
           onExit={handleExit}
           onCardRated={(cardId, rating) => handleRateSM2(rating, cardId)}
           onSrsBatchFinish={handleFinish}

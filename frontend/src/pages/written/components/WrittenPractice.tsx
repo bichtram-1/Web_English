@@ -451,8 +451,23 @@ export default function WrittenPractice({
   }
   const [history, setHistory] = useState<HistoryStep[]>([]);
 
-  // Sync state whenever baseWords changes
+  // Track previous words key to avoid resetting state on mere reference changes
+  const prevWordsKeyRef = useRef<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const forceRetypeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync state whenever baseWords actually changes
   useEffect(() => {
+    const currentKey = baseWords.map((w) => `${w.id ?? ''}_${w.en}_${w.vi}`).join('|');
+    if (prevWordsKeyRef.current === currentKey) {
+      return;
+    }
+    prevWordsKeyRef.current = currentKey;
+
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
+
     setActiveWords([...baseWords]);
     setQueue([...baseWords]);
     setAnsweredCount(0);
@@ -469,8 +484,12 @@ export default function WrittenPractice({
     setRetryRoundNumber(1);
   }, [baseWords]);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+      if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
+    };
+  }, []);
 
   const word = queue[index];
   const prompt = direction === 'en-to-vi' ? word?.en ?? '' : word?.vi ?? '';
@@ -520,6 +539,7 @@ export default function WrittenPractice({
 
   const handleDirectionChange = (d: Direction) => {
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
     setDirection(d);
     setActiveWords([...baseWords]);
     setQueue([...baseWords]);
@@ -538,6 +558,7 @@ export default function WrittenPractice({
   };
 
   const advance = useCallback(() => {
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
     const nextAnswered = answeredCount + 1;
     setAnsweredCount(nextAnswered);
     if (nextAnswered >= activeWords.length) {
@@ -563,8 +584,9 @@ export default function WrittenPractice({
   }, [answeredCount, activeWords.length, deck?.id, results, queue, index, skipCount, wrongs, onSrsBatchFinish]);
 
   const skip = useCallback(() => {
-    if (status === 'correct' || status === 'force-retype') return;
+    if (status === 'correct' || status === 'force-retype' || status === 'incorrect') return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
     setHistory((h) => [...h, { queue, index, answeredCount, skipCount, results, wrongs }]);
     setQueue((q) => {
       const current = q[index];
@@ -582,6 +604,7 @@ export default function WrittenPractice({
     if (status === 'correct') return;
     if (history.length === 0) return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
 
     const prevStep = history[history.length - 1];
     if (!prevStep) return;
@@ -599,7 +622,7 @@ export default function WrittenPractice({
   }, [history, status]);
 
   const submit = useCallback(() => {
-    if (status === 'correct') return;
+    if (status === 'correct' || status === 'incorrect') return;
 
     const trimmed = input.trim();
 
@@ -662,7 +685,8 @@ export default function WrittenPractice({
         return next;
       });
 
-      setTimeout(() => {
+      if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
+      forceRetypeTimeoutRef.current = setTimeout(() => {
         setStatus('force-retype');
         setInput('');
       }, 1200);
@@ -675,7 +699,7 @@ export default function WrittenPractice({
       submit();
     }
     if ((e.key === 'ArrowRight' && input === '') || (e.altKey && e.key === 'ArrowRight')) {
-      if (status !== 'correct' && status !== 'force-retype') {
+      if (status !== 'correct' && status !== 'force-retype' && status !== 'incorrect') {
         e.preventDefault();
         skip();
       }
@@ -691,6 +715,7 @@ export default function WrittenPractice({
   const handleRetryWrongs = useCallback(() => {
     if (wrongs.length === 0) return;
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
 
     const missedWords = wrongs.map((w) => w.word);
     setActiveWords(missedWords);
@@ -711,6 +736,7 @@ export default function WrittenPractice({
 
   const restart = useCallback(() => {
     if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (forceRetypeTimeoutRef.current) clearTimeout(forceRetypeTimeoutRef.current);
     setActiveWords([...baseWords]);
     setQueue([...baseWords]);
     setAnsweredCount(0);
@@ -1056,10 +1082,10 @@ export default function WrittenPractice({
                           value={input}
                           onChange={(e) => {
                             setInput(e.target.value);
-                            if (status === 'incorrect') setStatus('idle');
                           }}
                           onKeyDown={handleKeyDown}
                           disabled={status === 'correct'}
+                          readOnly={status === 'incorrect'}
                           placeholder={
                             status === 'force-retype'
                               ? cleanCorrectAnswer.length > 22

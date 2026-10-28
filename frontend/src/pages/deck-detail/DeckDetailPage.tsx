@@ -810,12 +810,17 @@ export default function DeckDetailPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+                            <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-line break-words">
                               {c.back}
                             </div>
                             {c.exampleEn && (
-                              <div className="text-xs text-slate-400 dark:text-slate-500 italic mt-1 line-clamp-1">
+                              <div className="text-xs text-slate-400 dark:text-slate-500 italic mt-1 whitespace-pre-line break-words">
                                 "{c.exampleEn}"
+                              </div>
+                            )}
+                            {c.exampleVi && (
+                              <div className="text-xs text-indigo-600/80 dark:text-indigo-400/80 italic mt-0.5 whitespace-pre-line break-words">
+                                "{c.exampleVi}"
                               </div>
                             )}
                             {c.imageUrl && (
@@ -871,7 +876,7 @@ export default function DeckDetailPage() {
                             {c.meaning}
                           </div>
                           {c.grammarExplanation && (
-                            <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-1">
+                            <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 whitespace-pre-line break-words">
                               {c.grammarExplanation}
                             </div>
                           )}

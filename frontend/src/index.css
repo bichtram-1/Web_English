@@ -105,6 +105,46 @@ html.dark {
   background-color: rgba(99, 102, 241, 1);
 }
 
+/* Custom slim flashcard scrollbar */
+.flashcard-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+.flashcard-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.flashcard-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.flashcard-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 9999px;
+}
+.flashcard-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.flashcard-scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+.dark .flashcard-scrollbar-dark {
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+.flashcard-scrollbar-dark::-webkit-scrollbar {
+  width: 5px;
+}
+.flashcard-scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.flashcard-scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+.flashcard-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.8);
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--background);

@@ -18,6 +18,9 @@ import {
   Sparkles,
   BookOpen,
   CheckCircle2,
+  Minimize2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import FlashCard, { type FlashCardRef } from '../../components/shared/FlashCard';
 import DragDropCard, { type DragDropCardRef } from '../../components/shared/DragDropCard';
@@ -163,6 +166,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
   const [sm2Enabled] = useState(true);
   const [currentSM2Record, setCurrentSM2Record] = useState<SM2Record | null>(null);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [isFlashcardFullscreen, setIsFlashcardFullscreen] = useState(false);
   const { isOpen: isAiTutorOpen, setCurrentCardContext } = useAiTutor();
 
   const flashCardRef = useRef<FlashCardRef>(null);
@@ -255,9 +259,10 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
   const { toastElement } = useDoubleEscExit({
     onExit: handleExit,
     isCompleted: isFinished,
-    hasActiveModal: showShortcutsModal || isWallpaperModalOpen || isAiTutorOpen,
+    hasActiveModal: isFlashcardFullscreen || showShortcutsModal || isWallpaperModalOpen || isAiTutorOpen,
     onCloseModal: () => {
-      if (showShortcutsModal) setShowShortcutsModal(false);
+      if (isFlashcardFullscreen) setIsFlashcardFullscreen(false);
+      else if (showShortcutsModal) setShowShortcutsModal(false);
       else if (isWallpaperModalOpen) setWallpaperModalOpen(false);
       else if (isAiTutorOpen) {
         window.dispatchEvent(new CustomEvent('close-ai-tutor'));
@@ -352,6 +357,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
 
   const handleFinish = useCallback(async () => {
     if (!currentDeck) return;
+    setIsFlashcardFullscreen(false);
     setIsFinished(true);
     const durationSeconds = Math.max(5, Math.floor((Date.now() - startTimeRef.current) / 1000));
     try {
@@ -1081,7 +1087,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
             {card.type === 'flashcard' ? (
               <div className="w-full flex flex-col items-center">
                 <FlashCard
-                  ref={flashCardRef}
+                  ref={!isFlashcardFullscreen ? flashCardRef : undefined}
                   card={card}
                   isStarred={isStarred(card.id)}
                   onToggleStar={() => {
@@ -1097,6 +1103,7 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
                       markProgress(card.id);
                     }
                   }}
+                  onToggleFullscreen={() => setIsFlashcardFullscreen(true)}
                 />
 
                 {/* SM-2 Spaced Repetition Rating Panel */}
@@ -1208,6 +1215,158 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
           </button>
         </div>
       </footer>
+
+      {/* Fullscreen Study Overlay (Root-level portal to eliminate any glitching/flashing of normal UI) */}
+      <AnimatePresence>
+        {isFlashcardFullscreen && card && card.type === 'flashcard' && (
+          <motion.div
+            key="fullscreen-study-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-slate-950/92 backdrop-blur-xl flex flex-col justify-between p-3 sm:p-6 select-none"
+            onClick={() => setIsFlashcardFullscreen(false)}
+          >
+            {/* Top Bar: Stable, never re-mounts */}
+            <div
+              className="w-full max-w-5xl mx-auto flex items-center justify-between py-1 sm:py-2 text-white/80 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-bold text-white border border-white/10">
+                  {isVi ? `Thẻ ${currentIndex + 1} / ${cards.length}` : `Card ${currentIndex + 1} / ${cards.length}`}
+                </span>
+                <span className="text-white/40 text-xs hidden sm:inline">·</span>
+                <span className="text-white/60 text-xs hidden sm:inline">
+                  {isVi ? 'Chế độ phóng to tối giản' : 'Focus Mode'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newState = toggleStar(card.id);
+                    showToast(
+                      newState
+                        ? (isVi ? 'Đã gán sao ⭐' : 'Starred ⭐')
+                        : (isVi ? 'Đã bỏ gán sao' : 'Unstarred')
+                    );
+                  }}
+                  className={`p-2 rounded-full transition-all cursor-pointer flex items-center justify-center ${
+                    isStarred(card.id)
+                      ? 'bg-amber-400 text-amber-950 shadow-md scale-105 ring-2 ring-amber-300'
+                      : 'bg-white/10 text-white/70 hover:text-white hover:bg-white/20 border border-white/10'
+                  }`}
+                  title={isStarred(card.id) ? (isVi ? 'Bỏ gắn sao (S)' : 'Unstar (S)') : (isVi ? 'Gán sao (S)' : 'Star (S)')}
+                >
+                  <Star size={15} className={isStarred(card.id) ? 'fill-amber-900 text-amber-950' : ''} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsFlashcardFullscreen(false)}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 transition-all cursor-pointer flex items-center justify-center"
+                  title={isVi ? 'Thu nhỏ thẻ (Esc)' : 'Exit fullscreen (Esc)'}
+                >
+                  <Minimize2 size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Middle Area: Left Nav + Card + Right Nav */}
+            <div
+              className="flex-1 w-full max-w-5xl mx-auto flex items-center justify-center gap-3 sm:gap-6 min-h-0 my-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={goPrev}
+                disabled={currentIndex <= 0}
+                className="hidden md:flex p-3.5 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 disabled:pointer-events-none text-white transition-all cursor-pointer shadow-lg backdrop-blur-md border border-white/10 shrink-0"
+                title={isVi ? 'Thẻ trước (←)' : 'Previous card (←)'}
+              >
+                <ChevronLeft size={28} />
+              </button>
+
+              <div className="relative w-full max-w-3xl h-[66vh] sm:h-[72vh] max-h-[660px]">
+                <AnimatePresence mode="wait" custom={direction}>
+                  <motion.div
+                    key={currentIndex}
+                    custom={direction}
+                    initial={{ opacity: 0, x: direction * 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: direction * -50 }}
+                    transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                    className="w-full h-full"
+                  >
+                    <FlashCard
+                      ref={flashCardRef}
+                      card={card}
+                      isMinimal
+                      isStarred={isStarred(card.id)}
+                      onToggleStar={() => {
+                        const newState = toggleStar(card.id);
+                        showToast(
+                          newState
+                            ? (isVi ? 'Đã gán sao ⭐' : 'Starred ⭐')
+                            : (isVi ? 'Đã bỏ gán sao' : 'Unstarred')
+                        );
+                      }}
+                      onFlipped={(flipped) => {
+                        if (flipped) {
+                          markProgress(card.id);
+                        }
+                      }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={currentIndex >= cards.length - 1}
+                className="hidden md:flex p-3.5 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 disabled:pointer-events-none text-white transition-all cursor-pointer shadow-lg backdrop-blur-md border border-white/10 shrink-0"
+                title={isVi ? 'Thẻ tiếp theo (→)' : 'Next card (→)'}
+              >
+                <ChevronRight size={28} />
+              </button>
+            </div>
+
+            {/* Bottom Bar: Shortcut Strip */}
+            <div
+              className="w-full max-w-xl mx-auto flex items-center justify-center py-1.5 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2.5 sm:gap-4 px-4 sm:px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/80 text-xs shadow-lg">
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">←</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">→</kbd>
+                  <span className="hidden sm:inline">{isVi ? 'Chuyển thẻ' : 'Cards'}</span>
+                </span>
+                <span className="text-white/25">|</span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">↑↓</kbd>
+                  <span className="hidden sm:inline"><kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">Enter</kbd></span>
+                  <span>{isVi ? 'Lật' : 'Flip'}</span>
+                </span>
+                <span className="text-white/25">|</span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">Space</kbd>
+                  <span>{t('study_audio')}</span>
+                </span>
+                <span className="text-white/25">|</span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-mono text-white font-semibold">Esc</kbd>
+                  <span className="hidden sm:inline">{isVi ? 'Thu nhỏ' : 'Exit'}</span>
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Toast message={toast.message} visible={toast.visible} />
       <WallpaperModal />

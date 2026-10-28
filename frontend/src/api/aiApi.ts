@@ -33,7 +33,7 @@ export interface AiStatusResponse {
 export const aiApi = {
   analyzeText: async (text: string): Promise<AiAnalyzeResponse> => {
     try {
-      const res = (await axiosInstance.post(ENDPOINTS.AI_ANALYZE_TEXT, { text })) as any;
+      const res = (await axiosInstance.post(ENDPOINTS.AI_ANALYZE_TEXT, { text }, { timeout: 35000 })) as any;
       const data = res?.data || res;
       if (data && data.items) {
         return {
@@ -59,13 +59,17 @@ export const aiApi = {
     lang?: 'en' | 'vi'
   ): Promise<AiExplainResponse> => {
     try {
-      const res = (await axiosInstance.post(ENDPOINTS.AI_EXPLAIN_WORD, {
-        word,
-        contextSentence,
-        currentMeaning,
-        pos,
-        lang,
-      })) as any;
+      const res = (await axiosInstance.post(
+        ENDPOINTS.AI_EXPLAIN_WORD,
+        {
+          word,
+          contextSentence,
+          currentMeaning,
+          pos,
+          lang,
+        },
+        { timeout: 35000 }
+      )) as any;
       return res?.data || res;
     } catch (err: any) {
       console.warn('aiApi.explainWord error:', err?.message || err);
@@ -82,7 +86,7 @@ export const aiApi = {
       return {
         isConfigured: false,
         provider: 'Google Gemini',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       };
     }
   },
@@ -95,7 +99,7 @@ export const aiApi = {
     lang?: 'en' | 'vi';
   }): Promise<TutorChatResponse> => {
     try {
-      const res = (await axiosInstance.post(ENDPOINTS.AI_TUTOR_CHAT, params)) as any;
+      const res = (await axiosInstance.post(ENDPOINTS.AI_TUTOR_CHAT, params, { timeout: 35000 })) as any;
       return res?.data || res;
     } catch (err: any) {
       console.warn('aiApi.tutorChat error:', err?.message || err);

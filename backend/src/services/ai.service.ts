@@ -93,11 +93,11 @@ Ensure:
 3. Clean, natural, and accurate Vietnamese translation.
 4. No Markdown code fences (\`\`\`json) if possible, or clean JSON string.`;
 
-    // Prioritize ultra-fast, lowest-latency model first (~1.1s)
+    // Prioritize fast, reliable models
     const candidateModels = [
-      'gemini-2.5-flash-lite',
-      'gemini-2.5-flash',
-      'gemini-flash-latest',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3.8-flash',
     ];
     let lastError: any = null;
 
@@ -285,9 +285,9 @@ Return ONLY valid JSON with this format:
 
     // Fastest models first (~1.1s)
     const candidateModels = [
-      'gemini-2.5-flash-lite',
-      'gemini-2.5-flash',
-      'gemini-flash-latest',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3.8-flash',
     ];
     for (const model of candidateModels) {
       try {
@@ -429,7 +429,7 @@ Output ONLY valid JSON adhering strictly to this schema:
   "suggestedDeckTopics": ["Chủ đề bộ thẻ 1", "Chủ đề bộ thẻ 2"]
 }`;
 
-        const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+        const models = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
         for (const model of models) {
           try {
             const response = await ai.models.generateContent({
@@ -586,7 +586,7 @@ YOUR INSTRUCTIONS:
   "grammarTip": "Short grammar explanation in Vietnamese if corrected, or null"
 }`;
 
-      const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+      const models = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
       for (const model of models) {
         try {
           const response = await ai.models.generateContent({

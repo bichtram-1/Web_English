@@ -2,6 +2,7 @@ import prisma from '../config/prisma';
 import { DeckCollection, Collaborator, CreateCollectionDTO, UpdateCollectionDTO } from '../types/collection.types';
 import { AppError } from '../utils/appError';
 import { slugify } from '../utils/slugify';
+import { NotificationService } from './notification.service';
 
 let isTableInitialized = false;
 
@@ -524,7 +525,6 @@ export class CollectionService {
 
     // Create an in-app notification for the invited friend
     try {
-      const { NotificationService } = await import('./notification.service');
       await NotificationService.createNotification({
         recipientEmail: collaborator.email.trim().toLowerCase(),
         recipientUserId: collaborator.userId,
@@ -570,7 +570,6 @@ export class CollectionService {
 
     // Notify the collaborator that their role has been updated
     try {
-      const { NotificationService } = await import('./notification.service');
       const roleText = role === 'editor' ? 'Chỉnh sửa bộ thẻ' : 'Cùng học';
       await NotificationService.createNotification({
         recipientEmail: email.trim().toLowerCase(),
@@ -665,7 +664,6 @@ export class CollectionService {
       try {
         const creatorUser = await prisma.user.findUnique({ where: { id: existing.creatorId } });
         if (creatorUser?.email) {
-          const { NotificationService } = await import('./notification.service');
           const joinerName = user.name || user.email.split('@')[0];
           const roleText = targetRole === 'editor' ? 'Chỉnh sửa bộ thẻ' : 'Cùng học';
           await NotificationService.createNotification({

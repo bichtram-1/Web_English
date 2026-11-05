@@ -1344,10 +1344,86 @@ export function extractKeyVocabulary(paragraph: string): ExtractedVocabItem[] {
   return extractedList;
 }
 
+const phoneticMemoryCache = new Map<string, string>();
+
 /**
- * Background auto-enrichment for newly extracted words that lack a full Vietnamese definition.
- * Translates ALL custom words in parallel batches and seamlessly updates the vocabulary list.
- * Completely eliminates placeholders like "(trong ngữ cảnh)".
+ * Intelligent phonetic IPA lookup:
+ * 1. Checks in-memory cache
+ * 2. Checks local VOCAB_DICTIONARY & base forms
+ * 3. Falls back to free public Dictionary API (dictionaryapi.dev)
+ */
+export async function lookupWordPhonetic(word: string): Promise<string | undefined> {
+  const clean = word.trim().toLowerCase().replace(/[^a-z-]/g, '');
+  if (!clean || clean.length < 2) return undefined;
+
+  // 1. In-memory cache
+  if (phoneticMemoryCache.has(clean)) {
+    return phoneticMemoryCache.get(clean);
+  }
+
+  // 2. Direct match in VOCAB_DICTIONARY
+  const vMatch = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === clean);
+  if (vMatch?.phonetic) {
+    phoneticMemoryCache.set(clean, vMatch.phonetic);
+    return vMatch.phonetic;
+  }
+
+  // 3. Base-form match in VOCAB_DICTIONARY
+  const baseCandidates = [
+    clean.replace(/(ing|ed|s|es|ly)$/, ''),
+    clean.replace(/(d|s)$/, ''),
+    clean.replace(/ed$/, 'e'),
+    clean.replace(/ing$/, 'e'),
+    clean.replace(/ies$/, 'y'),
+    clean.replace(/ier$/, 'y'),
+  ];
+  for (const base of baseCandidates) {
+    if (!base || base === clean) continue;
+    const baseMatch = VOCAB_DICTIONARY.find((v) => v.term.toLowerCase() === base);
+    if (baseMatch?.phonetic) {
+      phoneticMemoryCache.set(clean, baseMatch.phonetic);
+      return baseMatch.phonetic;
+    }
+  }
+
+  // 4. Free public Dictionary API: api.dictionaryapi.dev
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(clean)}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        let ipa = data[0].phonetic;
+        if (!ipa && Array.isArray(data[0].phonetics)) {
+          for (const item of data[0].phonetics) {
+            if (item?.text && item.text.trim()) {
+              ipa = item.text.trim();
+              break;
+            }
+          }
+        }
+        if (ipa) {
+          const formatted = ipa.startsWith('/') ? ipa : `/${ipa.replace(/^\/|\/$/g, '')}/`;
+          phoneticMemoryCache.set(clean, formatted);
+          return formatted;
+        }
+      }
+    }
+  } catch {
+    // Graceful fallback if offline or request aborted
+  }
+
+  return undefined;
+}
+
+/**
+ * Background auto-enrichment for newly extracted words:
+ * Fetches accurate Vietnamese definitions AND international IPA phonetics.
+ * Processes items in parallel batches and seamlessly updates the vocabulary list.
  */
 export async function enrichExtractedItemsMeanings(
   items: ExtractedVocabItem[],
@@ -1356,44 +1432,26 @@ export async function enrichExtractedItemsMeanings(
   const pendingWords = items.filter(
     (item) =>
       item.categoryType === 'vocab' &&
-      (item.meaning === 'Đang tra nghĩa...' || item.meaning.includes('(trong ngữ cảnh)'))
+      (item.meaning === 'Đang tra nghĩa...' || item.meaning.includes('(trong ngữ cảnh)') || !item.phonetic)
   );
 
   if (pendingWords.length === 0) return;
 
-  // Process ALL words with controlled concurrency batches of 4
+  // Process words with controlled concurrency batches of 4
   const BATCH_SIZE = 4;
   for (let i = 0; i < pendingWords.length; i += BATCH_SIZE) {
     const chunk = pendingWords.slice(i, i + BATCH_SIZE);
     await Promise.all(
       chunk.map(async (item) => {
         try {
-          const translated = await translateSingleWord(item.word);
-          if (translated && translated.toLowerCase() !== item.word.toLowerCase()) {
-            onUpdate((prev) =>
-              prev.map((it) => (it.id === item.id ? { ...it, meaning: translated } : it))
-            );
-          } else {
-            // Friendly fallback if offline or completely untranslatable
-            const posLabel =
-              item.pos === 'verb'
-                ? 'Động từ'
-                : item.pos === 'adjective'
-                ? 'Tính từ'
-                : item.pos === 'adverb'
-                ? 'Trạng từ'
-                : 'Danh từ';
-            onUpdate((prev) =>
-              prev.map((it) =>
-                it.id === item.id &&
-                (it.meaning === 'Đang tra nghĩa...' || it.meaning.includes('(trong ngữ cảnh)'))
-                  ? { ...it, meaning: `[${posLabel}] Bấm ✏️ để nhập nghĩa` }
-                  : it
-              )
-            );
-          }
-        } catch (err) {
-          console.warn(`Failed to enrich meaning for "${item.word}":`, err);
+          const needsMeaning = item.meaning === 'Đang tra nghĩa...' || item.meaning.includes('(trong ngữ cảnh)');
+          const needsPhonetic = !item.phonetic;
+
+          const [translated, phonetic] = await Promise.all([
+            needsMeaning ? translateSingleWord(item.word) : Promise.resolve(item.meaning),
+            needsPhonetic ? lookupWordPhonetic(item.word) : Promise.resolve(item.phonetic),
+          ]);
+
           const posLabel =
             item.pos === 'verb'
               ? 'Động từ'
@@ -1402,14 +1460,27 @@ export async function enrichExtractedItemsMeanings(
               : item.pos === 'adverb'
               ? 'Trạng từ'
               : 'Danh từ';
+
+          const finalMeaning =
+            translated && translated.toLowerCase() !== item.word.toLowerCase()
+              ? translated
+              : item.meaning !== 'Đang tra nghĩa...' && !item.meaning.includes('(trong ngữ cảnh)')
+              ? item.meaning
+              : `[${posLabel}] Bấm ✏️ để nhập nghĩa`;
+
           onUpdate((prev) =>
             prev.map((it) =>
-              it.id === item.id &&
-              (it.meaning === 'Đang tra nghĩa...' || it.meaning.includes('(trong ngữ cảnh)'))
-                ? { ...it, meaning: `[${posLabel}] Bấm ✏️ để nhập nghĩa` }
+              it.id === item.id
+                ? {
+                    ...it,
+                    meaning: finalMeaning,
+                    phonetic: phonetic || it.phonetic,
+                  }
                 : it
             )
           );
+        } catch (err) {
+          console.warn(`Failed to enrich for "${item.word}":`, err);
         }
       })
     );

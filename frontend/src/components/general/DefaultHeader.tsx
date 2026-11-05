@@ -9,6 +9,7 @@ import LanguageSelect from './LanguageSelect';
 import MobileDrawer from './MobileDrawer';
 import UserProfileModal from './UserProfileModal';
 import NotificationBell from './NotificationBell';
+import StreakFlameBadge from '../streak/StreakFlameBadge';
 
 export default function DefaultHeader() {
   const navigate = useNavigate();
@@ -141,8 +142,13 @@ export default function DefaultHeader() {
             {/* Theme Toggle (Dark/Light) */}
             <ThemeToggle />
 
-            {/* Notification Bell */}
-            <NotificationBell />
+            {/* Streak Flame Badge & Notification Bell (Only for logged in user) */}
+            {isAuthenticated && user && (
+              <>
+                <StreakFlameBadge />
+                <NotificationBell />
+              </>
+            )}
 
             {/* Quick Create Button (Adaptive on compact/split screens) */}
             <button

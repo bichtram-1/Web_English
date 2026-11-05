@@ -9,6 +9,9 @@ export interface FlashcardItem {
   exampleEn?: string;
   exampleVi?: string;
   imageUrl?: string;
+  passageText?: string;
+  passageTranslation?: string;
+  contextSentence?: string;
 }
 
 export interface DragDropWord {
@@ -58,6 +61,13 @@ export interface Deck {
   rating?: number; // Average rating 1.0 - 5.0
   ratingCount?: number; // Total number of ratings submitted
   userRatings?: Record<string, number>; // Map userId/email -> rating (1-5)
+  passage?: {
+    originalText: string;
+    translatedText: string;
+    deckTitle?: string;
+    createdAt?: string;
+    deckId?: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 }

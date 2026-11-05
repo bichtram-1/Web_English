@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Flame, Trophy, Award, Clock, BookOpen, CheckCircle, ArrowLeft, BarChart3, Users } from 'lucide-react';
+import { Trophy, Award, Clock, BookOpen, CheckCircle, ArrowLeft, BarChart3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useStudyStats from '../../hooks/useStudyStats';
+import StreakQuickCard from '../../components/streak/StreakQuickCard';
 import { ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
 
@@ -31,9 +32,6 @@ export default function StatsPage() {
         >
           <ArrowLeft size={16} /> <span>{t('back')}</span>
         </button>
-        <span className="text-xs uppercase font-bold tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900 px-3 py-1 rounded-full whitespace-nowrap shrink-0">
-          DATN Analytics Hub
-        </span>
       </div>
 
       {/* Header banner */}
@@ -60,15 +58,7 @@ export default function StatsPage() {
           </div>
 
           {/* Quick Streak Card */}
-          <div className="bg-white/15 backdrop-blur-md rounded-2xl px-6 py-4 flex items-center gap-4 border border-white/20">
-            <div className="w-12 h-12 rounded-2xl bg-amber-400/30 flex items-center justify-center text-amber-300">
-              <Flame size={28} />
-            </div>
-            <div>
-              <div className="text-2xl font-black">{stats?.streakDays || 1} Ngày</div>
-              <div className="text-xs text-indigo-100 font-semibold uppercase">{t('stats_streak')}</div>
-            </div>
-          </div>
+          <StreakQuickCard className="w-full sm:w-auto min-w-0 sm:min-w-[320px]" />
         </div>
       </div>
 

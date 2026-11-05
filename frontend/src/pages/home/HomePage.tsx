@@ -32,6 +32,7 @@ import DeckRatingStars from '../../components/shared/DeckRatingStars';
 import DeckSortDropdown from '../../components/shared/DeckSortDropdown';
 import { isDeckCreator, canEditDeck, canViewDeck } from '../../utils/permission';
 import { sortDecks, recordViewedDeck, type DeckSortOption } from '../../utils/recentDecks';
+import { formatCompactNumber, formatFullNumber } from '../../utils/formatNumber';
 
 const categoryColors: Record<string, string> = {
   Beginner: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300',
@@ -63,7 +64,8 @@ interface DeckCardProps {
 
 function DeckCard({ deck, onStudy, onDeleteRequest, index }: DeckCardProps) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { user } = useAuth();
   const isPublic = deck.isPublic !== undefined ? deck.isPublic : true;
   const isOwner = isDeckCreator(deck, user);
@@ -396,11 +398,15 @@ export default function HomePage() {
               {/* Stats Bar */}
               <div className="flex justify-center md:justify-start gap-6 sm:gap-8 flex-wrap">
                 {[
-                  { label: t('home_quick_stats_decks'), value: `${decks.length}+` },
+                  {
+                    label: t('home_quick_stats_decks'),
+                    value: formatCompactNumber(decks.length),
+                    fullValue: formatFullNumber(decks.length),
+                  },
                   { label: isVi ? 'Phương pháp' : 'Method', value: isVi ? 'Ghi nhớ sâu' : 'Spaced Repetition' },
                   { label: isVi ? '5 Đấu Trường Game' : '5 Arcade Games', value: isVi ? 'Trò chơi 🎮' : 'Arcade 🎮' },
-                ].map(({ label, value }) => (
-                  <div key={label} className="text-center md:text-left">
+                ].map(({ label, value, fullValue }: any) => (
+                  <div key={label} className="text-center md:text-left" title={fullValue ? `${fullValue} ${label}` : undefined}>
                     <div
                       className="text-white text-xl sm:text-2xl font-black"
                       style={{ fontFamily: 'var(--font-display)' }}

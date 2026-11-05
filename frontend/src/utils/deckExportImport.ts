@@ -4,6 +4,9 @@ export interface ParsedCard {
   front: string;
   back: string;
   type: 'flashcard' | 'drag_drop';
+  phonetic?: string;
+  exampleEn?: string;
+  exampleVi?: string;
   imageUrl?: string;
   grammarRule?: string;
   grammarExplanation?: string;
@@ -29,12 +32,13 @@ export function exportDeckToJson(deck: Deck): void {
  * Export Deck to standard CSV (Anki / Quizlet / Excel compatible)
  */
 export function exportDeckToCsv(deck: Deck): void {
-  const headers = ['Front / English', 'Back / Vietnamese', 'Type', 'Grammar Rule'];
+  const headers = ['Front / English', 'Back / Vietnamese', 'Phonetic IPA', 'Type', 'Grammar Rule'];
   const rows = deck.cards.map((c) => {
     if (c.type === 'flashcard') {
       return [
         `"${c.front.replace(/"/g, '""')}"`,
         `"${c.back.replace(/"/g, '""')}"`,
+        `"${(c.phonetic || '').replace(/"/g, '""')}"`,
         '"Flashcard"',
         '""',
       ];
@@ -42,6 +46,7 @@ export function exportDeckToCsv(deck: Deck): void {
       return [
         `"${c.shuffled.map((w) => w.word).join(' ').replace(/"/g, '""')}"`,
         `"${c.meaning.replace(/"/g, '""')}"`,
+        '""',
         '"Drag & Drop"',
         `"${(c.grammarRule || '').replace(/"/g, '""')}"`,
       ];
@@ -77,6 +82,9 @@ export async function parseVocabularyFile(file: File): Promise<{ title?: string;
             front: item.front || item.term || item.word || item.english || `Word ${idx + 1}`,
             back: item.back || item.definition || item.meaning || item.vietnamese || '',
             type: item.type === 'drag_drop' ? 'drag_drop' : 'flashcard',
+            phonetic: item.phonetic || undefined,
+            exampleEn: item.exampleEn || undefined,
+            exampleVi: item.exampleVi || undefined,
             imageUrl: item.imageUrl || undefined,
             grammarRule: item.grammarRule || '',
             grammarExplanation: item.grammarExplanation || '',
@@ -90,6 +98,9 @@ export async function parseVocabularyFile(file: File): Promise<{ title?: string;
             front: item.front || item.term || item.word || item.english || `Word ${idx + 1}`,
             back: item.back || item.definition || item.meaning || item.vietnamese || '',
             type: item.type === 'drag_drop' ? 'drag_drop' : 'flashcard',
+            phonetic: item.phonetic || undefined,
+            exampleEn: item.exampleEn || undefined,
+            exampleVi: item.exampleVi || undefined,
             imageUrl: item.imageUrl || undefined,
             grammarRule: item.grammarRule || '',
             grammarExplanation: item.grammarExplanation || '',
@@ -135,11 +146,14 @@ export async function parseVocabularyFile(file: File): Promise<{ title?: string;
     if (parts.length >= 2) {
       const front = parts[0]?.trim().replace(/^"|"$/g, '') || '';
       const back = parts[1]?.trim().replace(/^"|"$/g, '') || '';
+      const third = parts[2]?.trim().replace(/^"|"$/g, '') || '';
+      const phonetic = third && (third.startsWith('/') || third.startsWith('[')) ? third : undefined;
       if (front && back) {
         cards.push({
           front,
           back,
           type: 'flashcard',
+          phonetic,
         });
       }
     }

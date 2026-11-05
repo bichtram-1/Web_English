@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, User as UserIcon, UserPlus, ArrowLeft, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../constants/routers';
+import { validateClientEmail } from '../../utils/emailValidator';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -30,6 +31,13 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!name || !email || !password) {
       setError('Vui lòng điền đầy đủ họ tên, email và mật khẩu');
+      setIsDuplicateEmail(false);
+      return;
+    }
+
+    const emailCheck = validateClientEmail(email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error || 'Email không hợp lệ');
       setIsDuplicateEmail(false);
       return;
     }

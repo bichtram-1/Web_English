@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { authApi } from '../../api/authApi';
 import { ROUTES } from '../../constants/routers';
+import { validateClientEmail } from '../../utils/emailValidator';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -52,6 +53,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (!email) {
       setError('Vui lòng nhập địa chỉ email');
+      return;
+    }
+
+    const emailCheck = validateClientEmail(email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error || 'Email không hợp lệ');
       return;
     }
 

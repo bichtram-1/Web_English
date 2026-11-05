@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Sparkles,
@@ -39,6 +39,7 @@ import { ROUTES, getDeckDetailRoute } from '../../constants/routers';
 import ChickenMascot from '../../components/general/ChickenMascot';
 import { aiApi, AiExplainResponse } from '../../api/aiApi';
 import type { Deck, FlashcardItem } from '../../types/DeckType';
+import { renderMarkedPassage, renderMarkedTranslation } from '../../utils/passageHighlight';
 
 const SAMPLE_TEXTS = [
   {
@@ -100,10 +101,11 @@ export default function TextTranslateExtractPage() {
   const [deckDescription, setDeckDescription] = useState('');
   const [deckCategory, setDeckCategory] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [deckLevelReason, setDeckLevelReason] = useState('');
-  const [deckIsPublic, setDeckIsPublic] = useState(false);
+  const [deckIsPublic, setDeckIsPublic] = useState(true);
   const [deckColor, setDeckColor] = useState('from-indigo-600 to-violet-600');
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const [isSampleMenuOpen, setIsSampleMenuOpen] = useState(false);
+  const [expandedPassageItemId, setExpandedPassageItemId] = useState<string | null>(null);
 
   // AI Integration States
   const [isAiResult, setIsAiResult] = useState(false);
@@ -114,12 +116,37 @@ export default function TextTranslateExtractPage() {
   const clientExplainCache = useRef<Map<string, AiExplainResponse>>(new Map());
   const clientAnalyzeCache = useRef<Map<string, any>>(new Map());
 
-  // Always ensure the page starts completely clean and empty so users can immediately paste their own text
+  const location = useLocation();
+  const [sourceDeckInfo, setSourceDeckInfo] = useState<{ id?: string; title?: string } | null>(null);
+
+  // Initialize or reload text from navigation state if coming from DeckDetailPage
   useEffect(() => {
-    setInputText('');
-    setTranslatedText('');
-    setExtractedVocab([]);
-  }, []);
+    const state = location.state as {
+      text?: string;
+      translation?: string;
+      deckTitle?: string;
+      deckId?: string;
+    } | undefined;
+
+    if (state?.text) {
+      setInputText(state.text);
+      if (state.translation) {
+        setTranslatedText(state.translation);
+      }
+      if (state.deckTitle || state.deckId) {
+        setSourceDeckInfo({ id: state.deckId, title: state.deckTitle });
+        if (state.deckTitle) {
+          setDeckTitle(state.deckTitle);
+        }
+      }
+      triggerProcess(state.text);
+    } else {
+      setInputText('');
+      setTranslatedText('');
+      setExtractedVocab([]);
+      setSourceDeckInfo(null);
+    }
+  }, [location.state]);
 
   // Paste text directly from clipboard (only fills input, does not auto-translate)
   const handlePasteClipboard = async () => {
@@ -352,7 +379,7 @@ export default function TextTranslateExtractPage() {
     );
     setDeckCategory(detected.level);
     setDeckLevelReason(detected.reason);
-    setDeckIsPublic(false); // Default to private for security
+    setDeckIsPublic(true); // Default to public like standard CreateDeckPage
     setDeckColor('from-indigo-600 to-violet-600');
     setIsCreateDeckModalOpen(true);
   };
@@ -365,23 +392,26 @@ export default function TextTranslateExtractPage() {
     setIsCreatingDeck(true);
     try {
       const cards: FlashcardItem[] = selectedItems.map((item, idx) => {
-        if (item.categoryType === 'grammar') {
-          return {
-            id: idx + 1,
-            type: 'flashcard',
-            front: `${item.word}\n\n[Công thức]: ${item.grammarRule || ''}`,
-            back: `${item.meaning}\n\n[Giải thích]: ${item.grammarExplanation || ''}`,
-            exampleEn: item.contextSentence,
-          };
-        }
         return {
           id: idx + 1,
           type: 'flashcard',
-          front: item.word,
-          back: item.meaning,
-          exampleEn: item.contextSentence,
+          front: item.word.trim(),
+          back: item.meaning.trim(),
+          phonetic: item.phonetic?.trim() || undefined,
+          passageText: inputText.trim(),
+          passageTranslation: translatedText.trim(),
+          contextSentence: item.contextSentence?.trim() || undefined,
+          exampleEn: inputText.trim() || item.contextSentence?.trim() || undefined,
+          exampleVi: translatedText.trim() || undefined,
         };
       });
+
+      const passageData = {
+        originalText: inputText.trim(),
+        translatedText: translatedText.trim(),
+        deckTitle: deckTitle.trim(),
+        createdAt: new Date().toISOString(),
+      };
 
       const newDeck: Deck = {
         id: `deck-extract-${Date.now()}`,
@@ -394,19 +424,21 @@ export default function TextTranslateExtractPage() {
         isPublic: deckIsPublic,
         color: deckColor,
         cards,
+        passage: passageData,
       };
 
       const created = await addDeck(newDeck);
       const targetId = created?.id || newDeck.id;
+
       setSaveSuccessMsg(
         isVi
-          ? `Đã tạo bộ thẻ "${deckTitle}" thành công (${cards.length} thẻ · ${deckIsPublic ? 'Công khai' : 'Riêng tư'})!`
-          : `Deck "${deckTitle}" created successfully (${cards.length} cards · ${deckIsPublic ? 'Public' : 'Private'})!`
+          ? `Đã tạo bộ thẻ "${deckTitle}" thành công (${cards.length} thẻ)!`
+          : `Deck "${deckTitle}" created successfully (${cards.length} cards)!`
       );
       setIsCreateDeckModalOpen(false);
       setTimeout(() => {
         navigate(getDeckDetailRoute(targetId));
-      }, 1000);
+      }, 700);
     } catch (err) {
       console.error('Failed to create deck:', err);
       alert(isVi ? 'Có lỗi xảy ra khi tạo bộ thẻ. Vui lòng thử lại!' : 'Failed to create deck.');
@@ -976,11 +1008,60 @@ export default function TextTranslateExtractPage() {
                         </div>
                       )}
 
-                      {item.contextSentence && (
-                        <div className="mt-1.5 text-[10px] text-slate-400 italic pl-6 border-l-2 border-slate-200 dark:border-slate-700 ml-6 truncate">
-                          "{item.contextSentence}"
-                        </div>
-                      )}
+                      {/* Đoạn văn dịch (bấm mở rộng để xem ngữ cảnh trích xuất và highlight từ vựng) */}
+                      {(() => {
+                        const passageEn = inputText.trim() || item.contextSentence?.trim();
+                        const passageVi = translatedText.trim();
+                        if (!passageEn) return null;
+
+                        const isExpanded = expandedPassageItemId === item.id;
+
+                        return (
+                          <div className="mt-2 pl-6 pt-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedPassageItemId((prev) => (prev === item.id ? null : item.id));
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-indigo-50/80 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                            >
+                              <BookOpen size={12} className="text-indigo-600 dark:text-indigo-400" />
+                              <span>{isVi ? 'Đoạn văn dịch 📖' : 'Bilingual Passage 📖'}</span>
+                              <ChevronDown size={11} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isExpanded && (
+                              <div className="mt-2 p-3 rounded-xl bg-white/95 dark:bg-slate-900/95 border border-indigo-200 dark:border-slate-700 text-xs space-y-2 shadow-xs">
+                                <div>
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                      {isVi ? 'Đoạn văn gốc (từ vựng trích xuất được highlight):' : 'Source Passage:'}
+                                    </span>
+                                  </div>
+                                  <p className="text-slate-800 dark:text-slate-200 text-xs leading-relaxed pl-2.5 border-l-2 border-indigo-400">
+                                    {renderMarkedPassage(passageEn, item.word)}
+                                  </p>
+                                </div>
+                                {passageVi && (
+                                  <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                        {isVi ? 'Bản dịch tiếng Việt:' : 'Vietnamese Translation:'}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed pl-2.5 border-l-2 border-amber-400">
+                                      {renderMarkedTranslation(passageVi, item.meaning)}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ))
                 )}
@@ -1050,7 +1131,8 @@ export default function TextTranslateExtractPage() {
                     ) : (
                       <>
                         <Download size={13} />
-                        <span>{isVi ? 'Tải File CSV / Anki' : 'Export CSV'}</span>
+                        {/* Tải File CSV / Anki */}
+                        <span>{isVi ? 'Tải File CSV' : 'Export CSV'}</span>
                       </>
                     )}
                   </button>

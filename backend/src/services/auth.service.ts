@@ -3,6 +3,7 @@ import { RegisterDTO, LoginDTO, AuthResponse, SafeUser } from '../types/auth.typ
 import { hashPassword, comparePassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
 import { AppError } from '../utils/appError';
+import { validateEmail } from '../utils/emailValidator';
 import { OtpService } from './otp.service';
 import { MailService } from './mail.service';
 
@@ -14,8 +15,14 @@ export class AuthService {
       throw new AppError('Vui lòng điền đầy đủ họ tên, email và mật khẩu.', 400);
     }
 
+    const validation = validateEmail(email);
+    if (!validation.valid) {
+      throw new AppError(validation.error || 'Email không hợp lệ.', 400);
+    }
+    const cleanEmail = validation.cleanEmail;
+
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
+      where: { email: cleanEmail },
     });
 
     if (existingUser) {
@@ -27,7 +34,7 @@ export class AuthService {
     const newUser = await prisma.user.create({
       data: {
         name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         passwordHash,
         role: 'student',
         avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
@@ -125,7 +132,12 @@ export class AuthService {
       throw new AppError('Vui lòng nhập địa chỉ email', 400);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const validation = validateEmail(email);
+    if (!validation.valid) {
+      throw new AppError(validation.error || 'Email không hợp lệ', 400);
+    }
+    const cleanEmail = validation.cleanEmail;
+
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
     });

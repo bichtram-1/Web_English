@@ -14,6 +14,7 @@ import { type VocabSuggestion } from '../../data/vocabDictionary';
 import { translateSingleWord } from '../../utils/textExtractor';
 import { ParsedCard } from '../../utils/deckExportImport';
 import { compressImageFile } from '../../utils/imageCompressor';
+import { wordExistsInPassage } from '../../utils/passageHighlight';
 import type { Deck, CardItem } from '../../types/DeckType';
 import deckApi from '../../api/deckApi';
 import { canEditDeck } from '../../utils/permission';
@@ -37,9 +38,15 @@ interface CardRow {
   term: string;
   definition: string;
   type: CardType;
+  phonetic?: string;
   imageUrl?: string;
   grammarRule?: string;
   grammarExplanation?: string;
+  exampleEn?: string;
+  exampleVi?: string;
+  passageText?: string;
+  passageTranslation?: string;
+  contextSentence?: string;
 }
 
 let nextId = 4;
@@ -48,9 +55,15 @@ const emptyCard = (): CardRow => ({
   term: '',
   definition: '',
   type: 'flashcard',
+  phonetic: '',
   imageUrl: '',
   grammarRule: '',
   grammarExplanation: '',
+  exampleEn: '',
+  exampleVi: '',
+  passageText: '',
+  passageTranslation: '',
+  contextSentence: '',
 });
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -80,6 +93,7 @@ function CardRowItem({
   onApplySuggestion,
   onRemove,
   removable,
+  deckPassageText,
 }: {
   card: CardRow;
   index: number;
@@ -87,6 +101,7 @@ function CardRowItem({
   onApplySuggestion: (id: number, suggestion: VocabSuggestion) => void;
   onRemove: (id: number) => void;
   removable: boolean;
+  deckPassageText?: string;
 }) {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
@@ -226,6 +241,34 @@ function CardRowItem({
           />
         </div>
       </div>
+
+      {/* Optional IPA Phonetic for Flashcards */}
+      {card.type === 'flashcard' && (
+        <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-800/20">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+              {isVi ? 'Phiên âm IPA (Tùy chọn)' : 'IPA Phonetic (Optional)'}
+            </label>
+            <input
+              type="text"
+              value={card.phonetic || ''}
+              onChange={(e) => onChange(card.id, 'phonetic', e.target.value)}
+              placeholder="e.g. /ˈbjuː.tɪ.fəl/ hoặc /dɪˈvel.ə.pər/"
+              className="w-full text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 placeholder-slate-300 dark:placeholder-slate-600 outline-none border border-slate-200 dark:border-slate-700 focus:border-indigo-400 rounded-lg px-2.5 py-1.5 transition-colors bg-white dark:bg-slate-900"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Đoạn văn dịch indicator nếu thẻ được trích xuất từ văn bản hoặc từ vựng nằm trong bài đọc */}
+      {(card.exampleEn || card.passageText || (deckPassageText && wordExistsInPassage(deckPassageText, card.term))) && (
+        <div className="px-4 py-1.5 border-t border-slate-100 dark:border-slate-800/80 bg-indigo-50/30 dark:bg-indigo-950/20 flex items-center gap-1.5 text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+          <BookOpen size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <span>{isVi ? 'Đoạn văn dịch 📖' : 'Bilingual Passage 📖'}</span>
+        </div>
+      )}
 
       <AnimatePresence>
         {card.type === 'flashcard' && (showImageInput || Boolean(card.imageUrl)) && (
@@ -419,6 +462,7 @@ export default function CreateDeckPage() {
   const [category, setCategory] = useState('Beginner');
   const [color, setColor] = useState('from-indigo-600 to-violet-600');
   const [isPublic, setIsPublic] = useState(true);
+  const [deckPassage, setDeckPassage] = useState<any>(null);
   const [cards, setCards] = useState<CardRow[]>([
     { id: 1, term: '', definition: '', type: 'flashcard' },
     { id: 2, term: '', definition: '', type: 'flashcard' },
@@ -462,6 +506,25 @@ export default function CreateDeckPage() {
         setColor(fetched.color || 'from-indigo-600 to-violet-600');
         setIsPublic(fetched.isPublic !== undefined ? fetched.isPublic : true);
 
+        // Extract complete deck-wide passage from fetched.passage or from existing cards
+        const existingPassageEn =
+          (fetched as any).passage?.originalText ||
+          fetched.cards?.find((c: any) => c.exampleEn && c.exampleEn.length > 30)?.exampleEn ||
+          '';
+        const existingPassageVi =
+          (fetched as any).passage?.translatedText ||
+          fetched.cards?.find((c: any) => c.exampleVi && c.exampleVi.length > 20)?.exampleVi ||
+          '';
+
+        if (existingPassageEn) {
+          setDeckPassage({
+            originalText: existingPassageEn,
+            translatedText: existingPassageVi,
+          });
+        } else {
+          setDeckPassage(null);
+        }
+
         if (Array.isArray(fetched.cards) && fetched.cards.length > 0) {
           const loadedRows: CardRow[] = fetched.cards.map((c, idx) => {
             if (c.type === 'drag_drop') {
@@ -482,7 +545,13 @@ export default function CreateDeckPage() {
               term: c.front || '',
               definition: c.back || '',
               type: 'flashcard',
+              phonetic: c.phonetic || '',
               imageUrl: c.imageUrl || '',
+              exampleEn: c.exampleEn || '',
+              exampleVi: c.exampleVi || '',
+              passageText: c.passageText || '',
+              passageTranslation: c.passageTranslation || '',
+              contextSentence: c.contextSentence || '',
               grammarRule: '',
               grammarExplanation: '',
             };
@@ -513,6 +582,7 @@ export default function CreateDeckPage() {
       term: c.front,
       definition: c.back,
       type: c.type,
+      phonetic: (c as any).phonetic || '',
       imageUrl: c.imageUrl || '',
       grammarRule: c.grammarRule || '',
       grammarExplanation: c.grammarExplanation || '',
@@ -546,6 +616,7 @@ export default function CreateDeckPage() {
           term: suggestion.term,
           definition: finalDef || c.definition,
           type: isGrammar ? 'drag_drop' : c.type,
+          phonetic: suggestion.phonetic || c.phonetic || '',
           grammarRule: suggestion.grammarRule || c.grammarRule || '',
           grammarExplanation: suggestion.grammarExplanation || c.grammarExplanation || '',
         };
@@ -595,12 +666,38 @@ export default function CreateDeckPage() {
             grammarExplanation: c.grammarExplanation?.trim() || undefined,
           };
         }
+        const cardFront = cleanTerm || cleanDef;
+        const cardBack = cleanDef || cleanTerm;
+
+        // Check if this card's word actually appears anywhere in the full passage
+        const isWordInPassage = deckPassage?.originalText
+          ? wordExistsInPassage(deckPassage.originalText, cardFront)
+          : false;
+
+        // If card already had its own passage, keep it.
+        // If it's a newly added card, ONLY assign passage if the word actually appears in the passage!
+        const assignedPassageEn =
+          c.passageText?.trim() ||
+          c.exampleEn?.trim() ||
+          (isWordInPassage ? deckPassage?.originalText?.trim() : undefined);
+
+        const assignedPassageVi =
+          c.passageTranslation?.trim() ||
+          c.exampleVi?.trim() ||
+          (isWordInPassage ? deckPassage?.translatedText?.trim() : undefined);
+
         return {
           id: index + 1,
           type: 'flashcard',
-          front: cleanTerm || cleanDef,
-          back: cleanDef || cleanTerm,
+          front: cardFront,
+          back: cardBack,
+          phonetic: c.phonetic?.trim() || undefined,
           imageUrl: c.imageUrl?.trim() || undefined,
+          exampleEn: assignedPassageEn,
+          exampleVi: assignedPassageVi,
+          passageText: assignedPassageEn,
+          passageTranslation: assignedPassageVi,
+          contextSentence: c.contextSentence?.trim() || undefined,
         };
       });
 
@@ -613,6 +710,7 @@ export default function CreateDeckPage() {
           isPublic,
           cards: formattedCards,
           itemCount: formattedCards.length,
+          passage: deckPassage || undefined,
         });
 
         setSaved(true);
@@ -976,6 +1074,7 @@ export default function CreateDeckPage() {
                   onApplySuggestion={applySuggestion}
                   onRemove={removeCard}
                   removable={cards.length > 1}
+                  deckPassageText={deckPassage?.originalText}
                 />
               ))}
             </AnimatePresence>

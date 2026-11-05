@@ -63,8 +63,8 @@ async function main() {
       category: 'Beginner',
       color: 'from-violet-500 to-indigo-600',
       isPublic: true,
-      creatorName: 'LinguaTeam',
-      creatorId: admin.id,
+      creatorName: 'Bích Trâm',
+      creatorId: student.id,
       itemCount: 8,
       cards: {
         create: [

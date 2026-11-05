@@ -12,6 +12,7 @@ import {
   Users,
   Sparkles,
   ChevronRight,
+  ChevronDown,
   FolderPlus,
   Globe,
   Lock,
@@ -42,6 +43,7 @@ import { getCategoryLabel } from '../home/HomePage';
 import { useStarredCards } from '../../utils/starredCards';
 import { getDeckSRSStats } from '../../utils/sm2';
 import { formatCompactNumber, formatFullNumber } from '../../utils/formatNumber';
+import { renderMarkedPassage, renderMarkedTranslation, wordExistsInPassage } from '../../utils/passageHighlight';
 
 import {
   ROUTES,
@@ -74,6 +76,7 @@ export default function DeckDetailPage() {
   const [isCloning, setIsCloning] = useState(false);
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const [cardSearch, setCardSearch] = useState('');
+  const [expandedPassageCardId, setExpandedPassageCardId] = useState<number | string | null>(null);
 
   const handleToggleDeckPrivacy = async () => {
     if (!deck || isUpdatingPrivacy) return;
@@ -782,7 +785,7 @@ export default function DeckDetailPage() {
                   {filteredCards.map((c, index) => (
                     <div
                       key={c.id || index}
-                      className={`p-4 rounded-2xl bg-white dark:bg-slate-800/90 border transition-all shadow-xs flex items-center justify-between gap-4 group ${
+                      className={`p-4 rounded-2xl bg-white dark:bg-slate-800/90 border transition-all shadow-xs flex items-start justify-between gap-4 group ${
                         isStarred(c.id)
                           ? 'border-amber-300/80 dark:border-amber-500/40 ring-1 ring-amber-400/20 dark:ring-amber-500/10'
                           : 'border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 hover:border-indigo-400 dark:hover:border-indigo-500'
@@ -813,16 +816,74 @@ export default function DeckDetailPage() {
                             <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-line break-words">
                               {c.back}
                             </div>
-                            {c.exampleEn && (
-                              <div className="text-xs text-slate-400 dark:text-slate-500 italic mt-1 whitespace-pre-line break-words">
-                                "{c.exampleEn}"
-                              </div>
-                            )}
-                            {c.exampleVi && (
-                              <div className="text-xs text-indigo-600/80 dark:text-indigo-400/80 italic mt-0.5 whitespace-pre-line break-words">
-                                "{c.exampleVi}"
-                              </div>
-                            )}
+                            {/* Đoạn văn dịch (nếu từ vựng này được trích từ đoạn văn/bài dịch) */}
+                            {(() => {
+                              // Get full deck-wide passage from deck.passage OR from any card in deck that has the full text
+                              const deckWidePassageEn =
+                                (deck as any)?.passage?.originalText ||
+                                deck.cards?.find((card: any) => card.exampleEn && card.exampleEn.length > 30)?.exampleEn ||
+                                '';
+                              const deckWidePassageVi =
+                                (deck as any)?.passage?.translatedText ||
+                                deck.cards?.find((card: any) => card.exampleVi && card.exampleVi.length > 20)?.exampleVi ||
+                                '';
+
+                              // Check if word actually exists in the full passage
+                              const isWordInPassage = deckWidePassageEn ? wordExistsInPassage(deckWidePassageEn, c.front) : false;
+
+                              // Only show passage if card has its own passage OR if the word actually appears in the deck passage
+                              const textToShow = c.passageText || c.contextSentence || c.exampleEn || (isWordInPassage ? deckWidePassageEn : '');
+                              const passageVi = c.passageTranslation || c.exampleVi || (isWordInPassage ? deckWidePassageVi : '');
+                              if (!textToShow) return null;
+
+                              const isExpanded = String(expandedPassageCardId) === String(c.id);
+
+                              return (
+                                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedPassageCardId((prev) => (String(prev) === String(c.id) ? null : c.id));
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                                  >
+                                    <BookOpen size={13} className="text-indigo-600 dark:text-indigo-400" />
+                                    <span>{isVi ? 'Đoạn văn dịch 📖' : 'Bilingual Passage 📖'}</span>
+                                    <ChevronDown size={13} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  {isExpanded && (
+                                    <div className="mt-2.5 p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 text-xs space-y-2.5 shadow-xs">
+                                      <div>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                            {isVi ? 'Đoạn văn trích xuất (Tiếng Anh):' : 'Source Passage (English):'}
+                                          </span>
+                                        </div>
+                                        <p className="text-slate-800 dark:text-slate-200 leading-relaxed pl-3 border-l-2 border-indigo-400 dark:border-indigo-600">
+                                          {renderMarkedPassage(textToShow, c.front)}
+                                        </p>
+                                      </div>
+                                      {passageVi && (
+                                        <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                                          <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                              {isVi ? 'Nội dung dịch (Tiếng Việt):' : 'Translation (Vietnamese):'}
+                                            </span>
+                                          </div>
+                                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed pl-3 border-l-2 border-amber-400 dark:border-amber-600">
+                                            {renderMarkedTranslation(passageVi, c.back)}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {c.imageUrl && (
                               <div className="mt-2">
                                 <img

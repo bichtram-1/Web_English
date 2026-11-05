@@ -47,6 +47,12 @@ export interface Deck {
   ratingCount?: number;
   userRatings?: Record<string, number>;
   collaborators?: any[];
+  passage?: {
+    originalText: string;
+    translatedText?: string;
+    deckTitle?: string;
+    createdAt?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

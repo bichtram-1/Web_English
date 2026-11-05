@@ -38,6 +38,7 @@ import { mockDecks } from '../../data/mockData';
 import { useAuth } from '../../hooks/useAuth';
 import { canViewDeck } from '../../utils/permission';
 import Loading from '../../components/shared/Loading';
+import StreakFlameIcon from '../../components/streak/StreakFlameIcon';
 import { getDeckDetailRoute, getCollectionDetailRoute, ROUTES } from '../../constants/routers';
 import { useStarredCards } from '../../utils/starredCards';
 import {
@@ -798,8 +799,13 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
           animate={{ scale: 1, opacity: 1 }}
           className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-2xl text-center"
         >
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
-            <Trophy size={32} />
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
+              <Trophy size={28} />
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500/20 via-amber-500/25 to-red-500/20 border border-amber-300/60 dark:border-amber-700/60 flex items-center justify-center shadow-md shadow-orange-500/20">
+              <StreakFlameIcon isLit={true} size="md" />
+            </div>
           </div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
             {t('study_completed_title')}
@@ -816,6 +822,13 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
             <div>
               <div className="text-xl font-black text-amber-500">+{cards.length * 10}</div>
               <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{t('study_xp_earned')}</div>
+            </div>
+            <div>
+              <div className="text-xl font-black text-orange-500 flex items-center justify-center gap-1">
+                <span>🔥</span>
+                <span>Thắp sáng</span>
+              </div>
+              <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{isVi ? 'Chuỗi ngày' : 'Day Streak'}</div>
             </div>
           </div>
 

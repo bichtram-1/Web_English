@@ -409,17 +409,6 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
                   {card.phonetic}
                 </div>
               )}
-
-              {card.exampleEn && (
-                <div className="w-full max-w-2xl mt-4 px-4 sm:px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 shadow-2xs text-left sm:text-center">
-                  <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-200 mb-1">
-                    {isVi ? 'Ví dụ câu' : 'Example'}
-                  </div>
-                  <p className="text-white text-xs sm:text-base italic leading-relaxed whitespace-pre-line break-words selection:bg-white/30">
-                    "{card.exampleEn}"
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -641,17 +630,6 @@ const FlashCard = forwardRef<FlashCardRef, FlashCardProps>(function FlashCard(
               >
                 {card.back}
               </h2>
-
-              {card.exampleVi && (
-                <div className="w-full max-w-2xl mt-3 px-4 sm:px-5 py-3 rounded-2xl bg-indigo-50/70 dark:bg-slate-800/80 border border-indigo-100/80 dark:border-slate-700/60 shadow-2xs text-left sm:text-center">
-                  <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-1">
-                    {isVi ? 'Ví dụ tiếng Việt' : 'Vietnamese Example'}
-                  </div>
-                  <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-base italic leading-relaxed whitespace-pre-line break-words selection:bg-indigo-100 dark:selection:bg-indigo-950">
-                    "{card.exampleVi}"
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 

@@ -198,6 +198,12 @@ export const deckApi = {
           userRatings: cached.userRatings,
         };
       }
+      if (cached && !found.passage && (cached as any).passage) {
+        found = {
+          ...found,
+          passage: (cached as any).passage,
+        };
+      }
     }
 
     // Enforce view permission check on found deck
@@ -262,6 +268,7 @@ export const deckApi = {
       color: newDeckData.color || 'from-indigo-500 to-violet-600',
       isPublic: newDeckData.isPublic !== undefined ? newDeckData.isPublic : true,
       cards: newDeckData.cards || [],
+      passage: (newDeckData as any).passage,
     };
 
     const decks = getStoredDecks();
@@ -282,14 +289,16 @@ export const deckApi = {
       if (res?.data) {
         const decks = getStoredDecks();
         const index = decks.findIndex((d) => d.id === id);
+        const mergedPassage = (updates as any).passage || (index !== -1 ? decks[index].passage : undefined);
+        const mergedDeck = { ...res.data, passage: mergedPassage };
         if (index !== -1) {
-          decks[index] = { ...decks[index], ...res.data };
+          decks[index] = { ...decks[index], ...mergedDeck };
         } else {
-          decks.unshift(res.data);
+          decks.unshift(mergedDeck);
         }
         saveDecksToStorage(decks);
-        notifyDecksChanged(res.data);
-        return res.data;
+        notifyDecksChanged(mergedDeck);
+        return mergedDeck;
       }
     } catch (e: any) {
       if (e?.status === 401) {

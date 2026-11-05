@@ -1,5 +1,5 @@
 import prisma from '../config/prisma';
-import { Deck, CardItem, CreateDeckDTO, UpdateDeckDTO } from '../types/deck.types';
+import { Deck, CardItem, FlashcardItem, CreateDeckDTO, UpdateDeckDTO } from '../types/deck.types';
 import { AppError } from '../utils/appError';
 import { slugify } from '../utils/slugify';
 
@@ -47,6 +47,17 @@ const mapDeckFromDb = (d: any): Deck => {
     }
   }
 
+  const sampleCardWithPassage = cards.find(
+    (c): c is FlashcardItem => c.type === 'flashcard' && Boolean(c.exampleEn && c.exampleEn.length > 30)
+  );
+  const passage = sampleCardWithPassage
+    ? {
+        originalText: sampleCardWithPassage.exampleEn!,
+        translatedText: sampleCardWithPassage.exampleVi || '',
+        createdAt: d.createdAt ? d.createdAt.toISOString() : undefined,
+      }
+    : undefined;
+
   const computedItemCount =
     typeof d._count?.cards === 'number'
       ? d._count.cards
@@ -67,6 +78,7 @@ const mapDeckFromDb = (d: any): Deck => {
     color: d.color,
     isPublic: d.isPublic,
     cards,
+    passage,
     rating: typeof d.rating === 'number' ? d.rating : 0,
     ratingCount: typeof d.ratingCount === 'number' ? d.ratingCount : 0,
     userRatings,

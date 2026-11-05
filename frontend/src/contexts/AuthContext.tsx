@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User, LoginDTO, RegisterDTO } from '../types/auth.types';
 import authApi from '../api/authApi';
 import { notifyDecksChanged } from '../api/deckApi';
+import { clearStreakOnLogout } from '../utils/streakService';
 import { STORAGE_KEYS } from '../constants/storage';
 
 interface AuthContextType {
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
     localStorage.removeItem('lingualeap_user_cefr');
+    clearStreakOnLogout();
     notifyDecksChanged();
   };
 

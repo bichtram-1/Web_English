@@ -2,6 +2,7 @@ import axiosInstance from './axiosInstance';
 import { ENDPOINTS } from '../constants/endpoint';
 import { StudySessionRecord, SubmitStudySessionDTO, UserStats, LeaderboardUser } from '../types/study.types';
 import { ApiResponse } from '../types/api.types';
+import { recordStudySessionToday, getStreakInfo } from '../utils/streakService';
 
 export const studyApi = {
   submitSession: async (dto: SubmitStudySessionDTO): Promise<StudySessionRecord> => {
@@ -10,9 +11,20 @@ export const studyApi = {
         ENDPOINTS.STUDY_SESSIONS,
         dto
       )) as unknown as ApiResponse<StudySessionRecord>;
+      // Instantly update streak and light up flame!
+      try {
+        recordStudySessionToday(dto.cardsStudied);
+      } catch (e) {
+        console.warn('Failed to record local streak:', e);
+      }
       return res.data;
     } catch {
       // Local fallback record
+      try {
+        recordStudySessionToday(dto.cardsStudied);
+      } catch (e) {
+        console.warn('Failed to record local streak:', e);
+      }
       const accuracy = dto.cardsStudied > 0 ? Math.round((dto.correctCount / dto.cardsStudied) * 100) : 100;
       return {
         id: `session-${Date.now()}`,
@@ -43,15 +55,16 @@ export const studyApi = {
       const res = (await axiosInstance.get(ENDPOINTS.STUDY_STATS)) as unknown as ApiResponse<UserStats>;
       return res.data;
     } catch {
+      const local = getStreakInfo();
       return {
-        userId: 'local-user',
-        totalCardsStudied: 45,
-        totalStudyTimeSeconds: 1200,
-        totalXp: 450,
-        streakDays: 3,
-        lastStudyDate: new Date().toISOString(),
-        sessionsCompleted: 4,
-        averageAccuracy: 90,
+        userId: '',
+        totalCardsStudied: local.totalCardsStudied || 0,
+        totalStudyTimeSeconds: 0,
+        totalXp: 0,
+        streakDays: local.streakDays || 0,
+        lastStudyDate: local.lastStudyDate || new Date().toISOString(),
+        sessionsCompleted: 0,
+        averageAccuracy: 0,
       };
     }
   },

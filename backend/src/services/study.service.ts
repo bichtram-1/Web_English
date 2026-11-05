@@ -133,27 +133,47 @@ export class StudyService {
   }
 
   static async getStats(userId: string): Promise<UserStats> {
-    let effectiveUserId = userId;
+    if (!userId) {
+      return {
+        userId: '',
+        totalCardsStudied: 0,
+        totalStudyTimeSeconds: 0,
+        totalXp: 0,
+        streakDays: 0,
+        lastStudyDate: new Date().toISOString(),
+        sessionsCompleted: 0,
+        averageAccuracy: 0,
+      };
+    }
+
     const userExists = await prisma.user.findUnique({ where: { id: userId } });
     if (!userExists) {
-      const demoUser = await prisma.user.findFirst();
-      if (demoUser) effectiveUserId = demoUser.id;
+      return {
+        userId,
+        totalCardsStudied: 0,
+        totalStudyTimeSeconds: 0,
+        totalXp: 0,
+        streakDays: 0,
+        lastStudyDate: new Date().toISOString(),
+        sessionsCompleted: 0,
+        averageAccuracy: 0,
+      };
     }
 
     const stats = await prisma.userStats.findUnique({
-      where: { userId: effectiveUserId },
+      where: { userId },
     });
 
     if (!stats) {
       return {
-        userId: effectiveUserId,
+        userId,
         totalCardsStudied: 0,
         totalStudyTimeSeconds: 0,
         totalXp: 0,
-        streakDays: 1,
+        streakDays: 0,
         lastStudyDate: new Date().toISOString(),
         sessionsCompleted: 0,
-        averageAccuracy: 100,
+        averageAccuracy: 0,
       };
     }
 

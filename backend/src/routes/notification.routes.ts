@@ -4,6 +4,7 @@ import { requireAuth } from '../middlewares/auth.middleware';
 
 const router = Router();
 
+router.get('/unread-count', requireAuth, NotificationController.getUnreadCount);
 router.get('/', requireAuth, NotificationController.getNotifications);
 router.post('/:id/accept', requireAuth, NotificationController.acceptInvite);
 router.post('/:id/decline', requireAuth, NotificationController.declineInvite);

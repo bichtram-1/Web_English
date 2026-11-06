@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Clock, ArrowRight } from 'lucide-react';
 import useStreak from '../../hooks/useStreak';
@@ -12,7 +13,10 @@ interface StreakFlameBadgeProps {
 }
 
 export default function StreakFlameBadge({ compact = false, className = '' }: StreakFlameBadgeProps) {
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { streakDays, hasStudiedToday, historyLast7Days } = useStreak();
+  const formattedStreak = (streakDays || 0).toLocaleString(isVi ? 'vi-VN' : 'en-US');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -46,28 +50,30 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
         aria-label="Daily Streak Status"
         title={
           hasStudiedToday
-            ? `🔥 Chuỗi ${streakDays} ngày liên tục • Hôm nay đã học (Ngọn lửa đang sáng rực)`
-            : `⏳ Chuỗi ${streakDays} ngày • Hôm nay chưa học (Học 1 bài để thắp lửa!)`
+            ? t('streak_tooltip_lit', { days: formattedStreak })
+            : t('streak_tooltip_unlit', { days: formattedStreak })
         }
-        className={`group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+        className={`group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all duration-200 cursor-pointer select-none active:scale-95 whitespace-nowrap shrink-0 ${
           hasStudiedToday
             ? 'bg-gradient-to-r from-amber-50 to-orange-50/90 dark:from-amber-950/40 dark:to-orange-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs shadow-orange-100 dark:shadow-none hover:border-amber-400'
             : 'bg-slate-100/90 hover:bg-slate-200/80 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 hover:border-slate-300'
         }`}
       >
         {/* Flame Icon with dynamic effect */}
-        <StreakFlameIcon isLit={hasStudiedToday} size="sm" showParticles={hasStudiedToday} />
+        <div className="shrink-0 flex items-center justify-center">
+          <StreakFlameIcon isLit={hasStudiedToday} size="sm" showParticles={hasStudiedToday} />
+        </div>
 
         {/* Streak number */}
         <span
-          className={`text-xs font-black tracking-tight leading-none ${
+          className={`text-xs font-black tracking-tight leading-none whitespace-nowrap tabular-nums ${
             hasStudiedToday
               ? 'text-amber-600 dark:text-amber-400 font-black'
               : 'text-slate-500 dark:text-slate-400 font-bold'
           }`}
-          style={{ fontFamily: 'var(--font-display)' }}
+          style={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}
         >
-          {streakDays}
+          {formattedStreak}
         </span>
 
         {/* Mini Status Dot */}
@@ -77,7 +83,7 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
               ? 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-950 animate-pulse'
               : 'bg-amber-400/80 ring-2 ring-amber-200/60 dark:ring-amber-950/60'
           }`}
-          title={hasStudiedToday ? 'Đã học hôm nay' : 'Chưa học hôm nay'}
+          title={hasStudiedToday ? t('streak_studied_today') : t('streak_not_studied_today')}
         />
       </button>
 
@@ -107,7 +113,7 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
                     className="text-lg font-black text-slate-900 dark:text-white leading-tight"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
-                    Chuỗi {streakDays} ngày
+                    {t('streak_title', { days: formattedStreak })}
                   </span>
                   <span
                     className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full shrink-0 ${
@@ -116,14 +122,14 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
                         : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/60'
                     }`}
                   >
-                    {hasStudiedToday ? 'Đã thắp lửa 🔥' : 'Chưa học ⏳'}
+                    {hasStudiedToday ? t('streak_status_lit') : t('streak_status_unlit')}
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1 leading-snug">
                   {hasStudiedToday
-                    ? 'Ngọn lửa đang sáng rực! Bạn đã hoàn thành mục tiêu học tập hôm nay.'
-                    : 'Hôm nay bạn chưa học! Ngọn lửa đang tắt. Hãy hoàn thành 1 bài để thắp sáng nhé.'}
+                    ? t('streak_desc_lit')
+                    : t('streak_desc_unlit')}
                 </p>
               </div>
             </div>
@@ -131,9 +137,9 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
             {/* 7-Day Mini Tracker Calendar */}
             <div className="mt-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
-                <span>Tuần này</span>
+                <span>{t('streak_this_week')}</span>
                 <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                  {hasStudiedToday ? 'Đã hoàn thành hôm nay' : 'Cần học hôm nay'}
+                  {hasStudiedToday ? t('streak_completed_today') : t('streak_need_study_today')}
                 </span>
               </div>
 
@@ -151,7 +157,7 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
                           ? 'border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-500 bg-amber-50/50 dark:bg-amber-950/30 animate-pulse'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600'
                       }`}
-                      title={`${item.dayLabel} (${item.date}): ${item.studied ? 'Đã học' : 'Chưa học'}`}
+                      title={`${item.dayLabel} (${item.date}): ${item.studied ? t('streak_studied_today') : t('streak_not_studied_today')}`}
                     >
                       {item.studied ? (
                         <Check size={14} className="stroke-[3]" />
@@ -173,7 +179,7 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
                 onClick={handleViewStats}
                 className="w-full py-2 px-3 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Xem tiến độ & thống kê chi tiết</span>
+                <span>{t('streak_view_stats')}</span>
                 <ArrowRight size={13} />
               </button>
             </div>

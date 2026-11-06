@@ -80,45 +80,115 @@ const mapNotification = (row: any): InAppNotification => ({
 });
 
 export class NotificationService {
-  static async getNotificationsForUser(userId: string, email: string): Promise<InAppNotification[]> {
+  static async getUnreadCountForUser(userId: string, email: string): Promise<number> {
     await ensureNotificationTable();
     const emailLower = email.toLowerCase().trim();
-
-    // Ensure learner receives at most 1 intelligent streak reminder per day if study not completed today
-    try {
-      await this.ensureDailyStudyReminders(userId, emailLower);
-    } catch (reminderErr) {
-      console.warn('[NotificationService] ensureDailyStudyReminders error:', reminderErr);
-    }
-
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT * FROM notifications 
-         WHERE LOWER("recipientEmail") = $1 OR "recipientUserId" = $2 
-         ORDER BY "createdAt" DESC LIMIT 50`,
+        `SELECT COUNT(*)::int as count FROM (
+           SELECT 1 FROM notifications 
+           WHERE (LOWER("recipientEmail") = $1 OR "recipientUserId" = $2) AND read = false 
+           LIMIT 100
+         ) sub`,
         emailLower,
         userId
       );
-      return rows.map(mapNotification);
+      return Number(rows[0]?.count ?? 0);
     } catch (e) {
       try {
         const rows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT * FROM notifications 
-           WHERE LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}' 
-           ORDER BY createdAt DESC LIMIT 50`
+          `SELECT COUNT(*) as count FROM (
+             SELECT 1 FROM notifications 
+             WHERE (LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}') 
+               AND (read = false OR read = 0) 
+             LIMIT 100
+           )`
         );
-        return rows.map(mapNotification);
-      } catch (err2) {
-        console.warn('[NotificationService] getNotifications error:', err2);
-        return [];
+        return Number(rows[0]?.count ?? 0);
+      } catch {
+        return 0;
       }
     }
+  }
+
+  static async cleanupOldNotifications(): Promise<void> {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      try {
+        await prisma.$executeRawUnsafe(
+          `DELETE FROM notifications WHERE read = true AND "createdAt" < $1::timestamp`,
+          thirtyDaysAgo
+        );
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `DELETE FROM notifications WHERE (read = true OR read = 1) AND createdAt < '${thirtyDaysAgo}'`
+        ).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[NotificationService] cleanupOldNotifications error:', e);
+    }
+  }
+
+  static async getNotificationsForUser(
+    userId: string,
+    email: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<{ notifications: InAppNotification[]; hasMore: boolean; unreadCount: number }> {
+    await ensureNotificationTable();
+    const emailLower = email.toLowerCase().trim();
+    const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100);
+    const offset = Math.max(options?.offset ?? 0, 0);
+
+    // Run streak reminders in the background so it doesn't block the API response
+    this.ensureDailyStudyReminders(userId, emailLower).catch((reminderErr) => {
+      console.warn('[NotificationService] ensureDailyStudyReminders background error:', reminderErr);
+    });
+
+    const [rows, unreadCount] = await Promise.all([
+      (async () => {
+        try {
+          return await prisma.$queryRawUnsafe<any[]>(
+            `SELECT * FROM notifications 
+             WHERE LOWER("recipientEmail") = $1 OR "recipientUserId" = $2 
+             ORDER BY "createdAt" DESC LIMIT $3 OFFSET $4`,
+            emailLower,
+            userId,
+            limit + 1,
+            offset
+          );
+        } catch (e) {
+          try {
+            return await prisma.$queryRawUnsafe<any[]>(
+              `SELECT * FROM notifications 
+               WHERE LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}' 
+               ORDER BY createdAt DESC LIMIT ${limit + 1} OFFSET ${offset}`
+            );
+          } catch (err2) {
+            console.warn('[NotificationService] getNotifications error:', err2);
+            return [];
+          }
+        }
+      })(),
+      this.getUnreadCountForUser(userId, emailLower),
+    ]);
+
+    const hasMore = rows.length > limit;
+    const pagedRows = hasMore ? rows.slice(0, limit) : rows;
+
+    return {
+      notifications: pagedRows.map(mapNotification),
+      hasMore,
+      unreadCount,
+    };
   }
 
   /**
    * Generates intelligent Streak reminder (max 1 per user per day, only if study not completed today)
    */
   private static async ensureDailyStudyReminders(userId: string, emailLower: string) {
+    // Priority 3: Opportunistically clean up read notifications older than 30 days
+    this.cleanupOldNotifications().catch(() => {});
+
     const todayStr = new Date().toISOString().slice(0, 10);
     const streakNotifId = `notif-streak-${userId}-${todayStr}`;
 
@@ -169,6 +239,26 @@ export class NotificationService {
         streakNotifId
       );
       if (!existingStreak || existingStreak.length === 0) {
+        // Priority 2: Deduplicate past unread streak reminders (upsert-like behavior)
+        try {
+          await prisma.$executeRawUnsafe(
+            `DELETE FROM notifications 
+             WHERE (LOWER("recipientEmail") = $1 OR "recipientUserId" = $2) 
+               AND type = 'streak_reminder' 
+               AND id != $3`,
+            emailLower,
+            userId,
+            streakNotifId
+          );
+        } catch {
+          await prisma.$executeRawUnsafe(
+            `DELETE FROM notifications 
+             WHERE (LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}') 
+               AND type = 'streak_reminder' 
+               AND id != '${streakNotifId}'`
+          ).catch(() => {});
+        }
+
         let isBrokenStreak = streakDays <= 1;
         if (lastStudyDate) {
           const startOfLast = new Date(lastStudyDate.getFullYear(), lastStudyDate.getMonth(), lastStudyDate.getDate()).getTime();
@@ -206,6 +296,26 @@ export class NotificationService {
           srsNotifId
         );
         if (!existingSrs || existingSrs.length === 0) {
+          // Priority 2: Deduplicate past unread review reminders (upsert-like behavior)
+          try {
+            await prisma.$executeRawUnsafe(
+              `DELETE FROM notifications 
+               WHERE (LOWER("recipientEmail") = $1 OR "recipientUserId" = $2) 
+                 AND type = 'review_reminder' 
+                 AND id != $3`,
+              emailLower,
+              userId,
+              srsNotifId
+            );
+          } catch {
+            await prisma.$executeRawUnsafe(
+              `DELETE FROM notifications 
+               WHERE (LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}') 
+                 AND type = 'review_reminder' 
+                 AND id != '${srsNotifId}'`
+            ).catch(() => {});
+          }
+
           await this.createNotification({
             recipientEmail: emailLower,
             recipientUserId: userId,

@@ -9,7 +9,7 @@ import Loading from '../../components/shared/Loading';
 
 export default function StatsPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { stats, history, leaderboard, loading } = useStudyStats();
 
   if (loading) return <Loading />;
@@ -142,15 +142,15 @@ export default function StatsPage() {
                       <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 uppercase">
                         {s.mode}
                       </span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Bộ thẻ: {s.deckId}</span>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{t('stats_deck')}: {s.deckId}</span>
                     </div>
                     <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      {new Date(s.completedAt).toLocaleString('vi-VN')} · {formatTime(s.timeSpentSeconds)}
+                      {new Date(s.completedAt).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')} · {formatTime(s.timeSpentSeconds)}
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{s.accuracy}% đúng</div>
+                    <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{t('stats_correct_rate', { accuracy: s.accuracy })}</div>
                     <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">+{s.xpEarned} XP</div>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export default function StatsPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2" style={{ fontFamily: 'var(--font-display)' }}>
               <Users size={20} className="text-amber-500" />
-              Bảng xếp hạng
+              {t('stats_leaderboard')}
             </h2>
           </div>
 
@@ -194,7 +194,7 @@ export default function StatsPage() {
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-800 dark:text-slate-100">{user.name}</div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{user.cardsStudied} {t('cards')} · {user.streakDays}d streak</div>
+                    <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{user.cardsStudied} {t('cards')} · {t('stats_streak_count', { days: user.streakDays })}</div>
                   </div>
                 </div>
 

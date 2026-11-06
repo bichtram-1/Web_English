@@ -4,6 +4,20 @@ import { ApiResponseHandler } from '../utils/apiResponse';
 import { AppError } from '../utils/appError';
 
 export class NotificationController {
+  static async getUnreadCount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId;
+      const email = req.user?.email;
+      if (!userId || !email) {
+        throw new AppError('Vui lòng đăng nhập', 401);
+      }
+      const unreadCount = await NotificationService.getUnreadCountForUser(userId, email);
+      return ApiResponseHandler.success(res, { unreadCount }, 'Lấy số thông báo chưa đọc thành công');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getNotifications(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId;
@@ -11,7 +25,9 @@ export class NotificationController {
       if (!userId || !email) {
         throw new AppError('Vui lòng đăng nhập', 401);
       }
-      const notifications = await NotificationService.getNotificationsForUser(userId, email);
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const notifications = await NotificationService.getNotificationsForUser(userId, email, { limit, offset });
       return ApiResponseHandler.success(res, notifications, 'Lấy danh sách thông báo thành công');
     } catch (err) {
       next(err);

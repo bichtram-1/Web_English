@@ -67,8 +67,17 @@ export default function DeckDetailPage() {
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
-  const [deck, setDeck] = useState<Deck | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [deck, setDeck] = useState<Deck | null>(() => {
+    if (!id) return null;
+    const stored = getStoredDecks();
+    return stored.find((d) => d.id === id) || null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!id) return false;
+    const stored = getStoredDecks();
+    const cached = stored.find((d) => d.id === id);
+    return !(cached && Array.isArray(cached.cards) && cached.cards.length > 0);
+  });
   const [isAddCollectionOpen, setIsAddCollectionOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -176,12 +185,23 @@ export default function DeckDetailPage() {
       navigate(getCollectionDetailRoute(id), { replace: true });
       return;
     }
-    setLoading(true);
+
+    const stored = getStoredDecks();
+    const cached = stored.find((d) => d.id === id);
+    if (cached && Array.isArray(cached.cards) && cached.cards.length > 0) {
+      setDeck(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     deckApi.getDeckById(id).then((data) => {
-      setDeck(data || null);
       if (data) {
+        setDeck(data);
         recordViewedDeck(data);
       }
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
   }, [id, navigate]);

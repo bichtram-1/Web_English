@@ -26,7 +26,7 @@ import { useCollections } from '../../hooks/useCollections';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuth } from '../../hooks/useAuth';
 import { getRecentViewedDecks, getRecentCreatedDecks, sortDecks, type DeckSortOption } from '../../utils/recentDecks';
-import collectionApi from '../../api/collectionApi';
+import collectionApi, { getStoredCollections } from '../../api/collectionApi';
 import { getDeckDetailRoute, getEditDeckRoute, getStudyRoute, getWrittenRoute, ROUTES } from '../../constants/routers';
 import Loading from '../../components/shared/Loading';
 import InviteCollaboratorModal from '../../components/shared/InviteCollaboratorModal';
@@ -48,8 +48,25 @@ export default function CollectionDetailPage() {
   const { decks } = useDecks();
   const { addDeckToCollection, removeDeckFromCollection, deleteCollection } = useCollections();
 
-  const [collection, setCollection] = useState<DeckCollection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [collection, setCollection] = useState<DeckCollection | null>(() => {
+    if (!id) return null;
+    try {
+      const stored = getStoredCollections();
+      return stored.find((c) => c.id === id) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!id) return false;
+    try {
+      const stored = getStoredCollections();
+      const cached = stored.find((c) => c.id === id);
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -76,7 +93,14 @@ export default function CollectionDetailPage() {
 
   const fetchCollection = async () => {
     if (!id) return;
-    setLoading(true);
+    const stored = getStoredCollections();
+    const cached = stored.find((c) => c.id === id);
+    if (cached) {
+      setCollection(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       const isJoin = searchParams.get('join') === 'true';
       const inviteRole = (searchParams.get('role') as CollaboratorRole) || 'viewer';

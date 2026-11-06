@@ -34,6 +34,7 @@ export const ENDPOINTS = {
 
   // Notifications
   NOTIFICATIONS: '/api/v1/notifications',
+  NOTIFICATIONS_UNREAD_COUNT: '/api/v1/notifications/unread-count',
   NOTIFICATION_ACCEPT: (id: string) => `/api/v1/notifications/${id}/accept`,
   NOTIFICATION_DECLINE: (id: string) => `/api/v1/notifications/${id}/decline`,
   NOTIFICATION_MARK_READ: '/api/v1/notifications/mark-read',

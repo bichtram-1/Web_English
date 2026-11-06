@@ -6,7 +6,7 @@ import collectionApi from './collectionApi';
 
 const STORAGE_KEY = 'lingua_notifications';
 
-const getStoredNotifications = (): InAppNotification[] => {
+export const getStoredNotifications = (): InAppNotification[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -21,15 +21,74 @@ const saveStoredNotifications = (list: InAppNotification[]) => {
   } catch {}
 };
 
+export interface NotificationsResponse {
+  notifications: InAppNotification[];
+  hasMore: boolean;
+  unreadCount: number;
+}
+
 export const notificationApi = {
-  getNotifications: async (): Promise<InAppNotification[]> => {
+  getUnreadCount: async (): Promise<number> => {
     try {
       const res = (await axiosInstance.get(
-        ENDPOINTS.NOTIFICATIONS
-      )) as unknown as ApiResponse<InAppNotification[]>;
-      if (Array.isArray(res?.data)) {
-        saveStoredNotifications(res.data);
-        return res.data;
+        ENDPOINTS.NOTIFICATIONS_UNREAD_COUNT
+      )) as unknown as ApiResponse<{ unreadCount: number }>;
+      if (typeof res?.data?.unreadCount === 'number') {
+        return res.data.unreadCount;
+      }
+    } catch (e: any) {
+      // offline/fallback to local cache
+    }
+
+    const all = getStoredNotifications();
+    const authStr = localStorage.getItem('lingua_auth');
+    let currentUser: any = null;
+    try {
+      currentUser = authStr ? JSON.parse(authStr).user : null;
+    } catch {}
+
+    if (!currentUser) return 0;
+    const emailLower = currentUser.email?.toLowerCase();
+
+    return all.filter(
+      (n) =>
+        !n.read &&
+        ((currentUser.id && n.recipientUserId === currentUser.id) ||
+         (emailLower && n.recipientEmail?.toLowerCase() === emailLower))
+    ).length;
+  },
+
+  getNotifications: async (params?: { limit?: number; offset?: number }): Promise<NotificationsResponse> => {
+    const limit = params?.limit ?? 20;
+    const offset = params?.offset ?? 0;
+
+    try {
+      const res = (await axiosInstance.get(ENDPOINTS.NOTIFICATIONS, {
+        params: { limit, offset },
+      })) as unknown as ApiResponse<any>;
+
+      if (res?.data) {
+        if (Array.isArray(res.data.notifications)) {
+          if (offset === 0) {
+            saveStoredNotifications(res.data.notifications);
+          }
+          return {
+            notifications: res.data.notifications,
+            hasMore: Boolean(res.data.hasMore),
+            unreadCount: Number(res.data.unreadCount ?? 0),
+          };
+        }
+        if (Array.isArray(res.data)) {
+          if (offset === 0) {
+            saveStoredNotifications(res.data);
+          }
+          const unread = res.data.filter((n: any) => !n.read).length;
+          return {
+            notifications: res.data,
+            hasMore: res.data.length >= limit,
+            unreadCount: unread,
+          };
+        }
       }
     } catch (e: any) {
       console.warn('[NotificationApi] Backend unavailable, using local notifications:', e);
@@ -43,14 +102,24 @@ export const notificationApi = {
       currentUser = authStr ? JSON.parse(authStr).user : null;
     } catch {}
 
-    if (!currentUser) return [];
+    if (!currentUser) return { notifications: [], hasMore: false, unreadCount: 0 };
     const emailLower = currentUser.email?.toLowerCase();
 
-    return all.filter(
+    const userNotifs = all.filter(
       (n) =>
         (currentUser.id && n.recipientUserId === currentUser.id) ||
         (emailLower && n.recipientEmail?.toLowerCase() === emailLower)
     );
+
+    const paged = userNotifs.slice(offset, offset + limit);
+    const hasMore = offset + limit < userNotifs.length;
+    const unreadCount = userNotifs.filter((n) => !n.read).length;
+
+    return {
+      notifications: paged,
+      hasMore,
+      unreadCount,
+    };
   },
 
   acceptInvite: async (

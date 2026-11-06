@@ -204,15 +204,33 @@ export class DeckService {
     currentUserRole?: string,
     currentUserEmail?: string
   ): Promise<Deck> {
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-      include: {
-        cards: {
-          orderBy: { orderIndex: 'asc' },
+    const [deck, rawCollections] = await Promise.all([
+      prisma.deck.findUnique({
+        where: { id },
+        include: {
+          cards: {
+            orderBy: { orderIndex: 'asc' },
+          },
+          creator: true,
         },
-        creator: true,
-      },
-    });
+      }),
+      (async () => {
+        try {
+          return await prisma.$queryRawUnsafe<any[]>(
+            `SELECT "collaboratorsJson", "deckIdsJson" FROM collections WHERE "deckIdsJson" LIKE $1`,
+            `%${id}%`
+          );
+        } catch {
+          try {
+            return await prisma.$queryRawUnsafe<any[]>(
+              `SELECT collaboratorsJson, deckIdsJson FROM collections WHERE deckIdsJson LIKE '%${id}%'`
+            );
+          } catch {
+            return [];
+          }
+        }
+      })(),
+    ]);
 
     if (!deck) {
       throw new AppError('Không tìm thấy bộ thẻ', 404);
@@ -220,12 +238,8 @@ export class DeckService {
 
     // Find any collections containing this deck to attach collaborators and grant permissions
     let collectionCollaborators: any[] = [];
-    try {
-      const collections = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT "collaboratorsJson", "deckIdsJson" FROM collections WHERE "deckIdsJson" LIKE $1`,
-        `%${id}%`
-      );
-      for (const col of collections) {
+    if (Array.isArray(rawCollections)) {
+      for (const col of rawCollections) {
         let deckIds: string[] = [];
         try {
           deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
@@ -240,27 +254,6 @@ export class DeckService {
           }
         }
       }
-    } catch (e) {
-      try {
-        const collections = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT collaboratorsJson, deckIdsJson FROM collections WHERE deckIdsJson LIKE '%${id}%'`
-        );
-        for (const col of collections) {
-          let deckIds: string[] = [];
-          try {
-            deckIds = typeof col.deckIdsJson === 'string' ? JSON.parse(col.deckIdsJson) : col.deckIdsJson;
-          } catch {}
-          if (Array.isArray(deckIds) && deckIds.includes(id)) {
-            let collabs: any[] = [];
-            try {
-              collabs = typeof col.collaboratorsJson === 'string' ? JSON.parse(col.collaboratorsJson) : col.collaboratorsJson;
-            } catch {}
-            if (Array.isArray(collabs)) {
-              collectionCollaborators.push(...collabs);
-            }
-          }
-        }
-      } catch {}
     }
 
     // Access control for private decks: creator, admin, or collaborator on parent collection

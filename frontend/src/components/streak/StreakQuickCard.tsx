@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import useStreak from '../../hooks/useStreak';
 import StreakFlameIcon from './StreakFlameIcon';
 
@@ -10,7 +11,10 @@ interface StreakQuickCardProps {
 export default function StreakQuickCard({
   className = '',
 }: StreakQuickCardProps) {
+  const { t, i18n } = useTranslation();
+  const isVi = i18n.language === 'vi';
   const { streakDays, hasStudiedToday } = useStreak();
+  const formattedStreak = (streakDays || 0).toLocaleString(isVi ? 'vi-VN' : 'en-US');
 
   return (
     <div
@@ -44,10 +48,10 @@ export default function StreakQuickCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none"
-              style={{ fontFamily: 'var(--font-display)' }}
+              className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none whitespace-nowrap tabular-nums"
+              style={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}
             >
-              {streakDays} Ngày
+              {formattedStreak} {t('days_unit')}
             </span>
 
             {/* Dynamic Status Pill */}
@@ -59,11 +63,11 @@ export default function StreakQuickCard({
               }`}
             >
               {hasStudiedToday ? (
-                <span>Đã học hôm nay 🔥</span>
+                <span>{t('streak_card_studied_today')}</span>
               ) : (
                 <>
                   <Clock size={10} className="text-amber-300" />
-                  <span>Chưa học hôm nay ⏳</span>
+                  <span>{t('streak_card_not_studied_today')}</span>
                 </>
               )}
             </span>
@@ -71,8 +75,8 @@ export default function StreakQuickCard({
 
           <p className="text-xs text-indigo-100/90 font-medium mt-1 leading-snug">
             {hasStudiedToday
-              ? 'Ngọn lửa đang sáng rực! Chuỗi ngày liên tục được bảo toàn.'
-              : 'Ngọn lửa đang tắt. Hoàn thành 1 bài học hôm nay để thắp sáng!'}
+              ? t('streak_quick_desc_lit')
+              : t('streak_quick_desc_unlit')}
           </p>
         </div>
       </div>

@@ -826,9 +826,9 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
             <div>
               <div className="text-xl font-black text-orange-500 flex items-center justify-center gap-1">
                 <span>🔥</span>
-                <span>Thắp sáng</span>
+                <span>{t('streak_lit_up')}</span>
               </div>
-              <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{isVi ? 'Chuỗi ngày' : 'Day Streak'}</div>
+              <div className="text-xs text-slate-400 dark:text-slate-400 font-semibold">{t('stats_streak')}</div>
             </div>
           </div>
 

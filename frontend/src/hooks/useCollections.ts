@@ -1,15 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import collectionApi, { COLLECTIONS_CHANGED_EVENT } from '../api/collectionApi';
+import collectionApi, { COLLECTIONS_CHANGED_EVENT, getStoredCollections } from '../api/collectionApi';
 import type { DeckCollection } from '../types/DeckType';
 
 export function useCollections(searchQuery?: string) {
   const { user } = useAuth();
-  const [collections, setCollections] = useState<DeckCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [collections, setCollections] = useState<DeckCollection[]>(() => {
+    try {
+      const stored = getStoredCollections();
+      return Array.isArray(stored) && stored.length > 0 ? stored : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const stored = getStoredCollections();
+      return !(Array.isArray(stored) && stored.length > 0);
+    } catch {
+      return true;
+    }
+  });
 
   const fetchCollections = useCallback(async () => {
-    setLoading(true);
+    setLoading(() => {
+      const stored = getStoredCollections();
+      if (!searchQuery && Array.isArray(stored) && stored.length > 0) {
+        return false;
+      }
+      return true;
+    });
     try {
       const data = await collectionApi.getCollections({
         search: searchQuery,

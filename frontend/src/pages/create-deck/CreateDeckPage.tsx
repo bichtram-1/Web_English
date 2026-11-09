@@ -509,11 +509,11 @@ export default function CreateDeckPage() {
         // Extract complete deck-wide passage from fetched.passage or from existing cards
         const existingPassageEn =
           (fetched as any).passage?.originalText ||
-          fetched.cards?.find((c: any) => c.exampleEn && c.exampleEn.length > 30)?.exampleEn ||
+          (fetched.cards as any[])?.find((c) => c.exampleEn && c.exampleEn.length > 30)?.exampleEn ||
           '';
         const existingPassageVi =
           (fetched as any).passage?.translatedText ||
-          fetched.cards?.find((c: any) => c.exampleVi && c.exampleVi.length > 20)?.exampleVi ||
+          (fetched.cards as any[])?.find((c) => c.exampleVi && c.exampleVi.length > 20)?.exampleVi ||
           '';
 
         if (existingPassageEn) {
@@ -875,7 +875,7 @@ export default function CreateDeckPage() {
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Upload size={13} />
-              <span className="hidden sm:inline">{isVi ? 'Nhập từ File (CSV/JSON)' : 'Import File (CSV/JSON)'}</span>
+              <span className="hidden sm:inline">{isVi ? 'Nhập từ File (Word/PDF/TXT/CSV)' : 'Import File (Word/PDF/TXT/CSV)'}</span>
               <span className="sm:hidden">{isVi ? 'Nhập file' : 'Import'}</span>
             </button>
 

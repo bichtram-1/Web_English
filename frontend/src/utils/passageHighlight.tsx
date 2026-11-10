@@ -80,19 +80,91 @@ export function renderMarkedPassage(text: string, word: string): React.ReactNode
 }
 
 /**
+ * Extracts intelligent search candidate phrases from a Vietnamese definition string
+ */
+function getVietnameseCandidates(meaning: string): string[] {
+  if (!meaning) return [];
+
+  // 1. Remove parenthesized/bracketed annotations: (v), [adj], (noun), etc.
+  const cleaned = meaning
+    .replace(/\s*\(.*?\)/g, '')
+    .replace(/\s*\[.*?\]/g, '')
+    .replace(/[/\\].*?[/\\]/g, '')
+    .replace(/^\s*\d+[\.\)]\s*/gm, '')
+    .trim();
+
+  // 2. Split into segments by comma, semicolon, slash, newline, or pipe
+  const segments = cleaned
+    .split(/[,;\n/|]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2);
+
+  const candidates = new Set<string>();
+  const prefixes =
+    /^(?:sự|cuộc|niềm|nỗi|tính|việc|làm cho|trở nên|thuộc về|thuộc|mang tính|có tính|một cách|quả|trái|củ|con|cây|loài|loại|được|bị)\s+/i;
+
+  segments.forEach((seg) => {
+    candidates.add(seg);
+
+    // Strip common Vietnamese dictionary prefixes (e.g. "sự phát triển" -> "phát triển")
+    const stripped = seg.replace(prefixes, '').trim();
+    if (stripped.length >= 2) {
+      candidates.add(stripped);
+    }
+
+    // Extract core parts before conjunctions like "mang tính", "đáng", "trong"
+    const subParts = seg.split(/\s+(?:mang tính|đáng|cho|trong|với)\s+/i);
+    if (subParts.length > 1 && subParts[0].trim().length >= 2) {
+      candidates.add(subParts[0].trim());
+    }
+
+    // For longer phrases (>= 3 words, e.g. "hoàn thành mục tiêu"), also add the 2-word head
+    const words = seg.split(/\s+/);
+    if (words.length >= 3) {
+      const head = words.slice(0, 2).join(' ');
+      if (head.length >= 2 && !head.match(prefixes)) {
+        candidates.add(head);
+      }
+    }
+    if (stripped !== seg) {
+      const strippedWords = stripped.split(/\s+/);
+      if (strippedWords.length >= 3) {
+        candidates.add(strippedWords.slice(0, 2).join(' '));
+      }
+    }
+  });
+
+  // Sort longest candidates first so larger exact phrases match before sub-words
+  return Array.from(candidates).sort((a, b) => b.length - a.length);
+}
+
+/**
  * Highlight the translated meaning inside Vietnamese text using <mark>
  */
 export function renderMarkedTranslation(text: string, meaning: string): React.ReactNode {
   if (!text || !meaning) return text || '';
 
-  // Get primary meaning keyword before comma or slash
-  const cleanMeaning = meaning.split(/[,;/]/)[0].trim();
-  if (!cleanMeaning || cleanMeaning.length < 2) return text;
+  const candidates = getVietnameseCandidates(meaning);
+  if (candidates.length === 0) return text;
+
+  // Find candidate terms that actually exist in the Vietnamese text
+  const matchedTerms = candidates.filter((term) => {
+    try {
+      const escaped = escapeRegex(term);
+      return new RegExp(escaped, 'i').test(text);
+    } catch {
+      return false;
+    }
+  });
+
+  if (matchedTerms.length === 0) return text;
 
   try {
-    const escaped = escapeRegex(cleanMeaning);
-    const splitRegex = new RegExp(`(${escaped})`, 'gi');
-    const testRegex = new RegExp(`^${escaped}$`, 'i');
+    // Escape all matching terms and construct regex matching the longest first
+    const escapedTerms = matchedTerms.map(escapeRegex).join('|');
+    const splitRegex = new RegExp(`(${escapedTerms})`, 'gi');
+    const testRegex = new RegExp(`^(?:${escapedTerms})$`, 'i');
+
     const parts = text.split(splitRegex);
 
     return parts.map((part, index) => {

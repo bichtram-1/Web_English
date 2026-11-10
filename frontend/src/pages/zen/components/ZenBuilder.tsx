@@ -5965,7 +5965,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
             {completedCardIds.length > 0 && (
               <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
                 <CheckCircle2 size={10} className="text-emerald-500" />
-                <span>{isVi ? `Đã đúc: ${completedCardIds.length}` : `Mastered: ${completedCardIds.length}`}</span>
+                <span>{isVi ? `Đã thành thạo: ${completedCardIds.length}` : `Mastered: ${completedCardIds.length}`}</span>
               </span>
             )}
             {completedCardIds.length > 0 && (

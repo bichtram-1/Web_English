@@ -6181,9 +6181,19 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                       <span className="text-[11px] font-extrabold uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-2">
                         {isVi ? 'Ý nghĩa Tiếng Việt' : 'Vietnamese Meaning'}
                       </span>
-                      <p className="text-2xl sm:text-3xl font-black text-teal-950 dark:text-teal-50 text-center px-4 leading-relaxed">
-                        {card.back}
-                      </p>
+                      <div className="max-h-[140px] overflow-y-auto px-4 flex items-center justify-center w-full">
+                        <p
+                          className={`font-black text-teal-950 dark:text-teal-50 text-center leading-relaxed break-words ${
+                            card.back.length > 70
+                              ? 'text-base sm:text-lg'
+                              : card.back.length > 35
+                              ? 'text-xl sm:text-2xl'
+                              : 'text-2xl sm:text-3xl'
+                          }`}
+                        >
+                          {card.back}
+                        </p>
+                      </div>
                       <span className="text-xs text-slate-400 dark:text-slate-400 mt-3 font-medium">
                         {isVi ? 'Lật lại mặt trước để nghe phát âm' : 'Flip back to hear pronunciation'}
                       </span>
@@ -6211,13 +6221,14 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.35 }}
-                className="w-full max-w-lg flex flex-col items-center gap-4"
+                className="w-full max-w-2xl flex flex-col items-center gap-4"
               >
-                <div className="w-full p-5 rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-200 dark:border-emerald-800 shadow-md text-center flex flex-col items-center relative">
+                <div className="w-full p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-200 dark:border-emerald-800 shadow-md text-center flex flex-col items-center relative">
                   <div className="absolute top-3 right-3">
                     <button
                       onClick={() => speakWord(card.front)}
                       className="p-2 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-800 cursor-pointer"
+                      title={t('zen_hud_speak')}
                     >
                       <Volume2 size={16} />
                     </button>
@@ -6226,7 +6237,7 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500 mb-1">
                     2. {t('zen_step_2_title')}
                   </span>
-                  <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white break-words max-w-full px-8">
                     {card.front}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">
@@ -6234,38 +6245,72 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                  {choices.map((choice, i) => {
-                    const isChosen = selectedOption === choice;
-                    const isRight = choice === card.back;
-                    let styleClass =
-                      'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-100 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800/80';
+                {(() => {
+                  const hasLongChoice = choices.some((c) => c.length > 28);
+                  return (
+                    <div
+                      className={`grid gap-2.5 sm:gap-3 w-full ${
+                        hasLongChoice ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+                      }`}
+                    >
+                      {choices.map((choice, i) => {
+                        const isChosen = selectedOption === choice;
+                        const isRight = choice === card.back;
+                        let styleClass =
+                          'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-100 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-slate-800/80';
 
-                    if (bloomStatus === 'correct' && isRight) {
-                      styleClass = 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-950 scale-102';
-                    } else if (isChosen && bloomStatus === 'wrong') {
-                      styleClass = 'bg-rose-50 dark:bg-rose-950/60 border-rose-400 dark:border-rose-600 text-rose-700 dark:text-rose-200';
-                    }
+                        if (bloomStatus === 'correct' && isRight) {
+                          styleClass =
+                            'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-950 scale-[1.01]';
+                        } else if (isChosen && bloomStatus === 'wrong') {
+                          styleClass =
+                            'bg-rose-50 dark:bg-rose-950/60 border-rose-400 dark:border-rose-600 text-rose-700 dark:text-rose-200';
+                        }
 
-                    return (
-                      <motion.button
-                        key={i}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleBloomSelect(choice)}
-                        className={`p-4 rounded-2xl border-2 text-left font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-between cursor-pointer shadow-sm ${styleClass}`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-5 h-5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-black flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
-                            {i + 1}
-                          </span>
-                          <span className="truncate">{choice}</span>
-                        </div>
-                        {bloomStatus === 'correct' && isRight && <Sparkles size={16} className="text-amber-200 shrink-0" />}
-                      </motion.button>
-                    );
-                  })}
-                </div>
+                        return (
+                          <motion.button
+                            key={i}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => handleBloomSelect(choice)}
+                            className={`w-full min-w-0 p-3.5 sm:p-4 rounded-2xl border-2 text-left font-semibold text-xs sm:text-sm transition-all duration-200 flex items-start justify-between gap-3 cursor-pointer shadow-sm ${styleClass}`}
+                          >
+                            <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+                              <span
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg text-[10px] sm:text-[11px] font-mono font-black flex items-center justify-center shrink-0 mt-0.5 border transition-colors ${
+                                  bloomStatus === 'correct' && isRight
+                                    ? 'bg-emerald-700 text-white border-emerald-400'
+                                    : isChosen && bloomStatus === 'wrong'
+                                    ? 'bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-200 border-rose-300'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                }`}
+                              >
+                                {i + 1}
+                              </span>
+                              <span
+                                className={`font-bold text-xs sm:text-sm leading-relaxed break-words whitespace-normal min-w-0 flex-1 ${
+                                  bloomStatus === 'correct' && isRight
+                                    ? 'text-white'
+                                    : isChosen && bloomStatus === 'wrong'
+                                    ? 'text-rose-700 dark:text-rose-200'
+                                    : 'text-slate-700 dark:text-slate-100'
+                                }`}
+                              >
+                                {choice}
+                              </span>
+                            </div>
+                            {bloomStatus === 'correct' && isRight && (
+                              <Sparkles
+                                size={18}
+                                className="text-amber-200 shrink-0 mt-0.5 animate-pulse"
+                              />
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 <div className="flex items-center justify-between w-full pt-2">
                   <button
@@ -6300,7 +6345,15 @@ export default function ZenBuilder({ deck, onExit }: ZenBuilderProps) {
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500 mb-1">
                     3. {t('zen_step_3_title')}
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                  <h3
+                    className={`font-black text-slate-900 dark:text-white break-words ${
+                      card.back.length > 70
+                        ? 'text-base sm:text-lg'
+                        : card.back.length > 35
+                        ? 'text-lg sm:text-xl'
+                        : 'text-xl sm:text-2xl'
+                    }`}
+                  >
                     {card.back}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">

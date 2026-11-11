@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, X, RotateCcw, Zap } from 'lucide-react';
 import type { Deck, FlashcardItem } from '../../../types/DeckType';
 import studyApi from '../../../api/studyApi';
 import { playCorrectSound, playIncorrectSound } from '../../../utils/soundEffects';
-import { isAnswerMatching } from '../../../utils/answerMatch';
+import { isAnswerMatching, stripParentheses } from '../../../utils/answerMatch';
 import { useDoubleEscExit } from '../../../hooks/useDoubleEscExit';
 
 interface Target {
@@ -40,7 +40,6 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 const TICK_MS = 60;
-const SPAWN_MS = 2200;
 const BOUNDARY = 88;
 
 interface TypingShooterProps {
@@ -52,6 +51,16 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
   const cards = deck.cards.filter((c): c is FlashcardItem => c.type === 'flashcard');
   const pool = useRef(shuffle(cards));
   const poolIdx = useRef(0);
+
+  // Average English target word length in this deck (calibrates overall spawn pacing)
+  const avgWordLength = useMemo(() => {
+    if (cards.length === 0) return 6;
+    const total = cards.reduce((sum, c) => {
+      const clean = stripParentheses(c.front || '').trim();
+      return sum + Math.max(2, clean.length);
+    }, 0);
+    return Math.max(3, Math.round(total / cards.length));
+  }, [cards]);
 
   const [targets, setTargets] = useState<Target[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
@@ -71,7 +80,7 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
   const nextId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const spawnRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const spawnTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const projId = useRef(0);
   const explId = useRef(0);
   const livesRef = useRef(3);
@@ -80,15 +89,33 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
     if (pool.current.length === 0) return;
     const card = pool.current[poolIdx.current % pool.current.length]!;
     poolIdx.current++;
+
     const level = Math.floor(poolIdx.current / 5);
-    const speed = 0.18 + level * 0.03 + Math.random() * 0.08;
+
+    // Calculate clean word length to type (stripped of annotations like "(n)", "(v)")
+    const targetWord = stripParentheses(card.front || '').trim();
+    const wordLen = Math.max(2, targetWord.length);
+
+    // Dynamic duration based on word length:
+    // Base 9.0s + 0.85s for every character to give players time to recall and type.
+    // E.g. "cat" (3 chars) -> ~11.5s; "developer" (9 chars) -> ~16.6s; "internationalization" (20 chars) -> ~26s.
+    // Higher levels gradually decrease duration (down to a minimum factor of 0.65).
+    const levelFactor = Math.max(0.65, 1 - level * 0.04);
+    const targetDurationSec = Math.max(7, (9.0 + wordLen * 0.85) * levelFactor);
+
+    // Distance is 96 units (-8 to 88)
+    const totalTicks = (targetDurationSec * 1000) / TICK_MS;
+    const speed = 96 / totalTicks + (Math.random() * 0.04 - 0.02);
+
+    // Keep X in safe margins (12% - 88%)
+    const safeX = 12 + Math.random() * 76;
     setTargets((prev) => [
       ...prev,
       {
         id: nextId.current++,
         english: card.front,
         vietnamese: card.back,
-        x: 5 + Math.random() * 78,
+        x: safeX,
         y: -8,
         speed,
         exploding: false,
@@ -96,9 +123,25 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
     ]);
   }, []);
 
+  const scheduleNextSpawn = useCallback(() => {
+    if (!started || gameOver) return;
+    const level = Math.floor(poolIdx.current / 5);
+    // Base spawn interval calibrated by deck's average word length:
+    // Short words (3-4 chars): ~2.4s - 2.8s
+    // Medium words (6-8 chars): ~3.2s - 3.8s
+    // Long words (10-14 chars): ~4.4s - 5.5s
+    const baseSpawnMs = Math.max(2200, Math.min(5500, 1600 + avgWordLength * 280));
+    const currentSpawnMs = Math.max(1600, baseSpawnMs - level * 100);
+
+    spawnTimeoutRef.current = setTimeout(() => {
+      spawnTarget();
+      scheduleNextSpawn();
+    }, currentSpawnMs);
+  }, [started, gameOver, avgWordLength, spawnTarget]);
+
   const stopGame = useCallback(() => {
     if (tickRef.current) clearInterval(tickRef.current);
-    if (spawnRef.current) clearInterval(spawnRef.current);
+    if (spawnTimeoutRef.current) clearTimeout(spawnTimeoutRef.current);
   }, []);
 
   const startGame = useCallback(() => {
@@ -118,6 +161,12 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
 
   useEffect(() => {
     if (!started || gameOver) return;
+
+    // First chicken spawns quickly after 500ms
+    const firstSpawnTimer = setTimeout(() => {
+      spawnTarget();
+      scheduleNextSpawn();
+    }, 500);
 
     tickRef.current = setInterval(() => {
       setTargets((prev) => {
@@ -150,13 +199,12 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
       });
     }, TICK_MS);
 
-    spawnRef.current = setInterval(spawnTarget, SPAWN_MS);
-
     return () => {
+      clearTimeout(firstSpawnTimer);
+      if (spawnTimeoutRef.current) clearTimeout(spawnTimeoutRef.current);
       if (tickRef.current) clearInterval(tickRef.current);
-      if (spawnRef.current) clearInterval(spawnRef.current);
     };
-  }, [started, gameOver, spawnTarget]);
+  }, [started, gameOver, spawnTarget, scheduleNextSpawn]);
 
   useEffect(() => {
     if (gameOver) {
@@ -195,7 +243,7 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
 
       playCorrectSound();
       const pid = projId.current++;
-      setProjectiles((ps) => [...ps, { id: pid, x: hit.x + 4, fromY: hit.y }]);
+      setProjectiles((ps) => [...ps, { id: pid, x: hit.x, fromY: hit.y }]);
       setTimeout(() => setProjectiles((ps) => ps.filter((p) => p.id !== pid)), 350);
 
       const eid = explId.current++;
@@ -355,8 +403,8 @@ export default function TypingShooter({ deck, onExit }: TypingShooterProps) {
               <span className="text-3xl leading-none">{t.exploding ? '💥' : '🐔'}</span>
               {!t.exploding && (
                 <span
-                  className="mt-1 px-2 py-0.5 rounded-lg bg-indigo-900/80 text-indigo-200 text-xs font-bold whitespace-nowrap border border-indigo-700/50 backdrop-blur-sm"
-                  style={{ fontFamily: 'var(--font-display)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  className="mt-1 px-2.5 py-1 rounded-lg bg-indigo-900/80 text-indigo-200 text-xs font-bold border border-indigo-700/50 backdrop-blur-sm text-center break-words [overflow-wrap:anywhere] max-w-[160px] sm:max-w-[200px]"
+                  style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {t.vietnamese}
                 </span>

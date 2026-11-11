@@ -63,6 +63,20 @@ function shuffleArray<T>(array: T[]): T[] {
   return cloned;
 }
 
+/**
+ * Automatically adjust font size and line height based on text length
+ * to ensure that long definitions and phrases fit cleanly without breaking card layout.
+ */
+function getCardTextSizeClass(text: string): string {
+  const len = (text || '').trim().length;
+  if (len > 80) return 'text-[11px] sm:text-xs leading-tight font-medium';
+  if (len > 50) return 'text-xs sm:text-[13px] leading-snug font-semibold';
+  if (len > 30) return 'text-xs sm:text-sm leading-snug font-semibold';
+  if (len > 18) return 'text-sm sm:text-base leading-snug font-bold';
+  if (len > 10) return 'text-base sm:text-lg leading-tight font-bold';
+  return 'text-lg sm:text-xl leading-tight font-extrabold';
+}
+
 export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) {
   const { t } = useTranslation();
   const { speak } = useSpeech();
@@ -332,13 +346,14 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
     );
   }
 
-  // Dynamic grid column calculation
+  // Dynamic grid column calculation: Avoid squishing cards into 8 narrow columns
   const getGridColsClass = () => {
     const count = cards.length;
     if (count <= 8) return 'grid-cols-2 sm:grid-cols-4';
-    if (count <= 12) return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6';
-    if (count <= 16) return 'grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8';
-    return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6';
+    if (count <= 12) return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-4';
+    if (count <= 16) return 'grid-cols-2 sm:grid-cols-4 md:grid-cols-4';
+    if (count <= 24) return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6';
+    return 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6';
   };
 
   return (
@@ -510,7 +525,7 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
               <div
                 key={card.uid}
                 onClick={() => handleCardClick(card)}
-                className="perspective-[1000px] cursor-pointer touch-manipulation aspect-[4/3] sm:aspect-[5/4] min-h-[96px] sm:min-h-[110px]"
+                className="perspective-[1000px] cursor-pointer touch-manipulation aspect-[4/3] sm:aspect-[5/4] min-h-[115px] sm:min-h-[130px] md:min-h-[142px]"
               >
                 <motion.div
                   animate={{
@@ -533,6 +548,7 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                   }`}
                   style={{
                     transformStyle: 'preserve-3d',
+                    WebkitTransformStyle: 'preserve-3d',
                   }}
                 >
                   {/* Card Back (Hidden Face) */}
@@ -540,6 +556,7 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                     className="absolute inset-0 w-full h-full rounded-2xl flex flex-col items-center justify-center p-3 border border-slate-700/80 bg-gradient-to-br from-slate-800 via-slate-850 to-slate-900 hover:from-slate-750 hover:to-slate-800 transition-all group overflow-hidden"
                     style={{
                       backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
                     }}
                   >
                     {/* Decorative pattern */}
@@ -559,7 +576,7 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
 
                   {/* Card Front (Revealed Face) */}
                   <div
-                    className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col justify-between p-3.5 sm:p-4 border transition-all ${
+                    className={`absolute inset-0 w-full h-full rounded-2xl flex flex-col justify-between p-2.5 sm:p-3.5 border transition-all overflow-hidden ${
                       card.isMatched
                         ? 'bg-gradient-to-br from-emerald-950/80 to-teal-900/90 border-emerald-500/60 text-emerald-50'
                         : card.isWrong
@@ -571,10 +588,11 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                     style={{
                       transform: 'rotateY(180deg)',
                       backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
                     }}
                   >
                     {/* Top Tag & Type badge */}
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full shrink-0">
                       <span
                         className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md tracking-wider ${
                           card.type === 'en'
@@ -586,7 +604,7 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                       </span>
 
                       {card.isMatched ? (
-                        <CheckCircle2 size={16} className="text-emerald-400" />
+                        <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
                       ) : card.type === 'en' ? (
                         <button
                           type="button"
@@ -594,7 +612,8 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                             e.stopPropagation();
                             speak(card.text);
                           }}
-                          className="p-1 rounded-md text-indigo-300 hover:text-white hover:bg-indigo-600/30 transition-colors"
+                          className="p-1 rounded-md text-indigo-300 hover:text-white hover:bg-indigo-600/30 transition-colors shrink-0"
+                          title="Nghe phát âm"
                         >
                           <Volume2 size={14} />
                         </button>
@@ -602,30 +621,27 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                     </div>
 
                     {/* Word text center */}
-                    <div className="text-center my-auto flex flex-col justify-center items-center">
+                    <div className="flex-1 min-h-0 w-full flex flex-col justify-center items-center text-center my-auto py-1 px-1 overflow-y-auto overscroll-contain flashcard-scrollbar">
                       <p
-                        className={`font-bold leading-tight ${
-                          card.text.length > 24
-                            ? 'text-xs sm:text-sm'
-                            : card.text.length > 14
-                            ? 'text-sm sm:text-base'
-                            : 'text-base sm:text-lg'
-                        }`}
+                        className={`break-words [overflow-wrap:anywhere] hyphens-auto select-none ${getCardTextSizeClass(card.text)}`}
+                        title={card.text}
                       >
                         {card.text}
                       </p>
                       {card.phonetic && card.type === 'en' && (
-                        <span className="text-[11px] text-indigo-300/70 font-mono mt-0.5">
+                        <span className="text-[10px] sm:text-[11px] text-indigo-300/70 font-mono mt-0.5 shrink-0 block truncate max-w-full">
                           {card.phonetic}
                         </span>
                       )}
                     </div>
 
                     {/* Bottom Indicator */}
-                    <div className="text-right">
-                      <span className="text-[9px] opacity-40 font-mono">
-                        {card.isMatched ? 'MATCHED' : ''}
-                      </span>
+                    <div className="h-3.5 sm:h-4 flex items-center justify-end shrink-0 w-full">
+                      {card.isMatched && (
+                        <span className="text-[9px] font-bold tracking-wider text-emerald-400/80 font-mono uppercase">
+                          MATCHED
+                        </span>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -727,21 +743,26 @@ export default function MemoryMatchGame({ deck, onExit }: MemoryMatchGameProps) 
                     {activeVocabList.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-slate-800/50 border border-slate-700/40"
+                        className="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/40"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => speak(item.front)}
-                            className="p-1 rounded-md text-indigo-400 hover:text-white hover:bg-indigo-600/30"
+                            className="p-1 rounded-md text-indigo-400 hover:text-white hover:bg-indigo-600/30 shrink-0"
+                            title="Nghe phát âm"
                           >
                             <Volume2 size={13} />
                           </button>
-                          <span className="font-bold text-slate-200">{item.front}</span>
-                          {item.phonetic && (
-                            <span className="text-slate-500 font-mono">{item.phonetic}</span>
-                          )}
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-200">{item.front}</span>
+                            {item.phonetic && (
+                              <span className="text-slate-500 font-mono text-[11px]">{item.phonetic}</span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-emerald-400 font-medium text-right">{item.back}</span>
+                        <span className="text-emerald-400 font-medium text-right text-xs break-words [overflow-wrap:anywhere] min-w-0">
+                          {item.back}
+                        </span>
                       </div>
                     ))}
                   </div>

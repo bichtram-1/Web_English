@@ -345,11 +345,11 @@ export default function SrsMatchPairs({
                     }`}
                   >
                     <div className="flex flex-col min-w-0 pr-2">
-                      <span className="font-extrabold text-sm sm:text-base leading-snug break-words" style={{ fontFamily: 'var(--font-display)' }}>
+                      <span className="font-extrabold text-sm sm:text-base leading-snug break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-display)' }}>
                         {tile.text}
                       </span>
                       {tile.phonetic && (
-                        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">
+                        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-full">
                           {tile.phonetic}
                         </span>
                       )}
@@ -415,7 +415,13 @@ export default function SrsMatchPairs({
                         : 'bg-white/90 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/90 border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:border-emerald-300 dark:hover:border-emerald-700'
                     }`}
                   >
-                    <span className="font-semibold text-xs sm:text-sm leading-snug break-words">
+                    <span className={`leading-snug break-words [overflow-wrap:anywhere] ${
+                      tile.text.length > 70
+                        ? 'text-[11px] sm:text-xs font-medium'
+                        : tile.text.length > 35
+                        ? 'text-xs sm:text-[13px] font-semibold'
+                        : 'font-semibold text-xs sm:text-sm'
+                    }`}>
                       {tile.text}
                     </span>
                   </motion.button>

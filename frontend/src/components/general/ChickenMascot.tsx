@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 interface ChickenMascotProps {
   src?: string;
   className?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'hero';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero';
   animate?: boolean;
   interactive?: boolean;
   onClick?: () => void;
 }
 
 const SIZE_MAP = {
+  xs: 'w-7 h-7 sm:w-8 sm:h-8',
   sm: 'w-10 h-10',
   md: 'w-14 h-14',
   lg: 'w-24 h-24',

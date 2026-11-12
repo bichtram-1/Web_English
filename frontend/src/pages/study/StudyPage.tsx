@@ -253,9 +253,11 @@ export default function StudyPage({ isGlobalSrs: propIsGlobalSrs }: StudyPagePro
     } else if (currentDeck?.id?.startsWith('col-')) {
       navigate(getCollectionDetailRoute(currentDeck.id));
     } else {
-      navigate(getDeckDetailRoute(targetId));
+      navigate(getDeckDetailRoute(targetId), {
+        state: location.state,
+      });
     }
-  }, [isGlobalSrs, currentDeck?.id, targetId, navigate]);
+  }, [isGlobalSrs, currentDeck?.id, targetId, navigate, location.state]);
 
   const { toastElement } = useDoubleEscExit({
     onExit: handleExit,

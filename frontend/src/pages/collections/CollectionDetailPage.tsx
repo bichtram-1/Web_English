@@ -607,7 +607,14 @@ export default function CollectionDetailPage() {
                   </div>
 
                   <h3
-                    onClick={() => navigate(getDeckDetailRoute(deck.id))}
+                    onClick={() =>
+                      navigate(getDeckDetailRoute(deck.id), {
+                        state: {
+                          from: location.pathname,
+                          fromTitle: collection.title,
+                        },
+                      })
+                    }
                     className="font-bold text-slate-900 dark:text-white text-base leading-tight mb-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
@@ -624,7 +631,14 @@ export default function CollectionDetailPage() {
                     {t('cards_count', { count: deck.cards?.length || deck.itemCount })}
                   </span>
                   <button
-                    onClick={() => navigate(getStudyRoute(deck.id))}
+                    onClick={() =>
+                      navigate(getStudyRoute(deck.id), {
+                        state: {
+                          from: location.pathname,
+                          fromTitle: collection.title,
+                        },
+                      })
+                    }
                     className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
                   >
                     {isVi ? 'Học riêng bộ này →' : 'Study this deck →'}

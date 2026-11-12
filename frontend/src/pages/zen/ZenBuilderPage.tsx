@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ZenBuilder from './components/ZenBuilder';
 import deckApi from '../../api/deckApi';
@@ -10,6 +10,7 @@ import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 export default function ZenBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -79,7 +80,7 @@ export default function ZenBuilderPage() {
 
   const handleExit = () => {
     if (id && id !== 'all') {
-      navigate(getDeckDetailRoute(deck.id));
+      navigate(getDeckDetailRoute(deck.id), { state: location.state });
     } else {
       navigate(ROUTES.GAMES);
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import TreasureHuntGame from './components/TreasureHuntGame';
 import deckApi from '../../api/deckApi';
 import type { Deck, FlashcardItem } from '../../types/DeckType';
@@ -9,6 +9,7 @@ import { getDeckDetailRoute, ROUTES } from '../../constants/routers';
 export default function TreasureHuntPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [allCards, setAllCards] = useState<FlashcardItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,7 @@ export default function TreasureHuntPage() {
       deck={deck || undefined}
       cardsPool={allCards.length > 0 ? allCards : undefined}
       title={deck ? deck.title : 'Kho Báu Tổng Hợp (Tất Cả Thẻ)'}
-      onExit={() => navigate(deck ? getDeckDetailRoute(deck.id) : ROUTES.HOME)}
+      onExit={() => navigate(deck ? getDeckDetailRoute(deck.id) : ROUTES.HOME, { state: location.state })}
     />
   );
 }

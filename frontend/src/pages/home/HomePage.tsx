@@ -12,11 +12,9 @@ import {
   ChevronsRight,
   Plus,
   Minus,
-  FolderOpen,
   Lock,
   Gamepad2,
   Play,
-  Languages,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDecks } from '../../hooks/useDecks';
@@ -25,7 +23,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getDeckDetailRoute, getEditDeckRoute, getMatchRoute, getMinigameRoute, getZenRoute, getWrittenRoute, getTreasureRoute, ROUTES } from '../../constants/routers';
 import type { Deck } from '../../types/DeckType';
 import Loading from '../../components/shared/Loading';
-import ChickenMascot from '../../components/general/ChickenMascot';
+import VocabDualStreamMarquee from '../../components/general/VocabDualStreamMarquee';
 import ItemOptionsMenu from '../../components/shared/ItemOptionsMenu';
 import ConfirmDeleteModal from '../../components/shared/ConfirmDeleteModal';
 import DeckRatingStars from '../../components/shared/DeckRatingStars';
@@ -305,156 +303,13 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-transparent">
-      {/* Hero Banner with Chicken Scholar Mascot */}
-      <div
-        className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(55,48,163,0.92) 0%, rgba(79,70,229,0.92) 50%, rgba(124,58,237,0.92) 100%)' }}
-      >
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at center, rgba(255,255,255,0.8) 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }}
-        />
-        <div className="relative max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            {/* Hero Left Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="md:col-span-8 text-center md:text-left"
-            >
-              <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
-                <Sparkles size={14} className="text-amber-300" />
-                <span
-                  className="text-white text-xs font-bold tracking-wider uppercase"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {t('home_hero_badge')}
-                </span>
-                <span className="w-1 h-1 rounded-full bg-amber-400" />
-                <span className="text-amber-200 text-xs font-semibold">{isVi ? 'Ôn tập ngắt quãng thông minh' : 'Smart Spaced Repetition'}</span>
-              </div>
-
-              <h1
-                className="text-white text-3xl sm:text-4xl md:text-5xl font-black mb-3 leading-tight"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {t('home_hero_title_1')}<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">
-                  {t('home_hero_title_2')}
-                </span>
-              </h1>
-
-              <p className="text-indigo-100 text-sm sm:text-base mb-6 max-w-xl font-medium leading-relaxed">
-                {t('home_hero_desc')}
-              </p>
-
-              {/* Quick Action buttons */}
-              <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap mb-8">
-                <button
-                  onClick={() => navigate(ROUTES.GAMES)}
-                  className="px-5 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-                >
-                  <Gamepad2 size={16} />
-                  <span>{isVi ? 'Đấu Trường Trò Chơi' : 'Play Games'}</span>
-                </button>
-
-                <button
-                  onClick={() => navigate(ROUTES.TRANSLATE_EXTRACT)}
-                  className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-                >
-                  <Languages size={16} />
-                  <span>{isVi ? 'Dịch & Trích Từ Vựng' : 'Translate & Extract'}</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      navigate(ROUTES.LOGIN, { state: { from: ROUTES.CREATE_DECK } });
-                      return;
-                    }
-                    navigate(ROUTES.CREATE_DECK);
-                  }}
-                  className="px-5 py-2.5 rounded-2xl bg-white text-indigo-600 font-bold text-xs sm:text-sm shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-                >
-                  <Plus size={16} />
-                  <span>{t('nav_create_deck')}</span>
-                </button>
-
-
-                <button
-                  onClick={() => navigate(ROUTES.COLLECTIONS)}
-                  className="px-5 py-2.5 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer border border-white/20 active:scale-95"
-                >
-                  <FolderOpen size={16} />
-                  <span>{t('collection_title')}</span>
-                </button>
-              </div>
-
-              {/* Stats Bar */}
-              <div className="flex justify-center md:justify-start gap-6 sm:gap-8 flex-wrap">
-                {[
-                  {
-                    label: t('home_quick_stats_decks'),
-                    value: formatCompactNumber(decks.length),
-                    fullValue: formatFullNumber(decks.length),
-                  },
-                  { label: isVi ? 'Phương pháp' : 'Method', value: isVi ? 'Ghi nhớ sâu' : 'Spaced Repetition' },
-                  { label: isVi ? '5 Đấu Trường Game' : '5 Arcade Games', value: isVi ? 'Trò chơi 🎮' : 'Arcade 🎮' },
-                ].map(({ label, value, fullValue }: any) => (
-                  <div key={label} className="text-center md:text-left" title={fullValue ? `${fullValue} ${label}` : undefined}>
-                    <div
-                      className="text-white text-xl sm:text-2xl font-black"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {value}
-                    </div>
-                    <div className="text-indigo-200 text-[11px] font-semibold uppercase tracking-wide">
-                      {label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Hero Right Mascot Feature with transparent cutout & physics */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="md:col-span-4 flex flex-col items-center justify-center relative"
-            >
-              <div className="relative group flex flex-col items-center">
-                {/* Glowing Aura */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-300 blur-3xl opacity-50 group-hover:opacity-80 transition-opacity" />
-
-                {/* Animated Transparent Chicken Mascot */}
-                <div className="relative z-10 p-2">
-                  <ChickenMascot size="hero" animate interactive />
-                </div>
-
-                {/* Floating Mascot Badges */}
-                <div className="absolute -top-1 -right-2 z-20 px-3 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 animate-bounce">
-                  <span>🎓</span>
-                  <span>{isVi ? 'Học Giả Gà' : 'Scholar Chicken'}</span>
-                </div>
-
-                <div className="absolute -bottom-1 -left-2 z-20 px-3 py-1 rounded-full bg-slate-900/90 text-amber-300 font-bold text-xs border border-amber-400/40 shadow-lg backdrop-blur-md flex items-center gap-1">
-                  <span>🧠</span>
-                  <span>{isVi ? 'Ghi nhớ dài hạn' : 'Long-term Memory'}</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+      {/* Streamlined Live Vocabulary Showcase Banner (Dual-Stream Marquee) */}
+      <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-1">
+        <VocabDualStreamMarquee decks={visibleDecks} isVi={isVi} />
       </div>
 
       {/* ARCADE MINIGAMES SHOWCASE STRIP */}
-      <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-8 relative z-20">
+      <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-8 relative z-20">
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -544,7 +399,7 @@ export default function HomePage() {
 
       {/* Search & filters */}
       <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-5 -mt-6 mb-6 relative z-10">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 dark:ring-1 dark:ring-white/10 p-5 mb-6 relative z-10">
           <div className="flex gap-2 mb-3">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />

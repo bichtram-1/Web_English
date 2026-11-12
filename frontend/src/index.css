@@ -157,3 +157,75 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   letter-spacing: normal;
 }
+
+/* Continuous Vocabulary Stream Marquee Animations */
+@keyframes vocabMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.vocab-marquee-track-fast {
+  animation: vocabMarquee 140s linear infinite;
+}
+
+.vocab-marquee-track-slow {
+  animation: vocabMarquee 95s linear infinite;
+}
+
+.vocab-marquee-paused {
+  animation-play-state: paused !important;
+}
+
+/* Animated Shimmering Gradient Text Flow (Hiệu ứng màu chạy lấp lánh qua chữ) */
+@keyframes shimmerSweep {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.text-shimmer-flow {
+  background: linear-gradient(
+    90deg,
+    #f59e0b 0%,
+    #fbbf24 22%,
+    #fef08a 40%,
+    #ffffff 50%,
+    #fef08a 60%,
+    #f59e0b 80%,
+    #f59e0b 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  display: inline-block;
+  animation: shimmerSweep 3.5s linear infinite;
+}
+
+.text-shimmer-purple {
+  background: linear-gradient(
+    90deg,
+    #c084fc 0%,
+    #e879f9 20%,
+    #f472b6 38%,
+    #ffffff 50%,
+    #f472b6 62%,
+    #a855f7 80%,
+    #c084fc 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  display: inline-block;
+  animation: shimmerSweep 3.5s linear infinite;
+}
+
+

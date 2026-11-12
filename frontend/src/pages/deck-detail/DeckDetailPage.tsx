@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
@@ -64,9 +64,54 @@ export default function DeckDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+
+  const locationState = location.state as { from?: string; fromTitle?: string } | null;
+
+  // Determine referrer / back navigation
+  // Priority:
+  // 1. location.state?.from (Passed via router navigate from Collections / other sources)
+  // 2. URL search param ?from=...
+  // 3. Document referrer if it points to /collections/
+  const backDestination = useMemo(() => {
+    if (locationState?.from) {
+      return {
+        url: locationState.from,
+        title: locationState.fromTitle || (isVi ? 'Quay lại bộ sưu tập' : 'Back to collection'),
+      };
+    }
+    const fromParam = searchParams.get('from');
+    if (fromParam) {
+      const fromTitleParam = searchParams.get('fromTitle');
+      return {
+        url: fromParam,
+        title: fromTitleParam || (isVi ? 'Quay lại' : 'Back'),
+      };
+    }
+    if (typeof document !== 'undefined' && document.referrer) {
+      try {
+        const refUrl = new URL(document.referrer);
+        if (refUrl.origin === window.location.origin && refUrl.pathname.startsWith('/collections/')) {
+          return {
+            url: refUrl.pathname,
+            title: isVi ? 'Quay lại bộ sưu tập' : 'Back to collection',
+          };
+        }
+      } catch {
+        // Ignore invalid URL
+      }
+    }
+    return null;
+  }, [locationState, searchParams, isVi]);
+
+  const navState = useMemo(() => {
+    return backDestination
+      ? { state: { from: backDestination.url, fromTitle: backDestination.title } }
+      : undefined;
+  }, [backDestination]);
   const [deck, setDeck] = useState<Deck | null>(() => {
     if (!id) return null;
     const stored = getStoredDecks();
@@ -170,7 +215,7 @@ export default function DeckDetailPage() {
     try {
       await deckApi.deleteDeck(deck.id);
       setIsDeleteModalOpen(false);
-      navigate(ROUTES.HOME);
+      navigate(backDestination ? backDestination.url : ROUTES.HOME);
     } catch (e) {
       console.error('Error deleting deck:', e);
     } finally {
@@ -226,10 +271,18 @@ export default function DeckDetailPage() {
               : (isVi ? 'Không tìm thấy bộ thẻ hoặc bộ thẻ đã bị xóa.' : 'Deck not found or has been deleted.')}
           </p>
           <button
-            onClick={() => navigate(ROUTES.HOME)}
+            onClick={() => {
+              if (backDestination) {
+                navigate(backDestination.url);
+              } else {
+                navigate(ROUTES.HOME);
+              }
+            }}
             className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
           >
-            {t('go_home')}
+            {backDestination
+              ? (isVi ? `Quay lại: ${backDestination.title}` : `Back to: ${backDestination.title}`)
+              : t('go_home')}
           </button>
         </div>
       </div>
@@ -299,13 +352,13 @@ export default function DeckDetailPage() {
   const dragDropCount = deck.cards.filter((c) => c.type === 'drag_drop').length;
 
   const handleSelectMode = (mode: StudyMode) => {
-    if (mode === 'flashcard') navigate(getStudyRoute(deck.id));
-    else if (mode === 'treasure') navigate(getTreasureRoute(deck.id));
-    else if (mode === 'match') navigate(getMatchRoute(deck.id));
-    else if (mode === 'test') navigate(getTestRoute(deck.id));
-    else if (mode === 'minigame') navigate(getMinigameRoute(deck.id));
-    else if (mode === 'zen') navigate(getZenRoute(deck.id));
-    else if (mode === 'written') navigate(getWrittenRoute(deck.id));
+    if (mode === 'flashcard') navigate(getStudyRoute(deck.id), navState);
+    else if (mode === 'treasure') navigate(getTreasureRoute(deck.id), navState);
+    else if (mode === 'match') navigate(getMatchRoute(deck.id), navState);
+    else if (mode === 'test') navigate(getTestRoute(deck.id), navState);
+    else if (mode === 'minigame') navigate(getMinigameRoute(deck.id), navState);
+    else if (mode === 'zen') navigate(getZenRoute(deck.id), navState);
+    else if (mode === 'written') navigate(getWrittenRoute(deck.id), navState);
   };
 
   const isPublic = deck.isPublic !== undefined ? deck.isPublic : true;
@@ -325,12 +378,29 @@ export default function DeckDetailPage() {
         <div className="relative max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
           <div className="flex items-center justify-between mb-6 gap-2">
             <button
-              onClick={() => navigate(ROUTES.HOME)}
-              className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              onClick={() => {
+                if (backDestination) {
+                  navigate(backDestination.url);
+                } else {
+                  navigate(ROUTES.HOME);
+                }
+              }}
+              className="flex items-center gap-1.5 text-white/80 hover:text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 group max-w-[280px] sm:max-w-md"
               style={{ fontFamily: 'var(--font-display)' }}
+              title={
+                backDestination
+                  ? isVi
+                    ? `Quay lại: ${backDestination.title}`
+                    : `Back to: ${backDestination.title}`
+                  : isVi
+                  ? 'Về danh sách tất cả bộ thẻ'
+                  : 'Back to all decks'
+              }
             >
-              <ArrowLeft size={15} />
-              <span>{t('nav_all_decks')}</span>
+              <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
+              <span className="truncate">
+                {backDestination ? backDestination.title : t('nav_all_decks')}
+              </span>
             </button>
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -551,7 +621,7 @@ export default function DeckDetailPage() {
 
             <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
               <button
-                onClick={() => navigate(`${getStudyRoute(deck.id)}?due=true`)}
+                onClick={() => navigate(`${getStudyRoute(deck.id)}?due=true`, navState)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-indigo-300/50 dark:shadow-none transition-all cursor-pointer whitespace-nowrap"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
@@ -559,7 +629,7 @@ export default function DeckDetailPage() {
                 <span>{isVi ? `Lật ${srsStats.dueTodayCount} thẻ cần ôn` : `Study ${srsStats.dueTodayCount} due`}</span>
               </button>
               <button
-                onClick={() => navigate(`${getWrittenRoute(deck.id)}?due=true`)}
+                onClick={() => navigate(`${getWrittenRoute(deck.id)}?due=true`, navState)}
                 className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-indigo-200 dark:border-indigo-800/80 font-bold text-xs transition-all cursor-pointer whitespace-nowrap"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
@@ -598,7 +668,7 @@ export default function DeckDetailPage() {
 
             <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
               <button
-                onClick={() => navigate(`${getStudyRoute(deck.id)}?starred=true`)}
+                onClick={() => navigate(`${getStudyRoute(deck.id)}?starred=true`, navState)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs shadow-md shadow-amber-300/50 dark:shadow-none transition-all cursor-pointer whitespace-nowrap"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
@@ -606,7 +676,7 @@ export default function DeckDetailPage() {
                 <span>{isVi ? `Lật ${starredCount} thẻ sao` : `Study ${starredCount} starred`}</span>
               </button>
               <button
-                onClick={() => navigate(`${getWrittenRoute(deck.id)}?starred=true`)}
+                onClick={() => navigate(`${getWrittenRoute(deck.id)}?starred=true`, navState)}
                 className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-amber-200 dark:border-amber-800/80 font-bold text-xs transition-all cursor-pointer whitespace-nowrap"
                 style={{ fontFamily: 'var(--font-display)' }}
               >

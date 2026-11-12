@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import TestMode from './components/TestMode';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import type { Deck } from '../../types/DeckType';
@@ -10,6 +10,7 @@ import { getDeckDetailRoute } from '../../constants/routers';
 export default function TestPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const targetId = id || 'basic-comm';
 
   const [deck, setDeck] = useState<Deck>(() => {
@@ -37,5 +38,5 @@ export default function TestPage() {
 
   if (loading && !deck) return <Loading />;
 
-  return <TestMode deck={deck} onExit={() => navigate(getDeckDetailRoute(deck.id))} />;
+  return <TestMode deck={deck} onExit={() => navigate(getDeckDetailRoute(deck.id), { state: location.state })} />;
 }

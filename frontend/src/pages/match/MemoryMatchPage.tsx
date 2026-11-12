@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import MemoryMatchGame from './components/MemoryMatchGame';
 import deckApi from '../../api/deckApi';
 import type { Deck } from '../../types/DeckType';
@@ -9,6 +9,7 @@ import { getDeckDetailRoute } from '../../constants/routers';
 export default function MemoryMatchPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,5 +38,5 @@ export default function MemoryMatchPage() {
     );
   }
 
-  return <MemoryMatchGame deck={deck} onExit={() => navigate(getDeckDetailRoute(deck.id))} />;
+  return <MemoryMatchGame deck={deck} onExit={() => navigate(getDeckDetailRoute(deck.id), { state: location.state })} />;
 }

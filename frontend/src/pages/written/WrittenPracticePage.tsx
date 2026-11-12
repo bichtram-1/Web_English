@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import WrittenPractice, { type WrittenFilterMode } from './components/WrittenPractice';
 import deckApi, { getStoredDecks } from '../../api/deckApi';
 import type { Deck, FlashcardItem } from '../../types/DeckType';
@@ -13,6 +13,7 @@ export default function WrittenPracticePage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const targetId = id || 'basic-comm';
 
   const initialFilter: WrittenFilterMode = searchParams.get('starred') === 'true'
@@ -86,7 +87,7 @@ export default function WrittenPracticePage() {
     if (targetId.startsWith('col-')) {
       navigate(getCollectionDetailRoute(targetId));
     } else {
-      navigate(getDeckDetailRoute(deck.id));
+      navigate(getDeckDetailRoute(deck.id), { state: location.state });
     }
   };
 

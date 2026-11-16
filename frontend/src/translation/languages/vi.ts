@@ -225,6 +225,8 @@ const ViTranslation = {
   streak_this_week: 'Tuần này',
   streak_completed_today: 'Đã hoàn thành hôm nay',
   streak_need_study_today: 'Cần học hôm nay',
+  streak_missed_day: 'Bị đứt chuỗi (Chưa học)',
+  streak_broken_tooltip: 'Hôm qua bạn chưa học khiến chuỗi bị đứt!',
   streak_view_stats: 'Xem tiến độ & thống kê chi tiết',
   streak_days_count: '{days} Ngày',
   streak_lit_up: 'Thắp sáng',

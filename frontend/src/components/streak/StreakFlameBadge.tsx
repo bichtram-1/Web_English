@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Clock, ArrowRight } from 'lucide-react';
+import { Check, Clock, ArrowRight, X } from 'lucide-react';
 import useStreak from '../../hooks/useStreak';
 import StreakFlameIcon from './StreakFlameIcon';
 import { ROUTES } from '../../constants/routers';
@@ -151,18 +151,38 @@ export default function StreakFlameBadge({ compact = false, className = '' }: St
                     </span>
                     <div
                       className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                        item.studied
+                        item.isToday
+                          ? hasStudiedToday
+                            ? 'bg-gradient-to-tr from-amber-400 to-orange-500 text-white shadow-xs shadow-orange-300 dark:shadow-none'
+                            : 'border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-500 bg-amber-50/50 dark:bg-amber-950/30 animate-pulse'
+                          : item.studied
                           ? 'bg-gradient-to-tr from-amber-400 to-orange-500 text-white shadow-xs shadow-orange-300 dark:shadow-none'
-                          : item.isToday
-                          ? 'border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-500 bg-amber-50/50 dark:bg-amber-950/30 animate-pulse'
+                          : item.isMissed
+                          ? 'bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-500 dark:text-rose-400 shadow-xs shadow-rose-100 dark:shadow-none'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600'
                       }`}
-                      title={`${item.dayLabel} (${item.date}): ${item.studied ? t('streak_studied_today') : t('streak_not_studied_today')}`}
+                      title={`${item.dayLabel} (${item.date}): ${
+                        item.isToday
+                          ? hasStudiedToday
+                            ? t('streak_studied_today')
+                            : t('streak_need_study_today')
+                          : item.studied
+                          ? t('streak_studied_today')
+                          : item.isMissed
+                          ? t('streak_missed_day')
+                          : t('streak_not_studied_today')
+                      }`}
                     >
-                      {item.studied ? (
+                      {item.isToday ? (
+                        hasStudiedToday ? (
+                          <Check size={14} className="stroke-[3]" />
+                        ) : (
+                          <Clock size={13} className="text-amber-500" />
+                        )
+                      ) : item.studied ? (
                         <Check size={14} className="stroke-[3]" />
-                      ) : item.isToday ? (
-                        <Clock size={13} className="text-amber-500" />
+                      ) : item.isMissed ? (
+                        <X size={14} className="stroke-[2.5]" />
                       ) : (
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                       )}

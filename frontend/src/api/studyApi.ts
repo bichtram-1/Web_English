@@ -43,8 +43,10 @@ export const studyApi = {
 
   getHistory: async (): Promise<StudySessionRecord[]> => {
     try {
-      const res = (await axiosInstance.get(ENDPOINTS.STUDY_HISTORY)) as unknown as ApiResponse<StudySessionRecord[]>;
-      return res.data;
+      const res = (await axiosInstance.get(ENDPOINTS.STUDY_HISTORY)) as any;
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
     } catch {
       return [];
     }
@@ -52,8 +54,12 @@ export const studyApi = {
 
   getUserStats: async (): Promise<UserStats> => {
     try {
-      const res = (await axiosInstance.get(ENDPOINTS.STUDY_STATS)) as unknown as ApiResponse<UserStats>;
-      return res.data;
+      const res = (await axiosInstance.get(ENDPOINTS.STUDY_STATS)) as any;
+      const data = (res && typeof res === 'object' && 'streakDays' in res) ? res : res?.data;
+      if (data && typeof data === 'object') {
+        return data as UserStats;
+      }
+      throw new Error('Invalid stats format');
     } catch {
       const local = getStreakInfo();
       return {
@@ -62,7 +68,7 @@ export const studyApi = {
         totalStudyTimeSeconds: 0,
         totalXp: 0,
         streakDays: local.streakDays || 0,
-        lastStudyDate: local.lastStudyDate || new Date().toISOString(),
+        lastStudyDate: local.lastStudyDate || null,
         sessionsCompleted: 0,
         averageAccuracy: 0,
       };

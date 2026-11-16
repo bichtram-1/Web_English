@@ -239,23 +239,25 @@ export class NotificationService {
         streakNotifId
       );
       if (!existingStreak || existingStreak.length === 0) {
-        // Priority 2: Deduplicate past unread streak reminders (upsert-like behavior)
+        // Priority 2: Mark past unread streak reminders as read to avoid unread badge spam while PRESERVING history
         try {
           await prisma.$executeRawUnsafe(
-            `DELETE FROM notifications 
+            `UPDATE notifications 
+             SET read = true 
              WHERE (LOWER("recipientEmail") = $1 OR "recipientUserId" = $2) 
                AND type = 'streak_reminder' 
-               AND id != $3`,
+               AND id != $3 AND read = false`,
             emailLower,
             userId,
             streakNotifId
           );
         } catch {
           await prisma.$executeRawUnsafe(
-            `DELETE FROM notifications 
+            `UPDATE notifications 
+             SET read = 1 
              WHERE (LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}') 
                AND type = 'streak_reminder' 
-               AND id != '${streakNotifId}'`
+               AND id != '${streakNotifId}' AND (read = false OR read = 0)`
           ).catch(() => {});
         }
 
@@ -263,7 +265,7 @@ export class NotificationService {
         if (lastStudyDate) {
           const startOfLast = new Date(lastStudyDate.getFullYear(), lastStudyDate.getMonth(), lastStudyDate.getDate()).getTime();
           const diffCalendarDays = Math.round((startOfToday.getTime() - startOfLast) / (1000 * 3600 * 24));
-          if (diffCalendarDays > 1) {
+          if (diffCalendarDays > 2) {
             isBrokenStreak = true;
           }
         } else {
@@ -296,23 +298,25 @@ export class NotificationService {
           srsNotifId
         );
         if (!existingSrs || existingSrs.length === 0) {
-          // Priority 2: Deduplicate past unread review reminders (upsert-like behavior)
+          // Priority 2: Mark past unread review reminders as read to avoid unread badge spam while PRESERVING history
           try {
             await prisma.$executeRawUnsafe(
-              `DELETE FROM notifications 
+              `UPDATE notifications 
+               SET read = true 
                WHERE (LOWER("recipientEmail") = $1 OR "recipientUserId" = $2) 
                  AND type = 'review_reminder' 
-                 AND id != $3`,
+                 AND id != $3 AND read = false`,
               emailLower,
               userId,
               srsNotifId
             );
           } catch {
             await prisma.$executeRawUnsafe(
-              `DELETE FROM notifications 
+              `UPDATE notifications 
+               SET read = 1 
                WHERE (LOWER(recipientEmail) = '${emailLower.replace(/'/g, "''")}' OR recipientUserId = '${userId.replace(/'/g, "''")}') 
                  AND type = 'review_reminder' 
-                 AND id != '${srsNotifId}'`
+                 AND id != '${srsNotifId}' AND (read = false OR read = 0)`
             ).catch(() => {});
           }
 

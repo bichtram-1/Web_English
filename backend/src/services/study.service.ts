@@ -59,7 +59,10 @@ export class StudyService {
       let streakDays = currentStats.streakDays;
       if (diffCalendarDays === 1) {
         streakDays += 1;
-      } else if (diffCalendarDays > 1) {
+      } else if (diffCalendarDays === 2) {
+        // Missed yesterday (1-day grace period): studying today continues the streak!
+        streakDays += 1;
+      } else if (diffCalendarDays > 2) {
         streakDays = 1;
       }
 
@@ -140,7 +143,7 @@ export class StudyService {
         totalStudyTimeSeconds: 0,
         totalXp: 0,
         streakDays: 0,
-        lastStudyDate: new Date().toISOString(),
+        lastStudyDate: null,
         sessionsCompleted: 0,
         averageAccuracy: 0,
       };
@@ -154,7 +157,7 @@ export class StudyService {
         totalStudyTimeSeconds: 0,
         totalXp: 0,
         streakDays: 0,
-        lastStudyDate: new Date().toISOString(),
+        lastStudyDate: null,
         sessionsCompleted: 0,
         averageAccuracy: 0,
       };
@@ -171,7 +174,7 @@ export class StudyService {
         totalStudyTimeSeconds: 0,
         totalXp: 0,
         streakDays: 0,
-        lastStudyDate: new Date().toISOString(),
+        lastStudyDate: null,
         sessionsCompleted: 0,
         averageAccuracy: 0,
       };
@@ -184,7 +187,7 @@ export class StudyService {
       const lastDate = new Date(stats.lastStudyDate);
       const startOfLast = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()).getTime();
       const diffCalendarDays = Math.round((startOfToday - startOfLast) / (1000 * 3600 * 24));
-      if (diffCalendarDays > 1) {
+      if (diffCalendarDays > 2) {
         activeStreak = 0;
       }
     } else {
@@ -197,7 +200,7 @@ export class StudyService {
       totalStudyTimeSeconds: stats.totalStudyTimeSeconds,
       totalXp: stats.totalXp,
       streakDays: activeStreak,
-      lastStudyDate: stats.lastStudyDate ? stats.lastStudyDate.toISOString() : new Date().toISOString(),
+      lastStudyDate: stats.lastStudyDate ? stats.lastStudyDate.toISOString() : null,
       sessionsCompleted: stats.sessionsCompleted,
       averageAccuracy: Math.round(stats.averageAccuracy),
     };

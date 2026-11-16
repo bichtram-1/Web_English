@@ -28,12 +28,14 @@ export function useStreak() {
     // Load local storage for this specific user
     setStreak(getStreakInfo(user.id));
 
-    // Initial sync with backend stats for this user
-    studyApi
-      .getUserStats()
-      .then((backendStats) => {
+    // Initial sync with backend stats and history for this user
+    Promise.all([
+      studyApi.getUserStats(),
+      studyApi.getHistory().catch(() => []),
+    ])
+      .then(([backendStats, historySessions]) => {
         if (backendStats) {
-          const synced = syncWithBackendStats(backendStats, user.id);
+          const synced = syncWithBackendStats(backendStats, user.id, historySessions);
           setStreak(synced);
         }
       })

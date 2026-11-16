@@ -227,6 +227,8 @@ const EnTranslation: I18nKey = {
   streak_this_week: 'This Week',
   streak_completed_today: 'Completed today',
   streak_need_study_today: 'Study needed today',
+  streak_missed_day: 'Streak broken (Missed study)',
+  streak_broken_tooltip: 'You missed studying yesterday and the streak broke!',
   streak_view_stats: 'View Detailed Progress & Stats',
   streak_days_count: '{days} Days',
   streak_lit_up: 'Lit up',

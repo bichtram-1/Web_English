@@ -167,6 +167,7 @@ function useSwipeableMarquee({
     const dx = e.touches[0].clientX - startXRef.current;
     if (Math.abs(dx) > 6) {
       hasDraggedRef.current = true;
+      isInteractingRef.current = true;
     }
   }, []);
 
@@ -267,6 +268,7 @@ function useSwipeableMarquee({
       onTouchStart,
       onTouchMove,
       onTouchEnd,
+      onTouchCancel: onTouchEnd,
       onMouseDown,
       onMouseMove,
       onMouseUp,
@@ -444,10 +446,10 @@ export default function VocabDualStreamMarquee({ decks, isVi = true }: VocabDual
       <div className="absolute -top-24 -left-24 w-72 h-72 bg-indigo-600/25 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-violet-600/25 rounded-full blur-3xl pointer-events-none" />
 
-      {/* TOP HEADER BAR: Word Runway Title & Brand Accent & Swipe Hint */}
+      {/* TOP HEADER BAR: Word Runway Title & Brand Accent */}
       <div className="relative z-10 px-4 sm:px-6 py-2.5 flex items-center justify-between border-b border-white/10 bg-white/[0.02] backdrop-blur-md">
-        {/* Left: Runway Title & Interactive Swipe Hint */}
-        <div className="flex items-center gap-2.5">
+        {/* Left: Runway Title */}
+        <div className="flex items-center gap-2">
           <Sparkles size={15} className="text-amber-400 animate-pulse shrink-0" />
           <h2
             className="text-xs sm:text-sm font-black tracking-wide text-indigo-100 uppercase"
@@ -455,17 +457,10 @@ export default function VocabDualStreamMarquee({ decks, isVi = true }: VocabDual
           >
             {isVi ? 'SÀN DIỄN TỪ VỰNG' : 'WORD RUNWAY'}
           </h2>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-indigo-200/90 font-semibold px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/15 shadow-2xs">
-            <span className="text-amber-300">↔</span>
-            <span>{isVi ? 'Vuốt / kéo để xem lại từ đã trôi qua' : 'Swipe / drag to review past words'}</span>
-          </span>
         </div>
 
-        {/* Right: Brand Text & Mobile Hint */}
+        {/* Right: Brand Text */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] sm:hidden text-amber-300/90 font-bold bg-white/[0.08] px-2 py-0.5 rounded-full border border-white/15">
-            {isVi ? '↔ Vuốt để xem lại' : '↔ Swipe to review'}
-          </span>
           <span
             className="text-xs sm:text-sm font-black tracking-tight text-shimmer-purple"
             style={{ fontFamily: 'var(--font-display)' }}
@@ -511,7 +506,7 @@ export default function VocabDualStreamMarquee({ decks, isVi = true }: VocabDual
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
-              touchAction: 'pan-y',
+              touchAction: 'pan-x pan-y',
             }}
           >
             {randomTextCards.map((card, idx) => (
@@ -601,7 +596,7 @@ export default function VocabDualStreamMarquee({ decks, isVi = true }: VocabDual
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
-              touchAction: 'pan-y',
+              touchAction: 'pan-x pan-y',
               perspective: '1000px',
             }}
           >

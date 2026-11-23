@@ -83,6 +83,13 @@ export class NotificationService {
   static async getUnreadCountForUser(userId: string, email: string): Promise<number> {
     await ensureNotificationTable();
     const emailLower = email.toLowerCase().trim();
+
+    try {
+      await this.ensureDailyStudyReminders(userId, emailLower);
+    } catch (reminderErr) {
+      console.warn('[NotificationService] ensureDailyStudyReminders in getUnreadCount error:', reminderErr);
+    }
+
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(
         `SELECT COUNT(*)::int as count FROM (
@@ -139,10 +146,12 @@ export class NotificationService {
     const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100);
     const offset = Math.max(options?.offset ?? 0, 0);
 
-    // Run streak reminders in the background so it doesn't block the API response
-    this.ensureDailyStudyReminders(userId, emailLower).catch((reminderErr) => {
-      console.warn('[NotificationService] ensureDailyStudyReminders background error:', reminderErr);
-    });
+    // Ensure daily study reminders are evaluated and created BEFORE querying
+    try {
+      await this.ensureDailyStudyReminders(userId, emailLower);
+    } catch (reminderErr) {
+      console.warn('[NotificationService] ensureDailyStudyReminders error:', reminderErr);
+    }
 
     const [rows, unreadCount] = await Promise.all([
       (async () => {

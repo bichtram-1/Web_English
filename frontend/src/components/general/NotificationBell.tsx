@@ -92,14 +92,15 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchUnreadCount();
+    loadInitialNotifications(false);
     const interval = setInterval(fetchUnreadCount, 25000);
     return () => clearInterval(interval);
   }, [isAuthenticated, user?.id, user?.email]);
 
-  // Load initial batch of 20 notifications when opening dropdown
-  const loadInitialNotifications = async () => {
+  // Load initial batch of 20 notifications (silent prefetch on mount or with spinner on user demand)
+  const loadInitialNotifications = async (showLoading = true) => {
     if (!isAuthenticated || !user) return;
-    if (notifications.length === 0) {
+    if (showLoading && notifications.length === 0) {
       setIsLoadingList(true);
     }
     try {
@@ -112,7 +113,9 @@ export default function NotificationBell() {
     } catch (e) {
       console.warn('Could not fetch notifications:', e);
     } finally {
-      setIsLoadingList(false);
+      if (showLoading) {
+        setIsLoadingList(false);
+      }
     }
   };
 
@@ -251,12 +254,12 @@ export default function NotificationBell() {
     const nextOpen = !isOpen;
     setIsOpen(nextOpen);
     if (nextOpen) {
-      loadInitialNotifications();
       if (unreadCount > 0) {
         notificationApi.markAllAsRead().catch(() => {});
         setUnreadCount(0);
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       }
+      loadInitialNotifications(notifications.length === 0);
     }
   };
 
